@@ -1004,24 +1004,45 @@ export class FirestoreTransactionalRepository
     return record ? clone(record) : null;
   }
 
-  async getReservationByPaymentId(paymentId: string): Promise<ReservationRecord | null> {
-    validateIdentifier(paymentId, "paymentId");
-    const identifierReference = this.identifierDocument("paymentId", paymentId);
+  private async getReservationByIdentifier(
+    kind: IdentifierBindingRecord["kind"],
+    value: string,
+  ): Promise<ReservationRecord | null> {
+    validateIdentifier(value, kind);
+    const identifierReference = this.identifierDocument(kind, value);
     return this.firestore.runTransaction(async (transaction) => {
       const binding = parseEnvelope(await transaction.get(identifierReference), parseIdentifierBinding);
       if (!binding) return null;
-      if (binding.kind !== "paymentId" || binding.value !== paymentId) {
-        throw new FirestoreDataIntegrityError("Payment identifier binding mismatch");
+      if (binding.kind !== kind || binding.value !== value) {
+        throw new FirestoreDataIntegrityError(`${kind} identifier binding mismatch`);
       }
       const reservation = parseEnvelope(
         await transaction.get(this.document("reservations", binding.reservationId)),
         parseReservation,
       );
-      if (!reservation || reservation.paymentId !== paymentId || reservation.requestFingerprint !== binding.requestFingerprint) {
-        throw new FirestoreDataIntegrityError("Payment identifier points to an invalid reservation");
+      const reservationIdentifier =
+        kind === "paymentId"
+          ? reservation?.paymentId
+          : kind === "nonce"
+            ? reservation?.nonce
+            : reservation?.idempotencyKey;
+      if (!reservation || reservationIdentifier !== value || reservation.requestFingerprint !== binding.requestFingerprint) {
+        throw new FirestoreDataIntegrityError(`${kind} identifier points to an invalid reservation`);
       }
       return clone(reservation);
     }, { readOnly: true });
+  }
+
+  async getReservationByPaymentId(paymentId: string): Promise<ReservationRecord | null> {
+    return this.getReservationByIdentifier("paymentId", paymentId);
+  }
+
+  async getReservationByNonce(nonce: string): Promise<ReservationRecord | null> {
+    return this.getReservationByIdentifier("nonce", nonce);
+  }
+
+  async getReservationByIdempotencyKey(idempotencyKey: string): Promise<ReservationRecord | null> {
+    return this.getReservationByIdentifier("idempotencyKey", idempotencyKey);
   }
 
   async transitionReservation(

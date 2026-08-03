@@ -636,6 +636,33 @@ function executorDecisionEnvelope(
   });
 }
 
+async function holdDailyBudgetWithNonce(
+  repository: InMemoryTransactionalRepository,
+  nonce: string,
+) {
+  const reserved = await repository.reserveBudget({
+    reservationId: "reservation-held-daily-budget",
+    incidentId: "incident-held-daily-budget",
+    mandateId: "mandate-1",
+    paymentId: "payment-held-daily-budget",
+    nonce,
+    idempotencyKey: "idempotency-held-daily-budget",
+    requestFingerprint: canonicalHash({ fixture: "held-daily-budget", nonce }),
+    amountBaseUnits: "100000",
+    incidentLimitBaseUnits: "100000",
+    dailyLimitBaseUnits: "100000",
+    occurredAt: NOW,
+  });
+  if (reserved.kind !== "reserved") throw new Error("held-budget fixture did not reserve");
+  const submitted = await repository.transitionReservation(
+    reserved.record.reservationId,
+    ["reserved"],
+    "submitted",
+    NOW,
+  );
+  return repository.transitionReservation(submitted.reservationId, ["submitted"], "unknown", NOW);
+}
+
 describe("payment executor IAM and deterministic denial", () => {
   it("rejects an incorrect audience and an unapproved caller", async () => {
     const fixture = await createFixture();
@@ -653,6 +680,9 @@ describe("payment executor IAM and deterministic denial", () => {
   it("denies over-cap before invoking the signer and records no transaction", async () => {
     const fixture = await createFixture("5000");
     const challenge = await getChallenge(fixture);
+    await expect(
+      holdDailyBudgetWithNonce(fixture.repositories.executorRepository, challenge.proposal.nonce),
+    ).resolves.toMatchObject({ state: "unknown" });
     const denied = await request(fixture.executor)
       .post("/v1/payments/sign")
       .set("authorization", "Bearer control")
@@ -662,6 +692,35 @@ describe("payment executor IAM and deterministic denial", () => {
     expect(denied.body.transactionCreated).toBe(false);
     expect(fixture.signer.calls).toBe(0);
     expect(await fixture.repositories.executorRepository.getReservation(challenge.proposal.idempotencyKey)).toBeNull();
+  });
+
+  it("denies a known nonce before exhausted held daily budget without reserving or signing", async () => {
+    const fixture = await createFixture();
+    const challenge = await getChallenge(fixture);
+    await expect(
+      holdDailyBudgetWithNonce(fixture.repositories.executorRepository, challenge.proposal.nonce),
+    ).resolves.toMatchObject({ state: "unknown" });
+
+    const denied = await request(fixture.executor)
+      .post("/v1/payments/sign")
+      .set("authorization", "Bearer control")
+      .send(executorDecisionEnvelope(challenge, "corr-nonce-replay-held-budget"))
+      .expect(403);
+
+    expect(denied.body).toMatchObject({
+      outcome: "deny",
+      reasonCode: "identifier.nonce_fresh",
+      transactionCreated: false,
+      paymentSignature: null,
+    });
+    expect(denied.body.checks.at(-1)).toMatchObject({
+      rule: "identifier.nonce_fresh",
+      pass: false,
+    });
+    expect(fixture.signer.calls).toBe(0);
+    expect(
+      await fixture.repositories.executorRepository.getReservation(challenge.proposal.idempotencyKey),
+    ).toBeNull();
   });
 
   it("rejects duplicate keys and malformed UTF-8 before executor schema or signer access", async () => {

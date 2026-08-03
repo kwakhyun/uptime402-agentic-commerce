@@ -350,6 +350,42 @@ describe("deterministic execution policy", () => {
     });
   });
 
+  it("prioritizes identifier replay over exhausted aggregate budget, but never over the per-transaction cap", () => {
+    const replayBinding = {
+      nonce: {
+        requestFingerprint: canonicalHash({ original: true }),
+        reservationId: "reservation-original",
+      },
+    };
+    const exhaustedBudget = {
+      incidentCommittedAndReservedBaseUnits: "50000",
+      dailyCommittedAndReservedBaseUnits: "100000",
+    };
+
+    const replay = evaluatePaymentPolicy({
+      ...makeContext("20000"),
+      budget: exhaustedBudget,
+      identifiers: replayBinding,
+    });
+    expect(replay).toMatchObject({
+      outcome: "deny",
+      reasonCode: "identifier.nonce_fresh",
+      transactionCreated: false,
+    });
+    expect(replay.checks.at(-1)?.rule).toBe("identifier.nonce_fresh");
+
+    const overCapReplay = evaluatePaymentPolicy({
+      ...makeContext("20001"),
+      budget: exhaustedBudget,
+      identifiers: replayBinding,
+    });
+    expect(overCapReplay).toMatchObject({
+      outcome: "deny",
+      reasonCode: "amount.per_transaction_limit",
+      transactionCreated: false,
+    });
+  });
+
   it.each([
     ["expired", (context: PaymentPolicyContext) => withRehashedMandate(context, { expiresAt: "2026-08-03T12:04:59+09:00" }), "mandate.time_window"],
     ["revoked", (context: PaymentPolicyContext) => withRehashedMandate(context, { revokedAt: "2026-08-03T12:04:00+09:00" }), "mandate.not_revoked"],
@@ -396,6 +432,35 @@ describe("transactional in-memory persistence contract", () => {
     expect(usage).toEqual({
       incidentCommittedAndReservedBaseUnits: "600",
       dailyCommittedAndReservedBaseUnits: "600",
+    });
+  });
+
+  it("returns a nonce conflict before exhausted held budget", async () => {
+    const repository = new InMemoryTransactionalRepository();
+    const held = {
+      ...reservationRequest(10, "1000"),
+      incidentId: "incident-held",
+    };
+    const reserved = await repository.reserveBudget(held);
+    expect(reserved).toMatchObject({ kind: "reserved" });
+    if (reserved.kind !== "reserved") throw new Error("held-budget fixture did not reserve");
+    const submitted = await repository.transitionReservation(
+      reserved.record.reservationId,
+      ["reserved"],
+      "submitted",
+      NOW,
+    );
+    await expect(
+      repository.transitionReservation(submitted.reservationId, ["submitted"], "unknown", NOW),
+    ).resolves.toMatchObject({ state: "unknown" });
+
+    await expect(repository.reserveBudget({
+      ...reservationRequest(11, "1"),
+      nonce: held.nonce,
+    })).resolves.toMatchObject({
+      kind: "conflict",
+      reason: "nonce",
+      existingReservationId: held.reservationId,
     });
   });
 

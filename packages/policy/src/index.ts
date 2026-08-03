@@ -57,11 +57,11 @@ export const POLICY_RULES = [
   "amount.positive",
   "amount.offer_coherent",
   "amount.per_transaction_limit",
-  "budget.incident_limit",
-  "budget.daily_limit",
   "identifier.payment_id_fresh",
   "identifier.nonce_fresh",
   "identifier.idempotency_key_fresh",
+  "budget.incident_limit",
+  "budget.daily_limit",
   "transaction.instructions",
   "transaction.program_allowlist",
   "transaction.account_allowlist",
@@ -600,28 +600,6 @@ export function evaluatePaymentPolicy(context: PaymentPolicyContext): PaymentPol
   );
   if (denied) return denied;
 
-  const incidentUsed = parseBaseUnits(context.budget.incidentCommittedAndReservedBaseUnits);
-  const incidentLimit = parseBaseUnits(mandate.incidentLimitBaseUnits)!;
-  const incidentWithinLimit = incidentUsed !== null && incidentUsed + amount! <= incidentLimit;
-  denied = check(
-    "budget.incident_limit",
-    `<= ${mandate.incidentLimitBaseUnits}`,
-    incidentUsed === null ? "invalid" : (incidentUsed + amount!).toString(),
-    incidentWithinLimit,
-  );
-  if (denied) return denied;
-
-  const dailyUsed = parseBaseUnits(context.budget.dailyCommittedAndReservedBaseUnits);
-  const dailyLimit = parseBaseUnits(mandate.dailyLimitBaseUnits)!;
-  const dailyWithinLimit = dailyUsed !== null && dailyUsed + amount! <= dailyLimit;
-  denied = check(
-    "budget.daily_limit",
-    `<= ${mandate.dailyLimitBaseUnits}`,
-    dailyUsed === null ? "invalid" : (dailyUsed + amount!).toString(),
-    dailyWithinLimit,
-  );
-  if (denied) return denied;
-
   denied = check(
     "identifier.payment_id_fresh",
     "unused",
@@ -643,6 +621,28 @@ export function evaluatePaymentPolicy(context: PaymentPolicyContext): PaymentPol
     "unused",
     context.identifiers.idempotencyKey?.requestFingerprint ?? "unused",
     context.identifiers.idempotencyKey === undefined,
+  );
+  if (denied) return denied;
+
+  const incidentUsed = parseBaseUnits(context.budget.incidentCommittedAndReservedBaseUnits);
+  const incidentLimit = parseBaseUnits(mandate.incidentLimitBaseUnits)!;
+  const incidentWithinLimit = incidentUsed !== null && incidentUsed + amount! <= incidentLimit;
+  denied = check(
+    "budget.incident_limit",
+    `<= ${mandate.incidentLimitBaseUnits}`,
+    incidentUsed === null ? "invalid" : (incidentUsed + amount!).toString(),
+    incidentWithinLimit,
+  );
+  if (denied) return denied;
+
+  const dailyUsed = parseBaseUnits(context.budget.dailyCommittedAndReservedBaseUnits);
+  const dailyLimit = parseBaseUnits(mandate.dailyLimitBaseUnits)!;
+  const dailyWithinLimit = dailyUsed !== null && dailyUsed + amount! <= dailyLimit;
+  denied = check(
+    "budget.daily_limit",
+    `<= ${mandate.dailyLimitBaseUnits}`,
+    dailyUsed === null ? "invalid" : (dailyUsed + amount!).toString(),
+    dailyWithinLimit,
   );
   if (denied) return denied;
 

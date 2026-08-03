@@ -702,7 +702,17 @@ export function createPaymentExecutorApp(deps: PaymentExecutorDependencies): Exp
       return;
     }
 
-    const [budget, observedNetwork, transport, transaction, mandateAttestation, offerSignature] =
+    const [
+      budget,
+      observedNetwork,
+      transport,
+      transaction,
+      mandateAttestation,
+      offerSignature,
+      existingPayment,
+      existingNonce,
+      existingIdempotencyKey,
+    ] =
       await Promise.all([
         deps.reservations.getBudgetUsage(proposal.mandateId, proposal.incidentId, occurredAt),
         deps.networkObserver.observe(),
@@ -710,8 +720,10 @@ export function createPaymentExecutorApp(deps: PaymentExecutorDependencies): Exp
         deps.transactionInspector.inspect({ paymentRequired: decoded, requirements, proposal, executionPolicy }),
         mandate ? deps.signatureVerifier.verifyMandateAttestation(mandate) : Promise.resolve(false),
         deps.signatureVerifier.verifyOfferSignature(offer),
+        deps.reservations.getReservationByPaymentId(proposal.paymentId),
+        deps.reservations.getReservationByNonce(proposal.nonce),
+        deps.reservations.getReservationByIdempotencyKey(proposal.idempotencyKey),
       ]);
-    const existingPayment = await deps.reservations.getReservationByPaymentId(proposal.paymentId);
 
     const decision = evaluatePaymentPolicy({
       now: occurredAt,
@@ -735,6 +747,22 @@ export function createPaymentExecutorApp(deps: PaymentExecutorDependencies): Exp
               paymentId: {
                 requestFingerprint: existingPayment.requestFingerprint,
                 reservationId: existingPayment.reservationId,
+              },
+            }
+          : {}),
+        ...(existingNonce
+          ? {
+              nonce: {
+                requestFingerprint: existingNonce.requestFingerprint,
+                reservationId: existingNonce.reservationId,
+              },
+            }
+          : {}),
+        ...(existingIdempotencyKey
+          ? {
+              idempotencyKey: {
+                requestFingerprint: existingIdempotencyKey.requestFingerprint,
+                reservationId: existingIdempotencyKey.reservationId,
               },
             }
           : {}),

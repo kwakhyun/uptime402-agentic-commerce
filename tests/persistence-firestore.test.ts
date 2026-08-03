@@ -66,6 +66,53 @@ describe.skipIf(!emulatorEnabled)("Firestore emulator integration (a skip is not
     await expect(second.reserveBudget(winner)).resolves.toMatchObject({ kind: "existing" });
   });
 
+  it("returns a nonce replay before exhausted held budget", async () => {
+    const held: ReserveBudgetRequest = {
+      ...reserveRequest(20),
+      reservationId: "reservation-held-replay",
+      incidentId: "incident-held-replay",
+      mandateId: "mandate-held-replay",
+      paymentId: "payment-held-replay",
+      nonce: "nonce-held-replay",
+      idempotencyKey: "idempotency-held-replay",
+      requestFingerprint: canonicalHash({ held: true }),
+      amountBaseUnits: "1000",
+    };
+    const reserved = await first.reserveBudget(held);
+    expect(reserved).toMatchObject({ kind: "reserved" });
+    if (reserved.kind !== "reserved") throw new Error("held-budget fixture did not reserve");
+    const submitted = await first.transitionReservation(
+      reserved.record.reservationId,
+      ["reserved"],
+      "submitted",
+      held.occurredAt,
+    );
+    await expect(
+      first.transitionReservation(submitted.reservationId, ["submitted"], "unknown", held.occurredAt),
+    ).resolves.toMatchObject({ state: "unknown" });
+    await expect(first.getReservationByNonce(held.nonce)).resolves.toMatchObject({
+      reservationId: held.reservationId,
+      nonce: held.nonce,
+      state: "unknown",
+    });
+
+    const replay: ReserveBudgetRequest = {
+      ...held,
+      reservationId: "reservation-fresh-replay",
+      incidentId: "incident-fresh-replay",
+      paymentId: "payment-fresh-replay",
+      idempotencyKey: "idempotency-fresh-replay",
+      requestFingerprint: canonicalHash({ held: false }),
+      amountBaseUnits: "1",
+    };
+    await expect(second.reserveBudget(replay)).resolves.toMatchObject({
+      kind: "conflict",
+      reason: "nonce",
+      existingReservationId: held.reservationId,
+    });
+    await expect(second.getReservationByIdempotencyKey(replay.idempotencyKey)).resolves.toBeNull();
+  });
+
   it("keeps immutable challenges and rejects replacement", async () => {
     const payload = { x402Version: 2, accepts: [{ scheme: "exact", amount: "20000" }] };
     const challenge = {

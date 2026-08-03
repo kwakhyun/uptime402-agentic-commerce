@@ -106,6 +106,8 @@ export interface ReservationRepository {
   reserveBudget(request: ReserveBudgetRequest): Promise<ReserveBudgetResult>;
   getReservation(reservationId: string): Promise<ReservationRecord | null>;
   getReservationByPaymentId(paymentId: string): Promise<ReservationRecord | null>;
+  getReservationByNonce(nonce: string): Promise<ReservationRecord | null>;
+  getReservationByIdempotencyKey(idempotencyKey: string): Promise<ReservationRecord | null>;
   transitionReservation(
     reservationId: string,
     expectedStates: readonly ReservationState[],
@@ -436,6 +438,16 @@ export class InMemoryTransactionalRepository implements TransactionalPersistence
 
   async getReservationByPaymentId(paymentId: string): Promise<ReservationRecord | null> {
     const reservationId = this.backend.reservationByPaymentId.get(paymentId);
+    return reservationId ? this.getReservation(reservationId) : null;
+  }
+
+  async getReservationByNonce(nonce: string): Promise<ReservationRecord | null> {
+    const reservationId = this.backend.reservationByNonce.get(nonce);
+    return reservationId ? this.getReservation(reservationId) : null;
+  }
+
+  async getReservationByIdempotencyKey(idempotencyKey: string): Promise<ReservationRecord | null> {
+    const reservationId = this.backend.reservationByIdempotencyKey.get(idempotencyKey);
     return reservationId ? this.getReservation(reservationId) : null;
   }
 
