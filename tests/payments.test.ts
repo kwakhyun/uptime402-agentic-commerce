@@ -13,6 +13,8 @@ import {
   decompileTransactionMessage,
   generateKeyPairSigner,
   getCompiledTransactionMessageDecoder,
+  getTransactionEncoder,
+  partiallySignTransaction,
 } from "@solana/kit";
 import type { PaymentPayload, PaymentRequired } from "@x402/core/types";
 import { decodeTransactionFromPayload } from "@x402/svm";
@@ -57,6 +59,7 @@ import {
   runVerifyOnlyFacilitatorDiagnostic,
   safeSolanaSimulationErrorCategory,
   validateExactSvmTransactionBeforeRelease,
+  verifyFacilitatorCosignedSvmTransaction,
   verifyEnvelope,
   verifySolanaSettlement,
 } from "@uptime402/payments";
@@ -406,6 +409,80 @@ describe("private executor exact SVM payload", () => {
       feeQuoteSource: "rpc.getFeeForMessage",
       payerSignatureVerified: true,
     });
+
+    const settledTransaction = await partiallySignTransaction(
+      [feePayerSigner.keyPair],
+      decoded,
+    );
+    const settledTransactionBase64 = Buffer.from(
+      getTransactionEncoder().encode(settledTransaction),
+    ).toString("base64");
+    await expect(
+      verifyFacilitatorCosignedSvmTransaction(
+        result.paymentPayload,
+        settledTransactionBase64,
+      ),
+    ).resolves.toMatchObject({
+      payer: payerSigner.address,
+      feePayer: feePayerSigner.address,
+      transactionMessageHash: validated.transactionMessageHash,
+      payerSignatureVerified: true,
+      facilitatorSignatureVerified: true,
+    });
+    await expect(
+      verifyFacilitatorCosignedSvmTransaction(
+        result.paymentPayload,
+        result.paymentPayload.payload.transaction as string,
+      ),
+    ).rejects.toThrow(/lacks the facilitator fee-payer signature/i);
+
+    const settledPayload: PaymentPayload = {
+      ...structuredClone(result.paymentPayload),
+      payload: { ...result.paymentPayload.payload, transaction: settledTransactionBase64 },
+    };
+    const mutatedSettledMessage = mutateExactSvmWireBytes(
+      settledPayload,
+      new TextEncoder().encode(paymentId),
+      0,
+    ).payload.transaction;
+    await expect(
+      verifyFacilitatorCosignedSvmTransaction(
+        result.paymentPayload,
+        mutatedSettledMessage as string,
+      ),
+    ).rejects.toThrow(/changed the exact SVM transaction message/i);
+
+    const settledPayerSignature = settledTransaction.signatures[payerSigner.address];
+    const settledFeePayerSignature = settledTransaction.signatures[feePayerSigner.address];
+    if (!settledPayerSignature || !settledFeePayerSignature) {
+      throw new Error("settled SVM fixture is missing a required signature");
+    }
+    const mutatedPayerSignature = mutateExactSvmWireBytes(
+      settledPayload,
+      Uint8Array.from(settledPayerSignature),
+      0,
+      "wire",
+    ).payload.transaction;
+    await expect(
+      verifyFacilitatorCosignedSvmTransaction(
+        result.paymentPayload,
+        mutatedPayerSignature as string,
+      ),
+    ).rejects.toThrow(/changed the exact SVM payer signature/i);
+
+    const mutatedFacilitatorSignature = mutateExactSvmWireBytes(
+      settledPayload,
+      Uint8Array.from(settledFeePayerSignature),
+      0,
+      "wire",
+    ).payload.transaction;
+    await expect(
+      verifyFacilitatorCosignedSvmTransaction(
+        result.paymentPayload,
+        mutatedFacilitatorSignature as string,
+      ),
+    ).rejects.toThrow(/facilitator fee-payer signature verification failed/i);
+
     const exactMessageBase64 = Buffer.from(Uint8Array.from(decoded.messageBytes)).toString("base64");
     expect(feeMessageParams).toEqual([exactMessageBase64]);
 

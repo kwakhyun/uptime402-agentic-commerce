@@ -17,6 +17,7 @@
     "test:unit": "vitest run tests/domain-policy.test.ts --reporter=verbose",
     "test:integration": "vitest run tests/services-integration.test.ts tests/control-plane-live-flow.test.ts tests/a2a-process-smoke.test.ts tests/pinned-fetch.test.ts tests/dependency-health.test.ts --reporter=verbose",
     "evidence:capture": "node --conditions=react-server --import tsx scripts/capture-live-evidence.ts",
+    "evidence:assemble-manifest": "node --conditions=react-server --import tsx scripts/assemble-live-promotion-manifest.ts",
     "evidence:verify": "node --import tsx scripts/verify-evidence.ts",
     "evidence:export-operator-capture": "node --conditions=react-server --import tsx scripts/export-live-operator-capture.ts",
     "evidence:capture-settlement": "node --conditions=react-server --import tsx scripts/capture-verified-settlement.ts",

@@ -36,6 +36,7 @@ import {
   verifyOfferEnvelopeForEvidence,
   verifyX402Trace,
 } from "../scripts/verify-evidence.js";
+import { parseCaptureManifestArgument } from "../scripts/capture-live-evidence.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -159,6 +160,16 @@ function x402Binding(): Record<string, unknown> {
 }
 
 describe("submission evidence verifier", () => {
+  it("accepts pnpm's optional argument separator for evidence capture", () => {
+    expect(parseCaptureManifestArgument(["--", "/private/promotion.json"]))
+      .toBe("/private/promotion.json");
+    expect(parseCaptureManifestArgument(["/private/promotion.json"]))
+      .toBe("/private/promotion.json");
+    expect(() => parseCaptureManifestArgument(["--"])).toThrow(/Usage/);
+    expect(() => parseCaptureManifestArgument(["one.json", "two.json"]))
+      .toThrow(/Usage/);
+  });
+
   it("rejects the current empty evidence and removes a stale report", async () => {
     const directory = await mkdtemp(join(tmpdir(), "uptime402-evidence-"));
     const reportPath = join(directory, "verification-report.json");
@@ -225,6 +236,8 @@ describe("submission evidence verifier", () => {
   it("binds the exact 402, automatic paid retry, and confirmed 200 headers", () => {
     const evidence = x402Binding();
     expect(() => verifyX402Trace(evidence)).not.toThrow();
+    expect(() => verifyX402Trace({ ...evidence, offerId: "offer-fast", policyEvidence: {} }))
+      .not.toThrow();
 
     const tampered = structuredClone(evidence);
     const x402 = tampered.x402 as Record<string, Record<string, unknown>>;
@@ -267,6 +280,11 @@ describe("submission evidence verifier", () => {
       },
     };
     expect(() => verifyMoneyExplorerAndPolicy(candidate)).not.toThrow();
+    expect(() => verifyMoneyExplorerAndPolicy({
+      ...candidate,
+      incidentId: "incident-paid",
+      x402: { challenge: "already schema-validated elsewhere" },
+    })).not.toThrow();
     expect(() => verifyMoneyExplorerAndPolicy({ ...candidate, payee: PAYER })).toThrow(/distinct/);
     expect(() => verifyMoneyExplorerAndPolicy({
       ...candidate,

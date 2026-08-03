@@ -1,0 +1,9 @@
+{
+  "image_summary": {
+    "digest": "sha256:ed5e2497032264187357e3f150aa2a584b40be9683ee9a51cd9c8ac69a956cf4",
+    "fully_qualified_digest": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane@sha256:ed5e2497032264187357e3f150aa2a584b40be9683ee9a51cd9c8ac69a956cf4",
+    "registry": "asia-northeast3-docker.pkg.dev",
+    "repository": "uptime402",
+    "slsa_build_level": "unknown"
+  }
+}

@@ -1,0 +1,283 @@
+{
+  "apiVersion": "serving.knative.dev/v1",
+  "kind": "Revision",
+  "metadata": {
+    "annotations": {
+      "autoscaling.knative.dev/maxScale": "3",
+      "run.googleapis.com/execution-environment": "gen2",
+      "run.googleapis.com/operation-id": "27629a73-45f6-4e60-9a32-9eaa8fcd9127",
+      "run.googleapis.com/secrets": "vendor-receipt:projects/uptime402-hack-260803/secrets/uptime402-vendor-receipt,vendor-offers:projects/uptime402-hack-260803/secrets/uptime402-vendor-offers",
+      "run.googleapis.com/startup-cpu-boost": "true",
+      "serving.knative.dev/creator": "khyun2348@gmail.com"
+    },
+    "creationTimestamp": "2026-08-03T11:09:51.415789Z",
+    "generation": 1,
+    "labels": {
+      "cloud.googleapis.com/location": "asia-northeast3",
+      "run.googleapis.com/satisfiesPzs": "true",
+      "run.googleapis.com/startupProbeType": "Default",
+      "serving.knative.dev/configuration": "uptime402-vendor-agent",
+      "serving.knative.dev/configurationGeneration": "8",
+      "serving.knative.dev/route": "uptime402-vendor-agent",
+      "serving.knative.dev/service": "uptime402-vendor-agent",
+      "serving.knative.dev/serviceUid": "ce3f7844-9691-4250-8610-53c3e9a3c689"
+    },
+    "name": "uptime402-vendor-agent-00008-hrb",
+    "namespace": "1065649463621",
+    "ownerReferences": [
+      {
+        "apiVersion": "serving.knative.dev/v1",
+        "blockOwnerDeletion": true,
+        "controller": true,
+        "kind": "Configuration",
+        "name": "uptime402-vendor-agent",
+        "uid": "c2d65427-bcf5-4d37-8bfa-460327729ed4"
+      }
+    ],
+    "resourceVersion": "AAZYIpSdF5k",
+    "selfLink": "/apis/serving.knative.dev/v1/namespaces/1065649463621/revisions/uptime402-vendor-agent-00008-hrb",
+    "uid": "1a0cd500-5103-4faa-b8c6-1f2e2c5b6f17"
+  },
+  "spec": {
+    "containerConcurrency": 20,
+    "containers": [
+      {
+        "env": [
+          {
+            "name": "NODE_ENV",
+            "value": "production"
+          },
+          {
+            "name": "FIRESTORE_PROJECT_ID",
+            "value": "uptime402-hack-260803"
+          },
+          {
+            "name": "FIRESTORE_DATABASE_ID",
+            "value": "(default)"
+          },
+          {
+            "name": "FIRESTORE_COLLECTION_PREFIX",
+            "value": "uptime402"
+          },
+          {
+            "name": "PUBLIC_VENDOR_ORIGIN",
+            "value": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app"
+          },
+          {
+            "name": "VENDOR_AGENT_ID",
+            "value": "uptime402-owned-vendor"
+          },
+          {
+            "name": "VENDOR_AGENT_NAME",
+            "value": "Uptime402 Recovery Vendor"
+          },
+          {
+            "name": "VENDOR_AGENT_DESCRIPTION",
+            "value": "Owned vendor agent for paid incident recovery resources."
+          },
+          {
+            "name": "VENDOR_TENANT",
+            "value": "uptime402-owned-vendor"
+          },
+          {
+            "name": "VENDOR_OFFER_CATALOG_PATH",
+            "value": "/var/run/config/uptime402/vendor-offers/offers.json"
+          },
+          {
+            "name": "VENDOR_OFFER_CATALOG_ROOT",
+            "value": "/var/run/config/uptime402/vendor-offers"
+          },
+          {
+            "name": "VENDOR_OFFER_SIGNER_PUBLIC_KEY",
+            "value": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+          },
+          {
+            "name": "VENDOR_OFFER_SIGNER_KEY_ID",
+            "value": "uptime402-vendor-v1"
+          },
+          {
+            "name": "VENDOR_RECEIPT_KEY_PATH",
+            "value": "/var/run/secrets/uptime402/vendor-receipt/keypair.json"
+          },
+          {
+            "name": "VENDOR_RECEIPT_SECRET_ROOT",
+            "value": "/var/run/secrets/uptime402/vendor-receipt"
+          },
+          {
+            "name": "VENDOR_RECEIPT_PUBLIC_KEY",
+            "value": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+          },
+          {
+            "name": "VENDOR_RECEIPT_KEY_ID",
+            "value": "uptime402-vendor-v1"
+          },
+          {
+            "name": "VENDOR_USDC_RECIPIENT",
+            "value": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk"
+          },
+          {
+            "name": "VENDOR_EXPECTED_PAYER_PUBLIC_KEY",
+            "value": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu"
+          },
+          {
+            "name": "VENDOR_RECONCILE_EXPECTED_AUDIENCE",
+            "value": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app"
+          },
+          {
+            "name": "VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL",
+            "value": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com"
+          },
+          {
+            "name": "SOLANA_RPC_URL",
+            "value": "https://api.devnet.solana.com"
+          },
+          {
+            "name": "X402_FACILITATOR_URL",
+            "value": "https://x402.org/facilitator"
+          },
+          {
+            "name": "X402_FACILITATOR_FEE_PAYER",
+            "value": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5"
+          },
+          {
+            "name": "X402_MAX_TIMEOUT_SECONDS",
+            "value": "300"
+          },
+          {
+            "name": "SETTLEMENT_CONFIRMATION_ATTEMPTS",
+            "value": "5"
+          },
+          {
+            "name": "SETTLEMENT_CONFIRMATION_DELAY_MS",
+            "value": "1000"
+          },
+          {
+            "name": "SOLANA_CLUSTER_LABEL",
+            "value": "devnet"
+          },
+          {
+            "name": "SOLANA_GENESIS_HASH",
+            "value": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"
+          },
+          {
+            "name": "X402_NETWORK_ID",
+            "value": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          {
+            "name": "X402_SDK_NETWORK_ID",
+            "value": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          {
+            "name": "USDC_MINT",
+            "value": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+          },
+          {
+            "name": "USDC_DECIMALS",
+            "value": "6"
+          }
+        ],
+        "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/vendor-agent@sha256:fe9a6c30a15f81ec5fd0180efd6f476bcb5f5381173034f140b739fca417c98f",
+        "name": "vendor-agent-1",
+        "ports": [
+          {
+            "containerPort": 8080,
+            "name": "http1"
+          }
+        ],
+        "resources": {
+          "limits": {
+            "cpu": "1",
+            "memory": "512Mi"
+          }
+        },
+        "startupProbe": {
+          "failureThreshold": 1,
+          "periodSeconds": 240,
+          "tcpSocket": {
+            "port": 8080
+          },
+          "timeoutSeconds": 240
+        },
+        "volumeMounts": [
+          {
+            "mountPath": "/var/run/secrets/uptime402/vendor-receipt",
+            "name": "vendor-receipt",
+            "readOnly": true
+          },
+          {
+            "mountPath": "/var/run/config/uptime402/vendor-offers",
+            "name": "vendor-offers",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "serviceAccountName": "uptime402-vendor@uptime402-hack-260803.iam.gserviceaccount.com",
+    "timeoutSeconds": 300,
+    "volumes": [
+      {
+        "name": "vendor-receipt",
+        "secret": {
+          "defaultMode": 292,
+          "items": [
+            {
+              "key": "1",
+              "path": "keypair.json"
+            }
+          ],
+          "secretName": "vendor-receipt"
+        }
+      },
+      {
+        "name": "vendor-offers",
+        "secret": {
+          "defaultMode": 292,
+          "items": [
+            {
+              "key": "1",
+              "path": "offers.json"
+            }
+          ],
+          "secretName": "vendor-offers"
+        }
+      }
+    ]
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-08-03T11:10:04.497565Z",
+        "message": "Deploying revision succeeded in 13.08s.",
+        "status": "True",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:10:04.544565Z",
+        "severity": "Info",
+        "status": "True",
+        "type": "Active"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:10:04.454636Z",
+        "message": "Containers became healthy in 5.04s.",
+        "status": "True",
+        "type": "ContainerHealthy"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:09:57.708918Z",
+        "message": "Container image import completed in 5.82s.",
+        "status": "True",
+        "type": "ContainerReady"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:09:59.236135Z",
+        "message": "Provisioning imported containers completed in 1.52s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+        "status": "True",
+        "type": "ResourcesAvailable"
+      }
+    ],
+    "imageDigest": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/vendor-agent@sha256:fe9a6c30a15f81ec5fd0180efd6f476bcb5f5381173034f140b739fca417c98f",
+    "logUrl": "https://console.cloud.google.com/logs/viewer?project=uptime402-hack-260803&resource=cloud_run_revision/service_name/uptime402-vendor-agent/revision_name/uptime402-vendor-agent-00008-hrb&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22uptime402-vendor-agent%22%0Aresource.labels.revision_name%3D%22uptime402-vendor-agent-00008-hrb%22",
+    "observedGeneration": 1
+  }
+}

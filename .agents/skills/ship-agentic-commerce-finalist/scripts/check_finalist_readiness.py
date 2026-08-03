@@ -81,6 +81,13 @@ class CommandRun:
     finished_at: datetime
 
 
+@dataclass(frozen=True)
+class ParsedSolanaTransaction:
+    signatures: tuple[bytes, ...]
+    message: bytes
+    signer_public_keys: tuple[bytes, ...]
+
+
 def result(level: str, code: str, message: str) -> Result:
     return Result(level=level, code=code, message=message)
 
@@ -250,11 +257,7 @@ def _ed_decodepoint(encoded: bytes) -> tuple[int, int] | None:
     return x, y
 
 
-def verify_ed25519(public_key_b58: object, signature_b58: object, message: bytes) -> bool:
-    if not isinstance(public_key_b58, str) or not isinstance(signature_b58, str):
-        return False
-    public_key = base58_decode(public_key_b58)
-    signature = base58_decode(signature_b58)
+def verify_ed25519_bytes(public_key: bytes, signature: bytes, message: bytes) -> bool:
     if public_key is None or signature is None or len(public_key) != 32 or len(signature) != 64:
         return False
     point_a = _ed_decodepoint(public_key)
@@ -264,6 +267,182 @@ def verify_ed25519(public_key_b58: object, signature_b58: object, message: bytes
         return False
     challenge = int.from_bytes(hashlib.sha512(signature[:32] + public_key + message).digest(), "little") % _ED_L
     return _ed_scalarmult(_ED_B, scalar_s) == _ed_add(point_r, _ed_scalarmult(point_a, challenge))
+
+
+def verify_ed25519(public_key_b58: object, signature_b58: object, message: bytes) -> bool:
+    if not isinstance(public_key_b58, str) or not isinstance(signature_b58, str):
+        return False
+    public_key = base58_decode(public_key_b58)
+    signature = base58_decode(signature_b58)
+    if public_key is None or signature is None:
+        return False
+    return verify_ed25519_bytes(public_key, signature, message)
+
+
+def _shortvec(value: int) -> bytes:
+    if value < 0 or value > 0xFFFF:
+        raise ValueError("Solana compact-u16 value is out of range")
+    encoded = bytearray()
+    remaining = value
+    while True:
+        byte = remaining & 0x7F
+        remaining >>= 7
+        encoded.append(byte | (0x80 if remaining else 0))
+        if not remaining:
+            return bytes(encoded)
+
+
+def _read_shortvec(raw: bytes, offset: int) -> tuple[int, int]:
+    start = offset
+    value = 0
+    shift = 0
+    for _ in range(3):
+        if offset >= len(raw):
+            raise ValueError("Truncated Solana compact-u16")
+        byte = raw[offset]
+        offset += 1
+        value |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            if value > 0xFFFF or raw[start:offset] != _shortvec(value):
+                raise ValueError("Non-canonical Solana compact-u16")
+            return value, offset
+        shift += 7
+    raise ValueError("Oversized Solana compact-u16")
+
+
+def _read_solana_message_signers(message: bytes) -> tuple[bytes, ...]:
+    if len(message) < 5 or message[0] != 0x80:
+        raise ValueError("x402 SVM transaction must use the pinned version-0 message")
+    required_signatures = message[1]
+    readonly_signed = message[2]
+    readonly_unsigned = message[3]
+    static_count, offset = _read_shortvec(message, 4)
+    if (
+        required_signatures == 0
+        or required_signatures > static_count
+        or readonly_signed > required_signatures
+        or readonly_unsigned > static_count - required_signatures
+        or static_count > 256
+    ):
+        raise ValueError("Invalid Solana version-0 message header")
+    keys_end = offset + static_count * 32
+    if keys_end + 32 > len(message):
+        raise ValueError("Truncated Solana version-0 account keys or blockhash")
+    static_keys = tuple(
+        message[offset + index * 32 : offset + (index + 1) * 32]
+        for index in range(static_count)
+    )
+    offset = keys_end + 32
+
+    instruction_count, offset = _read_shortvec(message, offset)
+    for _ in range(instruction_count):
+        if offset >= len(message):
+            raise ValueError("Truncated Solana instruction program index")
+        program_index = message[offset]
+        offset += 1
+        account_count, offset = _read_shortvec(message, offset)
+        accounts_end = offset + account_count
+        if accounts_end > len(message):
+            raise ValueError("Truncated Solana instruction accounts")
+        account_indices = message[offset:accounts_end]
+        offset = accounts_end
+        data_length, offset = _read_shortvec(message, offset)
+        data_end = offset + data_length
+        if data_end > len(message):
+            raise ValueError("Truncated Solana instruction data")
+        offset = data_end
+        if program_index >= static_count or any(index >= static_count for index in account_indices):
+            raise ValueError("Solana instruction references an unbound account")
+
+    lookup_count, offset = _read_shortvec(message, offset)
+    if lookup_count != 0:
+        raise ValueError("x402 SVM transaction must not use address lookup tables")
+    if offset != len(message):
+        raise ValueError("Solana version-0 message has trailing bytes")
+    return static_keys[:required_signatures]
+
+
+def parse_solana_transaction(raw: bytes) -> ParsedSolanaTransaction:
+    signature_count, offset = _read_shortvec(raw, 0)
+    signatures_end = offset + signature_count * 64
+    if signature_count == 0 or signatures_end >= len(raw):
+        raise ValueError("Truncated Solana transaction signatures or message")
+    signatures = tuple(
+        raw[offset + index * 64 : offset + (index + 1) * 64]
+        for index in range(signature_count)
+    )
+    message = raw[signatures_end:]
+    signer_public_keys = _read_solana_message_signers(message)
+    if len(signer_public_keys) != signature_count:
+        raise ValueError("Solana signature count differs from the message signer set")
+    return ParsedSolanaTransaction(
+        signatures=signatures,
+        message=message,
+        signer_public_keys=signer_public_keys,
+    )
+
+
+def verify_facilitator_cosigned_solana_transaction(
+    payment: dict[str, Any],
+    live_wire: bytes,
+) -> None:
+    x402 = payment.get("x402")
+    payment_stage = x402.get("payment") if isinstance(x402, dict) else None
+    payment_header = decode_header_json(payment_stage.get("headerValue")) if isinstance(payment_stage, dict) else None
+    payload = payment_header.get("payload") if isinstance(payment_header, dict) else None
+    transaction_b64 = payload.get("transaction") if isinstance(payload, dict) else None
+    if not isinstance(transaction_b64, str):
+        raise ValueError("PAYMENT-SIGNATURE lacks the SVM transaction")
+    try:
+        released_wire = base64.b64decode(transaction_b64, validate=True)
+    except (ValueError, base64.binascii.Error) as exc:
+        raise ValueError("PAYMENT-SIGNATURE transaction is not canonical Base64") from exc
+    if not released_wire or base64.b64encode(released_wire).decode("ascii") != transaction_b64:
+        raise ValueError("PAYMENT-SIGNATURE transaction is not canonical Base64")
+    claimed_hash = payment_stage.get("signedTransactionSha256") if isinstance(payment_stage, dict) else None
+    if sha256_value(released_wire) != claimed_hash:
+        raise ValueError("PAYMENT-SIGNATURE transaction hash binding failed")
+
+    released = parse_solana_transaction(released_wire)
+    settled = parse_solana_transaction(live_wire)
+    if len(released.signatures) != 2 or len(settled.signatures) != 2:
+        raise ValueError("Exact x402 SVM settlement must have exactly two signers")
+    if released.signer_public_keys != settled.signer_public_keys:
+        raise ValueError("Facilitator settlement changed the exact signer set")
+    if released.message != settled.message:
+        raise ValueError("Facilitator settlement changed the transaction message")
+
+    accepted = payment_header.get("accepted") if isinstance(payment_header, dict) else None
+    extra = accepted.get("extra") if isinstance(accepted, dict) else None
+    fee_payer_b58 = extra.get("feePayer") if isinstance(extra, dict) else None
+    payer_b58 = payment.get("payer")
+    fee_payer = base58_decode(fee_payer_b58) if isinstance(fee_payer_b58, str) else None
+    payer = base58_decode(payer_b58) if isinstance(payer_b58, str) else None
+    if fee_payer is None or len(fee_payer) != 32 or payer is None or len(payer) != 32:
+        raise ValueError("Accepted fee payer or recorded payer is not a Solana public key")
+    if fee_payer == payer:
+        raise ValueError("Facilitator fee payer and token payer must be distinct")
+    if released.signer_public_keys != (fee_payer, payer):
+        raise ValueError("Transaction signer set does not bind the accepted fee payer and recorded payer")
+
+    zero_signature = bytes(64)
+    released_fee_signature, released_payer_signature = released.signatures
+    settled_fee_signature, settled_payer_signature = settled.signatures
+    if released_fee_signature != zero_signature:
+        raise ValueError("Facilitator fee-payer slot was signed before the paid retry")
+    if released_payer_signature == zero_signature:
+        raise ValueError("PAYMENT-SIGNATURE lacks the payer signature")
+    if settled_fee_signature == zero_signature:
+        raise ValueError("Live settlement lacks the facilitator fee-payer signature")
+    if settled_payer_signature != released_payer_signature:
+        raise ValueError("Facilitator settlement changed the payer signature")
+    if not verify_ed25519_bytes(payer, settled_payer_signature, released.message):
+        raise ValueError("Live payer signature is invalid")
+    if not verify_ed25519_bytes(fee_payer, settled_fee_signature, released.message):
+        raise ValueError("Live facilitator fee-payer signature is invalid")
+    tx_signature = base58_decode(str(payment.get("txSignature", "")))
+    if tx_signature != settled_fee_signature:
+        raise ValueError("Recorded transaction signature is not the facilitator fee-payer signature")
 
 
 def is_web_url(value: object, *, allow_loopback_http: bool = False) -> bool:
@@ -285,6 +464,62 @@ def is_web_url(value: object, *, allow_loopback_http: bool = False) -> bool:
     }:
         return True
     return False
+
+
+def is_exact_https_origin(value: object) -> bool:
+    if not isinstance(value, str) or not value or len(value) > 2048:
+        return False
+    try:
+        parsed = urllib.parse.urlsplit(value)
+        port = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme == "https"
+        and bool(parsed.hostname)
+        and parsed.hostname == parsed.hostname.lower()
+        and parsed.username is None
+        and parsed.password is None
+        and port is None
+        and parsed.path == ""
+        and not parsed.query
+        and not parsed.fragment
+        and value == f"https://{parsed.netloc}"
+    )
+
+
+def cloud_run_origin_bound(description: object, expected_origin: object) -> bool:
+    """Bind either Cloud Run hostname only through the raw v1 service export.
+
+    Cloud Run's stable project-number hostname can differ from ``status.url``'s
+    generated ``a.run.app`` hostname. The raw export's official URLs annotation
+    is authoritative only when it contains both exact, unique HTTPS origins.
+    """
+    if not isinstance(description, dict) or not is_exact_https_origin(expected_origin):
+        return False
+    status = description.get("status")
+    status_url = status.get("url") if isinstance(status, dict) else None
+    if not is_exact_https_origin(status_url):
+        return False
+    if status_url == expected_origin:
+        return True
+    metadata = description.get("metadata")
+    annotations = metadata.get("annotations") if isinstance(metadata, dict) else None
+    raw_aliases = annotations.get("run.googleapis.com/urls") if isinstance(annotations, dict) else None
+    if not isinstance(raw_aliases, str) or not raw_aliases or len(raw_aliases) > 16384:
+        return False
+    try:
+        aliases = json.loads(raw_aliases)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    if (
+        not isinstance(aliases, list)
+        or not 2 <= len(aliases) <= 16
+        or not all(is_exact_https_origin(alias) for alias in aliases)
+        or len(set(aliases)) != len(aliases)
+    ):
+        return False
+    return status_url in aliases and expected_origin in aliases
 
 
 def canonical_resource_url(value: object) -> str | None:
@@ -499,11 +734,21 @@ def run_repository_scripts(root: Path, timeout: int) -> CommandRun:
             results.append(result("FAIL", f"commands.{name}", f"Package script '{name}' is a trivial no-op"))
             continue
         command = [manager, "run", name]
+        command_environment = dict(environment)
+        if name == "evidence:verify":
+            # The evidence verifier is the only repository command that needs
+            # the explicitly configured read-only RPC endpoints. Keep them out
+            # of build/test/lint/typecheck and continue stripping wallet, model,
+            # cloud, and signer credentials from every child process.
+            for key in ("SOLANA_RPC_URL", "SOLANA_SECONDARY_RPC_URL"):
+                value = os.environ.get(key)
+                if value:
+                    command_environment[key] = value
         try:
             completed = subprocess.run(
                 command,
                 cwd=root,
-                env=environment,
+                env=command_environment,
                 check=False,
                 capture_output=True,
                 text=False,
@@ -1773,6 +2018,62 @@ def token_totals(balances: object, mint: str, decimals: int) -> dict[str, int]:
     return totals
 
 
+def rpc_timeline_is_coherent(
+    payload: dict[str, Any],
+    payment: dict[str, Any],
+    block_time: int,
+    *,
+    block_tolerance_seconds: int = 10,
+) -> bool:
+    x402 = payment.get("x402")
+    receipt = payment.get("fulfillmentReceipt")
+    receipt_payload = receipt.get("payload") if isinstance(receipt, dict) else None
+    outcome = payment.get("outcome")
+    outcome_payload = outcome.get("payload") if isinstance(outcome, dict) else None
+    values = {
+        "generated": parse_timestamp(payload.get("generatedAt")),
+        "incident": parse_timestamp(payment.get("incidentAt")),
+        "challenge": parse_timestamp(x402.get("challenge", {}).get("capturedAt"))
+        if isinstance(x402, dict)
+        else None,
+        "payment": parse_timestamp(x402.get("payment", {}).get("capturedAt"))
+        if isinstance(x402, dict)
+        else None,
+        "confirmed": parse_timestamp(payment.get("confirmedAt")),
+        "fulfilled": parse_timestamp(receipt_payload.get("fulfilledAt"))
+        if isinstance(receipt_payload, dict)
+        else None,
+        "settlement": parse_timestamp(x402.get("settlement", {}).get("capturedAt"))
+        if isinstance(x402, dict)
+        else None,
+        "recovered": parse_timestamp(outcome_payload.get("recoveredAt"))
+        if isinstance(outcome_payload, dict)
+        else None,
+    }
+    if not all(values.values()) or not isinstance(block_time, int):
+        return False
+    generated = values["generated"]
+    incident = values["incident"]
+    challenge = values["challenge"]
+    payment_at = values["payment"]
+    confirmed = values["confirmed"]
+    fulfilled = values["fulfilled"]
+    settlement = values["settlement"]
+    recovered = values["recovered"]
+    assert all(
+        item is not None
+        for item in (generated, incident, challenge, payment_at, confirmed, fulfilled, settlement, recovered)
+    )
+    block_at = datetime.fromtimestamp(block_time, timezone.utc)
+    return bool(
+        incident <= challenge <= payment_at
+        and (block_at - payment_at).total_seconds() >= -block_tolerance_seconds
+        and abs((confirmed - block_at).total_seconds()) <= 600
+        and (confirmed - block_at).total_seconds() >= -block_tolerance_seconds
+        and confirmed <= fulfilled <= settlement <= recovered <= generated
+    )
+
+
 def check_rpc_payments(
     payload: dict[str, Any],
     rpc_url: str | None,
@@ -1852,9 +2153,12 @@ def check_rpc_payments(
             live_tx_bytes = base64.b64decode(str(raw_tx_b64), validate=True)
         except (ValueError, base64.binascii.Error):
             live_tx_bytes = b""
-        payment_stage = payment.get("x402", {}).get("payment", {}) if isinstance(payment.get("x402"), dict) else {}
-        if not live_tx_bytes or sha256_value(live_tx_bytes) != payment_stage.get("signedTransactionSha256"):
-            results.append(result("FAIL", f"{prefix}.wire_transaction", "x402 signed transaction differs from live RPC bytes"))
+        try:
+            if not live_tx_bytes or base64.b64encode(live_tx_bytes).decode("ascii") != raw_tx_b64:
+                raise ValueError("Live RPC transaction is not canonical Base64")
+            verify_facilitator_cosigned_solana_transaction(payment, live_tx_bytes)
+        except ValueError as exc:
+            results.append(result("FAIL", f"{prefix}.wire_transaction", str(exc)))
         meta = transaction.get("meta")
         tx = transaction.get("transaction")
         if not isinstance(meta, dict) or meta.get("err") is not None or not isinstance(tx, dict):
@@ -1886,22 +2190,14 @@ def check_rpc_payments(
         block_time = transaction.get("blockTime")
         if not isinstance(tx_slot, int) or status_slot != tx_slot or not isinstance(block_time, int):
             results.append(result("FAIL", f"{prefix}.slot_time", "Signature status slot/blockTime is inconsistent"))
-        else:
-            block_at = datetime.fromtimestamp(block_time, timezone.utc)
-            incident_at = parse_timestamp(payment.get("incidentAt"))
-            confirmed_at = parse_timestamp(payment.get("confirmedAt"))
-            x402 = payment.get("x402")
-            payment_at = parse_timestamp(x402.get("payment", {}).get("capturedAt")) if isinstance(x402, dict) else None
-            settlement_at = parse_timestamp(x402.get("settlement", {}).get("capturedAt")) if isinstance(x402, dict) else None
-            tolerance = 10
-            if not all((incident_at, confirmed_at, payment_at, settlement_at)) or not (
-                incident_at <= payment_at
-                and (block_at - payment_at).total_seconds() >= -tolerance
-                and (settlement_at - block_at).total_seconds() >= -tolerance
-                and (confirmed_at - settlement_at).total_seconds() >= -tolerance
-                and abs((confirmed_at - block_at).total_seconds()) <= 600
-            ) or not (0 <= (confirmed_at - incident_at).total_seconds() <= 3600):
-                results.append(result("FAIL", f"{prefix}.timeline", "RPC blockTime does not fit incident/x402/confirmation timeline"))
+        elif not rpc_timeline_is_coherent(payload, payment, block_time):
+            results.append(
+                result(
+                    "FAIL",
+                    f"{prefix}.timeline",
+                    "RPC blockTime does not fit the signed x402/fulfillment/recovery evidence timeline",
+                )
+            )
         live_confirmation = status.get("confirmationStatus") if isinstance(status, dict) else None
         if payment.get("confirmationStatus") == "finalized" and live_confirmation != "finalized":
             results.append(result("FAIL", f"{prefix}.confirmation", "Recorded finalized status is not live finalized"))
@@ -2125,7 +2421,6 @@ def check_submission_assets(root: Path, payload: dict[str, Any], timeout: int) -
             if description_path is not None:
                 describe_artifacts.add(str(description_path.resolve()))
             described_account = None
-            described_url = None
             raw_description_valid = False
             if isinstance(description, dict):
                 metadata = description.get("metadata")
@@ -2135,8 +2430,6 @@ def check_submission_assets(root: Path, payload: dict[str, Any], timeout: int) -
                 if isinstance(spec_template_spec, dict):
                     described_account = spec_template_spec.get("serviceAccountName")
                 status = description.get("status")
-                if isinstance(status, dict):
-                    described_url = status.get("url")
                 generation = metadata.get("generation") if isinstance(metadata, dict) else None
                 observed_generation = status.get("observedGeneration") if isinstance(status, dict) else None
                 conditions = status.get("conditions") if isinstance(status, dict) else None
@@ -2163,7 +2456,11 @@ def check_submission_assets(root: Path, payload: dict[str, Any], timeout: int) -
                     and isinstance(status.get("latestReadyRevisionName"), str)
                     and bool(status["latestReadyRevisionName"])
                 )
-            if not raw_description_valid or described_account != service_account or described_url != url:
+            if (
+                not raw_description_valid
+                or described_account != service_account
+                or not cloud_run_origin_bound(description, url)
+            ):
                 results.append(
                     result(
                         "FAIL",

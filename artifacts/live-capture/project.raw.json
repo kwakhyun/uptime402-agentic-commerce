@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "project",
+  "capturedAt": "2026-08-03T11:39:06.877Z",
+  "payloadHash": "sha256:683f7843f9d78e8ba5c8a767cb273cced485f618c204813d94fdc0ef45640bd0",
+  "payload": {
+    "name": "Uptime402",
+    "networkTarget": "Solana Devnet",
+    "assetTarget": "USDC",
+    "deployment": "live",
+    "liveUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+    "deploymentArtifact": "cloudbuild.yaml",
+    "projectIamPolicyArtifact": "artifacts/live-capture/project-iam.json",
+    "projectIamPolicyArtifactSha256": "sha256:3948a835f7db11e9f30732d6057bf13b5a09f0001d004ddc31ed58af931c010b",
+    "deckPdf": "submission/Uptime402_Deck.pdf",
+    "demoVideo": "submission/Uptime402_Demo.mp4",
+    "demoVideoDurationSeconds": 165,
+    "services": [
+      {
+        "role": "control-plane",
+        "url": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+        "healthUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/api/health",
+        "public": true,
+        "serviceAccount": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "artifacts/live-capture/control-plane.service.yaml",
+        "serviceDescribeArtifact": "artifacts/live-capture/cloud-run-control-plane-service.json",
+        "serviceDescribeArtifactSha256": "sha256:f13fab97aa6b4760ecd29ca99b10d2d37edfd8941bff63523bc6ee88e08c1f5f",
+        "iamPolicyArtifact": "artifacts/live-capture/cloud-run-control-plane-iam.json",
+        "iamPolicyArtifactSha256": "sha256:9c8087a4a52140dd117e56900fc3322609c030c729d2e2170836823995a45878"
+      },
+      {
+        "role": "payment-executor",
+        "url": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app",
+        "public": false,
+        "iamProtected": true,
+        "audience": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app",
+        "serviceAccount": "uptime402-executor@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "artifacts/live-capture/payment-executor.service.yaml",
+        "serviceDescribeArtifact": "artifacts/live-capture/cloud-run-payment-executor-service.json",
+        "serviceDescribeArtifactSha256": "sha256:5bac687340052a95c4c3e2b8aad7c7648cf74992f95f48211b2383b0672037b1",
+        "iamPolicyArtifact": "artifacts/live-capture/cloud-run-payment-executor-iam.json",
+        "iamPolicyArtifactSha256": "sha256:61bebb838a36d2e78314801925baec8069a70d847a2167b3675cb18b84990b25",
+        "signerSecretResource": "projects/uptime402-hack-260803/secrets/uptime402-executor-signer/versions/1",
+        "secretIamPolicyArtifact": "artifacts/live-capture/executor-signer-access-iam-policy.json",
+        "secretIamPolicyArtifactSha256": "sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8"
+      },
+      {
+        "role": "vendor-agent",
+        "url": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app",
+        "healthUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/health",
+        "public": true,
+        "serviceAccount": "uptime402-vendor@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "artifacts/live-capture/vendor-agent.service.yaml",
+        "serviceDescribeArtifact": "artifacts/live-capture/cloud-run-vendor-agent-service.json",
+        "serviceDescribeArtifactSha256": "sha256:891f4ea49cb4b1c25943eff565f09bb89a6ebeb65514665b081b26abcce74420",
+        "iamPolicyArtifact": "artifacts/live-capture/cloud-run-vendor-agent-iam.json",
+        "iamPolicyArtifactSha256": "sha256:0593d855fe4225f81c268dc13fe1befbc3e545bc54647ccfafdb1502aa726471"
+      }
+    ]
+  }
+}

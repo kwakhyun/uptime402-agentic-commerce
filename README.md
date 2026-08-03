@@ -2,15 +2,15 @@
 
 > **An outage does not wait for procurement.**
 
-Uptime402는 Gemini 기반 AI SRE가 정제된 장애 신호를 진단하고, 별도 A2A vendor agent의 서명된 복구 견적을 비교한 뒤, 운영자가 미리 설정한 정책과 예산 안에서 x402 + Solana Devnet USDC 결제 payload를 자동 서명하도록 설계한 B2B 복구 데모입니다. 현재 저장소는 이 경로의 로컬 구현과 테스트를 제공하며, 실제 Devnet 결제·Cloud Run 배포·Gemini 실호출 증거는 아직 승격되지 않았습니다. 결제 건별 사람 승인이나 브라우저 지갑 팝업이 없는 실행 계약은 로컬 테스트로만 검증됐습니다.
+Uptime402는 Gemini 기반 AI SRE가 정제된 장애 신호를 진단하고, 별도 A2A vendor agent의 서명된 복구 견적을 비교한 뒤, 운영자가 미리 설정한 정책과 예산 안에서 x402 + Solana Devnet USDC 결제 payload를 자동 서명하는 B2B 복구 데모입니다. `finalist-demo-5`에서 세 Cloud Run 서비스와 Firestore를 거쳐 `0.015 USDC`가 실제로 결제됐고, paid resource가 health를 `healthy`로 전환했습니다. 같은 operator action에서 per-transaction 초과와 nonce replay도 자동 거절됐습니다. 결제 건별 사람 승인이나 브라우저 지갑 팝업은 없었습니다.
 
-현재 증거 수준은 [BUILD_STATUS.md](docs/BUILD_STATUS.md)가 유일한 기준입니다. 로컬 테스트 성공은 Devnet 결제, Cloud Run 배포, Gemini 실호출, 또는 제출 준비 완료를 뜻하지 않습니다. pay.sh는 실제 live path에 없으므로 이 저장소는 pay.sh 통합을 주장하지 않습니다.
+다만 현재 control-plane은 증거 승격 전 `capture` revision이며 UI는 반드시 `LIVE UNVERIFIED`로 표시됩니다. `artifacts/payment-evidence.json`과 독립 `verification-report.json`은 검증을 통과했지만 두 파일의 exact hash pin, `final` revision 재배포, 로그아웃/모바일/영상 최종 QA가 아직 열려 있습니다. 따라서 이 문서는 final 또는 submission-ready를 주장하지 않습니다. 현재 증거 수준은 [BUILD_STATUS.md](docs/BUILD_STATUS.md)가 기준입니다. pay.sh는 live path에 없으므로 통합을 주장하지 않습니다.
 
 ## 구현 경계
 
 - `apps/control-plane`: Next.js 한국어 mission-control UI, telemetry redaction, Gemini decision adapter, A2A buyer, incident orchestration. Executor/vendor key는 읽지 않고, server-only recovery-outcome key 하나만 별도 mount합니다.
 - `services/vendor-agent`: 별도 Express/A2A 서비스, 두 immutable signed offer, x402-gated recovery resource, shared payment claim, vendor-signed fulfillment receipt.
-- `services/payment-executor`: private IAM 배포를 전제로 한 별도 service, authoritative state reload, deterministic policy, atomic reserve, 기존 저잔액 executor wallet을 이용한 x402 payload 서명. 먼저 broadcast하지 않습니다. 실제 Cloud Run IAM 경계는 아직 배포·검증되지 않았습니다.
+- `services/payment-executor`: private IAM Cloud Run service, authoritative state reload, deterministic policy, atomic reserve, 기존 저잔액 executor wallet을 이용한 x402 payload 서명. 먼저 broadcast하지 않으며 control-plane service identity만 호출할 수 있습니다.
 - `packages/domain`: strict schemas, RFC 8785 canonicalization, SHA-256 binding, URL/SSRF rules.
 - `packages/policy`: 순수 결정론적 policy evaluation.
 - `packages/payments`: 공식 x402 SVM client/server adapters, pinned facilitator, receipt/outcome signatures, independent Solana RPC verifier.
@@ -49,7 +49,8 @@ pnpm exec vitest run tests/services-integration.test.ts --reporter=verbose
 | `local-simulated` | in-memory repository + injected model/facilitator | 코드·정책·protocol state-machine의 로컬 검증 |
 | `firestore-emulator` | `FIRESTORE_EMULATOR_HOST` 필요 | emulator transaction/concurrency 검증 |
 | `devnet` | 기존 funded wallet, distinct recipient, real RPC/facilitator 필요 | 독립 RPC 검증을 통과한 실제 Devnet USDC만 |
-| `live` | 세 Cloud Run 서비스 + Firestore + IAM/Secret Manager 필요 | raw deployment/IAM artifacts와 로그아웃 검증을 통과한 URL만 |
+| `live-capture` | 세 Cloud Run 서비스 + managed Firestore + IAM/Secret Manager | 실제 run을 수집하되 UI는 `LIVE UNVERIFIED`; evidence/report hash pin 전에는 verified 주장 금지 |
+| `live-final` | 검증된 evidence/report를 exact SHA-256으로 pin한 새 revision | fresh verifier와 public/UI/manual QA까지 통과한 read-only evidence replay만 |
 
 `pnpm dev`는 로컬 mission-control UI preview만 `http://localhost:3000`에
 실행합니다. 이 화면의 fixture/timeline은 `local-simulated`이고 vendor, executor,
@@ -184,6 +185,21 @@ Devnet 승격에는 사용자가 이미 보유한 다음 입력이 필요합니�
 
 P0는 **application-enforced policy plus low-balance blast-radius isolation**입니다. Fixed Delegation의 x402 호환 end-to-end 증거가 없으므로 wallet을 `scoped` 또는 cryptographic cap이라고 부르지 않습니다.
 
+### 현재 demo5 capture — 아직 final 아님
+
+2026-08-03의 `finalist-demo-5` capture에는 다음 실제 값이 기록돼 있습니다.
+
+- Flow: `request -> 402 -> policy reserve -> automatic PAYMENT-SIGNATURE -> paid retry -> facilitator verify/settle -> confirmed 200 -> signed receipt -> healthy outcome`
+- Transaction: [`4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ`](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet), `finalized`, slot `480903755`
+- Network: `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`; mint: `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`; amount: `15000` base units = `0.015 USDC`
+- Payer owner `5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu`: token account `3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd`, `19970000 -> 19955000`, delta `-15000`
+- Payee owner `GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk`: token account `7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J`, `30000 -> 45000`, delta `+15000`
+- Gemini selection: baseline `rpc-recovery-standard`; counterfactual `rpc-recovery-emergency`
+- Denials: `amount.per_transaction_limit` at `25000 > 20000`, and `identifier.nonce_fresh` with the primary nonce reused. Both record `transactionCreated:false` and `txSignature:null`.
+- Recovery binding: vendor key `uptime402-vendor-v1` signs the fulfillment receipt; distinct control-plane key `uptime402-outcome-v1` binds it to `statusAfter: healthy`.
+
+The capture bundle is [payment-evidence.json](artifacts/payment-evidence.json). After renaming the raw signer-access IAM policy artifact to a non-secret-like filename, its file SHA-256 is `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`; the IAM policy bytes and their bound SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8` did not change. The final automated checker reran the verifier and produced [verification-report.json](artifacts/verification-report.json), SHA-256 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`, bound to the current evidence bytes. These hashes are not a live UI claim until the new `final` revision is deployed and manually checked. Do not reuse `finalist-demo-5` or create another payment; the authorized Devnet spend budget is already `0.045 USDC` across the successful live runs.
+
 실제 실행 뒤 `artifacts/payment-evidence.json`에는 `runBindingHash`, 402/200 raw x402 headers, CAIP-2 network, full genesis hash, USDC mint, integer base units, 서로 다른 payer/payee owner, tx signature/Explorer, confirmation, 관련 token account의 정확한 음·양 delta, signed fulfillment receipt, healthy outcome만 기록합니다. 검증 명령은 다음과 같습니다.
 
 `promotion-manifest.json`은 증거 자체가 아니라 ignored local 수집 manifest입니다.
@@ -233,12 +249,12 @@ private/nonstandard RPC를 썼다면 마지막 명령에
 
 ## Cloud Run / Firestore
 
-배포 계약과 승인 후 실행 순서는 [deploy/README.md](deploy/README.md), 세 독립
-manifest template과 [ARCHITECTURE.md](docs/ARCHITECTURE.md)에 있습니다. Cloud Build는
-세 이미지를 build/push만 하며 배포/IAM/Secret을 자동 변경하지 않습니다. 배포 전
-local production build와 template contract를 통과시키고, 사용자가 선택한 GCP
-project/auth/billing과 외부 변경 승인을 받아야 합니다. 필요한 API는 Cloud Run,
-Artifact Registry, Cloud Build, Firestore, Secret Manager, Vertex AI입니다.
+배포 계약과 실행 순서는 [deploy/README.md](deploy/README.md), 세 독립 manifest
+template과 [ARCHITECTURE.md](docs/ARCHITECTURE.md)에 있습니다. 현재 project는
+`uptime402-hack-260803`, region은 `asia-northeast3`이며 capture revision은 control
+`00012-h7q`, executor `00009-wgq`, vendor `00008-hrb`입니다. 세 revision은 동일한 Git
+SHA `c938a866b74c9f2682b0d1c1fe27391e562b7caa` 이미지에서 실행됩니다. Cloud Build는 세
+이미지를 build/push만 하며 배포/IAM/Secret을 자동 변경하지 않습니다.
 
 Control-plane은 두 단계로 배포합니다. `capture` stage는 evidence hash env 없이
 렌더링되고 화면 전체를 `LIVE UNVERIFIED`로 유지합니다. 실제 capture와 verifier가
@@ -270,12 +286,13 @@ identity의 primitive owner/editor grant가 있으면 live promotion을 거절�
 
 ## 알려진 한계와 submission gate
 
-- Firestore emulator concurrency/replay와 9장 deck PDF의 로컬 검증은 완료됐습니다. 이는 managed Firestore, live Cloud Run, 또는 실제 Devnet 결제 증거가 아닙니다.
-- Devnet payment, Gemini live call, managed Firestore, Cloud Run/IAM, 로그아웃 URL, final video는 각 evidence가 생기기 전까지 완료가 아닙니다.
-- Route-aware dependency-health endpoint와 mutation/missing/expired local tests는 구현됐지만 managed Firestore/Cloud Run에서는 미검증입니다. Existing-key-only offer/mandate provisioning command는 구현됐지만 실제 signed artifacts가 제공되기 전까지 live flow는 blocked입니다.
-- Executor Run IAM은 control-plane identity 하나로 유지합니다. Google OIDC operator route와 control-plane SA proxy는 로컬 검증됐지만 live OIDC/IAM evidence 전에는 operator-authenticated 경계를 배포 완료로 주장하지 않습니다. 구조 자체도 hard admin-service separation이 아니라 application-role separation입니다.
+- demo5의 Devnet transaction, Gemini two-offer selection, managed Firestore state, 세 Cloud Run revision, IAM/Secret Manager export는 capture됐고 independent verifier report가 통과했습니다. 현재 live UI는 아직 이 두 artifact hash를 pin하지 않았으므로 `unverified`입니다.
+- Control-plane은 `capture` stage이며 evidence/report hash env가 없습니다. 이 revision에서 `DEVNET VERIFIED`, `final`, 또는 submission-ready로 보이는 경로는 허용하지 않습니다.
+- Executor Run IAM은 control-plane identity 하나로 유지하고 unauthenticated request는 `403`입니다. 구조 자체는 hard admin-service separation이 아니라 **application-role separation**입니다.
+- [Uptime402_Demo.mp4](submission/Uptime402_Demo.mp4)는 `164.966667`초 provisional capture지만 audio stream이 없고, 샘플 구간 대부분이 Codex desktop과 작은 UI inset이며 빈 Google auth window가 중앙을 가립니다. Manual QA에 실패했으므로 final evidence-stage walkthrough로 교체해야 합니다.
+- [Uptime402_Deck.pdf](submission/Uptime402_Deck.pdf)는 demo5 실측값을 반영한 9페이지 export이며 overflow, template fidelity, source/final render QA를 통과했습니다. 이미지 기반 PDF라 태그/텍스트 검색은 지원하지 않고 editable PPTX를 함께 제공합니다.
 - owned vendor P0이며 두 immutable offer를 제공합니다. 두 번째 vendor deployment, MPP, AP2 conformance, passkey, gasless, BigQuery, KMS, Fixed Delegation은 P1입니다.
 - P0는 AP2 conformance/compliance를 주장하지 않습니다. 설계 수준에서 AP2를 언급할 때만 `AP2-aligned`를 사용하고, official schema 검증 전에는 `AP2-validated` 또는 `AP2-compliant`라고 쓰지 않습니다.
-- 최종 외부 변경인 public GitHub push, paid Cloud deployment, video upload는 사용자 승인 후에만 수행합니다.
+- Automated submission checker는 `75 passed / 0 warned / 0 failed`로 통과했습니다. 남은 gate는 exact evidence/report hash pin, 동일 Git SHA 이미지의 `final` 재배포, 로그아웃/OAuth/IAM/desktop/mobile QA, replacement video QA입니다. Public GitHub push와 외부 video upload는 직전 사용자 승인이 필요합니다.
 
 상세 상태: [BUILD_STATUS.md](docs/BUILD_STATUS.md) · 실제/목표 구조: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · 촬영 순서: [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)

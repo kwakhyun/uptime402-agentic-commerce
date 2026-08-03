@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import tempfile
 import unittest
@@ -10,6 +11,9 @@ from pathlib import Path
 from unittest import mock
 
 from check_finalist_readiness import (
+    _ED_B,
+    _ED_L,
+    _ed_scalarmult,
     OFFICIAL_DEVNET_USDC_MINT,
     canonical_json,
     canonical_resource_url,
@@ -21,12 +25,16 @@ from check_finalist_readiness import (
     check_secret_filenames,
     check_signed_commerce_evidence,
     check_submission_assets,
+    cloud_run_origin_bound,
     file_digest,
     result,
+    rpc_timeline_is_coherent,
     rpc_url_metadata,
     run_checks,
+    run_repository_scripts,
     sha256_value,
     verify_ed25519,
+    verify_facilitator_cosigned_solana_transaction,
 )
 
 
@@ -51,6 +59,29 @@ def base58_encode(raw: bytes) -> str:
         encoded = alphabet[remainder] + encoded
     zeros = len(raw) - len(raw.lstrip(b"\0"))
     return "1" * zeros + (encoded or ("" if zeros else "1"))
+
+
+def ed25519_sign(seed: bytes, message: bytes) -> tuple[bytes, bytes]:
+    digest = hashlib.sha512(seed).digest()
+    scalar_bytes = bytearray(digest[:32])
+    scalar_bytes[0] &= 248
+    scalar_bytes[31] &= 63
+    scalar_bytes[31] |= 64
+    scalar = int.from_bytes(scalar_bytes, "little")
+
+    def encode_point(point: tuple[int, int]) -> bytes:
+        x, y = point
+        return (y | ((x & 1) << 255)).to_bytes(32, "little")
+
+    public_key = encode_point(_ed_scalarmult(_ED_B, scalar))
+    nonce = int.from_bytes(hashlib.sha512(digest[32:] + message).digest(), "little") % _ED_L
+    encoded_nonce = encode_point(_ed_scalarmult(_ED_B, nonce))
+    challenge = int.from_bytes(
+        hashlib.sha512(encoded_nonce + public_key + message).digest(),
+        "little",
+    ) % _ED_L
+    signature = encoded_nonce + ((nonce + challenge * scalar) % _ED_L).to_bytes(32, "little")
+    return public_key, signature
 
 
 def evidence_payload() -> dict[str, object]:
@@ -131,6 +162,79 @@ Security and transaction verification use an Explorer signature.
 
 
 class ReadinessTests(unittest.TestCase):
+    def test_repository_scripts_pass_rpc_only_to_evidence_verifier(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write(root / "pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+            write(
+                root / "package.json",
+                json.dumps(
+                    {
+                        "scripts": {
+                            name: f"node scripts/{name.replace(':', '-')}.js"
+                            for name in ("build", "test", "lint", "typecheck", "evidence:verify")
+                        }
+                    }
+                ),
+            )
+            child_environments: dict[str, dict[str, str]] = {}
+
+            def completed(command: list[str], **kwargs: object) -> mock.Mock:
+                child_environments[command[-1]] = dict(kwargs["env"])  # type: ignore[arg-type]
+                return mock.Mock(returncode=0, stdout=b"", stderr=b"")
+
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "PATH": "/usr/bin",
+                    "SOLANA_RPC_URL": "https://api.devnet.solana.com",
+                    "SOLANA_SECONDARY_RPC_URL": "https://secondary.invalid",
+                    "GEMINI_API_KEY": "must-not-propagate",
+                    "PRIVATE_KEY": "must-not-propagate",
+                },
+                clear=True,
+            ), mock.patch("check_finalist_readiness.subprocess.run", side_effect=completed):
+                run_repository_scripts(root, 5)
+
+            for name, environment in child_environments.items():
+                self.assertNotIn("GEMINI_API_KEY", environment)
+                self.assertNotIn("PRIVATE_KEY", environment)
+                if name == "evidence:verify":
+                    self.assertEqual(environment.get("SOLANA_RPC_URL"), "https://api.devnet.solana.com")
+                    self.assertEqual(environment.get("SOLANA_SECONDARY_RPC_URL"), "https://secondary.invalid")
+                else:
+                    self.assertNotIn("SOLANA_RPC_URL", environment)
+                    self.assertNotIn("SOLANA_SECONDARY_RPC_URL", environment)
+
+    def test_cloud_run_origin_binding_accepts_only_official_raw_aliases(self) -> None:
+        stable = "https://uptime402-control-123456789012.asia-northeast3.run.app"
+        generated = "https://uptime402-control-abcdef-du.a.run.app"
+
+        def description(aliases: object | None = None) -> dict[str, object]:
+            annotations = (
+                {}
+                if aliases is None
+                else {"run.googleapis.com/urls": json.dumps(aliases)}
+            )
+            return {
+                "metadata": {"annotations": annotations},
+                "status": {"url": generated},
+            }
+
+        self.assertTrue(cloud_run_origin_bound(description(), generated))
+        self.assertTrue(
+            cloud_run_origin_bound(description([stable, generated]), stable)
+        )
+        for aliases in (
+            None,
+            "not-a-list",
+            [stable, "https://attacker.example"],
+            [stable, generated, generated],
+            [f"{stable}/path", generated],
+        ):
+            with self.subTest(aliases=aliases):
+                self.assertFalse(cloud_run_origin_bound(description(aliases), stable))
+
     def test_denial_gate_requires_over_cap_and_nonce_replay(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -219,6 +323,130 @@ class ReadinessTests(unittest.TestCase):
         self.assertTrue(verify_ed25519(base58_encode(public_key), base58_encode(signature), b""))
         self.assertFalse(verify_ed25519(base58_encode(public_key), base58_encode(signature), b"mutated"))
 
+    def test_facilitator_cosign_allows_only_the_fee_payer_signature_delta(self) -> None:
+        fee_seed = bytes(range(32))
+        payer_seed = bytes(range(32, 64))
+        fee_public, _ = ed25519_sign(fee_seed, b"key derivation")
+        payer_public, _ = ed25519_sign(payer_seed, b"key derivation")
+        message = (
+            b"\x80\x02\x01\x00"
+            + b"\x02"
+            + fee_public
+            + payer_public
+            + bytes(range(64, 96))
+            + b"\x00"
+            + b"\x00"
+        )
+        fee_public, fee_signature = ed25519_sign(fee_seed, message)
+        payer_public, payer_signature = ed25519_sign(payer_seed, message)
+        released_wire = b"\x02" + bytes(64) + payer_signature + message
+        settled_wire = b"\x02" + fee_signature + payer_signature + message
+
+        def payment_for(wire: bytes) -> dict[str, object]:
+            payload = {
+                "x402Version": 2,
+                "accepted": {
+                    "scheme": "exact",
+                    "extra": {"feePayer": base58_encode(fee_public)},
+                },
+                "payload": {"transaction": base64.b64encode(wire).decode("ascii")},
+            }
+            header = base64.b64encode(
+                json.dumps(payload, separators=(",", ":")).encode("utf-8")
+            ).decode("ascii")
+            return {
+                "payer": base58_encode(payer_public),
+                "txSignature": base58_encode(fee_signature),
+                "x402": {
+                    "payment": {
+                        "headerValue": header,
+                        "signedTransactionSha256": sha256_value(wire),
+                    }
+                },
+            }
+
+        payment = payment_for(released_wire)
+        verify_facilitator_cosigned_solana_transaction(payment, settled_wire)
+
+        changed_message = bytearray(message)
+        changed_message[-3] ^= 1
+        with self.assertRaisesRegex(ValueError, "changed the transaction message"):
+            verify_facilitator_cosigned_solana_transaction(
+                payment,
+                b"\x02" + fee_signature + payer_signature + bytes(changed_message),
+            )
+
+        changed_payer_signature = bytearray(payer_signature)
+        changed_payer_signature[0] ^= 1
+        with self.assertRaisesRegex(ValueError, "changed the payer signature"):
+            verify_facilitator_cosigned_solana_transaction(
+                payment,
+                b"\x02" + fee_signature + bytes(changed_payer_signature) + message,
+            )
+
+        changed_fee_signature = bytearray(fee_signature)
+        changed_fee_signature[0] ^= 1
+        with self.assertRaisesRegex(ValueError, "fee-payer signature is invalid"):
+            verify_facilitator_cosigned_solana_transaction(
+                payment,
+                b"\x02" + bytes(changed_fee_signature) + payer_signature + message,
+            )
+
+        with self.assertRaisesRegex(ValueError, "signed before the paid retry"):
+            verify_facilitator_cosigned_solana_transaction(
+                payment_for(settled_wire),
+                settled_wire,
+            )
+
+        third_public = bytes(range(96, 128))
+        three_signer_message = (
+            b"\x80\x03\x01\x00"
+            + b"\x03"
+            + fee_public
+            + payer_public
+            + third_public
+            + bytes(range(64, 96))
+            + b"\x00"
+            + b"\x00"
+        )
+        three_signer_wire = (
+            b"\x03" + bytes(64) + payer_signature + bytes(64) + three_signer_message
+        )
+        with self.assertRaisesRegex(ValueError, "exactly two signers"):
+            verify_facilitator_cosigned_solana_transaction(
+                payment_for(three_signer_wire),
+                b"\x03" + fee_signature + payer_signature + bytes(64) + three_signer_message,
+            )
+
+    def test_rpc_timeline_accepts_a_long_lived_incident_but_binds_full_lifecycle(self) -> None:
+        payload = {"generatedAt": "2026-08-03T11:39:06.877Z"}
+        payment = {
+            "incidentAt": "2026-08-03T05:15:00.000Z",
+            "confirmedAt": "2026-08-03T11:18:06.000Z",
+            "x402": {
+                "challenge": {"capturedAt": "2026-08-03T11:18:01.054Z"},
+                "payment": {"capturedAt": "2026-08-03T11:18:05.324Z"},
+                "settlement": {"capturedAt": "2026-08-03T11:18:10.062Z"},
+            },
+            "fulfillmentReceipt": {
+                "payload": {"fulfilledAt": "2026-08-03T11:18:09.898Z"}
+            },
+            "outcome": {"payload": {"recoveredAt": "2026-08-03T11:18:10.340Z"}},
+        }
+        block_time = 1_785_755_886
+        self.assertTrue(rpc_timeline_is_coherent(payload, payment, block_time))
+
+        mutated = json.loads(json.dumps(payment))
+        mutated["fulfillmentReceipt"]["payload"]["fulfilledAt"] = "2026-08-03T11:18:11.000Z"
+        self.assertFalse(rpc_timeline_is_coherent(payload, mutated, block_time))
+        self.assertFalse(
+            rpc_timeline_is_coherent(
+                {"generatedAt": "2026-08-03T11:18:00.000Z"},
+                payment,
+                block_time,
+            )
+        )
+
     def test_structural_mode_never_calls_live_rpc_or_claims_live_truth(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -295,6 +523,34 @@ class ReadinessTests(unittest.TestCase):
             content_results = check_secret_contents(root, submission=True)
             self.assertIn("security.secret_files", {item.code for item in filename_results if item.level == "FAIL"})
             self.assertIn("security.secret_content", {item.code for item in content_results if item.level == "FAIL"})
+
+    def test_truthfully_named_signer_access_iam_policy_is_not_a_secret_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write(
+                root / "executor-signer-access-iam-policy.json",
+                json.dumps(
+                    {
+                        "bindings": [
+                            {
+                                "members": ["serviceAccount:executor@example.iam.gserviceaccount.com"],
+                                "role": "roles/secretmanager.secretAccessor",
+                            }
+                        ],
+                        "version": 1,
+                    }
+                ),
+            )
+            filename_results = check_secret_filenames(root, submission=True)
+            content_results = check_secret_contents(root, submission=True)
+            self.assertIn(
+                "security.secret_files",
+                {item.code for item in filename_results if item.level == "PASS"},
+            )
+            self.assertIn(
+                "security.secret_content",
+                {item.code for item in content_results if item.level == "PASS"},
+            )
 
     def test_pem_parser_markers_are_safe_but_real_and_escaped_bodies_fail(self) -> None:
         begin = "-----BEGIN " + "PRIVATE KEY-----"

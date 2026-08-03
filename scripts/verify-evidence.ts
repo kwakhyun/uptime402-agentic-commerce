@@ -39,6 +39,7 @@ import {
   hashSignedEnvelope,
   inspectExactSvmPaymentTransaction,
   validateExactSvmPayerSignature,
+  verifyFacilitatorCosignedSvmTransaction,
   verifyCanonicalEd25519Signature,
   verifySolanaSettlement,
   type JsonRpcOptions,
@@ -48,6 +49,8 @@ import {
 } from "@uptime402/payments";
 import bs58 from "bs58";
 import { z } from "zod";
+
+import { isCloudRunOriginBound } from "./cloud-run-evidence.js";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const OFFICIAL_SECONDARY_RPC = "https://api.devnet.solana.com/";
@@ -657,7 +660,7 @@ const X402BindingSchema = PaymentSchema.pick({
   challengeHash: true,
   requestFingerprint: true,
   x402: true,
-});
+}).strip();
 
 export type VerifiedX402Trace = Readonly<{
   challenge: PaymentRequired;
@@ -782,7 +785,7 @@ export function verifyMoneyExplorerAndPolicy(candidate: unknown): void {
     txSignature: true,
     explorerUrl: true,
     policyEvidence: true,
-  }).parse(candidate);
+  }).strip().parse(candidate);
   assertBase58ByteLength(payment.payer, 32, "Payer owner");
   assertBase58ByteLength(payment.payee, 32, "Payee owner");
   assertBase58ByteLength(payment.txSignature, 64, "Transaction signature");
@@ -962,12 +965,13 @@ async function verifyReceiptAndOutcome(
     }
   }
   assertTimestampOrder([
-    ["settled resource", payment.x402.settlement.capturedAt],
+    ["independent chain confirmation", payment.confirmedAt],
     ["vendor fulfillment", receipt.payload.fulfilledAt],
+    ["paid 200 response observed", payment.x402.settlement.capturedAt],
     ["healthy recovery", outcome.payload.recoveredAt],
   ]);
   if (Date.parse(payment.confirmedAt) > Date.parse(payment.x402.settlement.capturedAt) + 10_000) {
-    throw new Error("Vendor fulfilled before independently confirmed settlement");
+    throw new Error("Independent confirmation occurs implausibly after the paid response");
   }
 }
 
@@ -1010,7 +1014,12 @@ async function verifyDenials(evidence: Evidence, root: string): Promise<void> {
       "txSignature",
       "replayProof",
     ] as const) {
-      if (canonicalize(artifact[key]) !== canonicalize(denial[key])) {
+      const artifactValue = artifact[key];
+      const denialValue = denial[key];
+      const differs = artifactValue === undefined || denialValue === undefined
+        ? artifactValue !== denialValue
+        : canonicalize(artifactValue) !== canonicalize(denialValue);
+      if (differs) {
         throw new Error(`Denial artifact does not bind ${key}`);
       }
     }
@@ -1340,7 +1349,7 @@ function assertRawCloudRunDescription(
     typeof metadata.creationTimestamp !== "string" || Number.isNaN(Date.parse(metadata.creationTimestamp)) ||
     !Number.isInteger(metadata.generation) || Number(metadata.generation) <= 0 ||
     status.observedGeneration !== metadata.generation ||
-    status.url !== service.url ||
+    !isCloudRunOriginBound(description, service.url) ||
     templateSpec.serviceAccountName !== service.serviceAccount ||
     typeof status.latestReadyRevisionName !== "string" ||
     !Array.isArray(status.conditions) ||
@@ -1579,6 +1588,7 @@ function validateRpcUrl(raw: string, label: string): URL {
 
 async function verifyPaymentAgainstRpc(
   payment: EvidencePayment,
+  paymentPayload: PaymentPayload,
   rpcUrl: string,
   fetchImpl: FetchLike,
 ): Promise<VerifiedSolanaSettlement> {
@@ -1604,10 +1614,16 @@ async function verifyPaymentAgainstRpc(
   const rawBytes = Buffer.from(raw.transaction[0], "base64");
   if (
     rawBytes.byteLength === 0 ||
-    rawBytes.toString("base64") !== raw.transaction[0] ||
-    sha256Bytes(rawBytes) !== payment.x402.payment.signedTransactionSha256
+    rawBytes.toString("base64") !== raw.transaction[0]
   ) {
-    throw new Error("Live RPC transaction bytes differ from the x402 signed retry");
+    throw new Error("Live RPC transaction is not canonical Base64");
+  }
+  const cosigned = await verifyFacilitatorCosignedSvmTransaction(
+    paymentPayload,
+    raw.transaction[0],
+  );
+  if (cosigned.payer !== payment.payer) {
+    throw new Error("Live facilitator-cosigned transaction payer differs from evidence");
   }
   if (payment.confirmationStatus === "finalized" && verified.confirmationStatus !== "finalized") {
     throw new Error("Evidence claims finalized but RPC does not");
@@ -1801,9 +1817,19 @@ export async function verifyEvidence(options: VerifyEvidenceOptions): Promise<Ve
       throw new Error("Paid offer expired before confirmation");
     }
     await verifyReceiptAndOutcome(payment, evidence.attestations, root);
-    const primarySettlement = await verifyPaymentAgainstRpc(payment, primary.toString(), fetchImpl);
+    const primarySettlement = await verifyPaymentAgainstRpc(
+      payment,
+      x402Trace.payment,
+      primary.toString(),
+      fetchImpl,
+    );
     if (secondary) {
-      const secondarySettlement = await verifyPaymentAgainstRpc(payment, secondary.toString(), fetchImpl);
+      const secondarySettlement = await verifyPaymentAgainstRpc(
+        payment,
+        x402Trace.payment,
+        secondary.toString(),
+        fetchImpl,
+      );
       if (
         primarySettlement.slot !== secondarySettlement.slot ||
         primarySettlement.txSignature !== secondarySettlement.txSignature ||

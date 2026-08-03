@@ -1,19 +1,19 @@
 # Uptime402 architecture
 
-이 문서는 **현재 구현된 P0 경계**와 **증거가 아직 필요한 live 목표**를 분리한다. 상태의 최종 기준은 [BUILD_STATUS.md](BUILD_STATUS.md)다.
+이 문서는 **현재 배포된 P0 capture 경계**와 **검증 후에만 가능한 final evidence stage**를 분리한다. 상태의 최종 기준은 [BUILD_STATUS.md](BUILD_STATUS.md)다. 현재 UI는 `capture / LIVE UNVERIFIED`이며 final 또는 submission-ready가 아니다.
 
-## 현재 구현된 로컬 경계
+## 현재 구현·배포된 경계
 
 ```mermaid
 flowchart LR
-    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane\nNext.js + Gemini adapter + A2A buyer"]
-    C -->|"allowlisted / redacted telemetry"| G["Gemini structured decision\nofferId 선택만"]
-    C -->|"A2A Agent Card + SendMessage"| V["Vendor agent\n2 immutable signed offers"]
-    C -->|"IAM decision envelope"| E["Private payment executor\nauthoritative reload + policy + reserve + sign"]
+    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\n00012-h7q · capture"]
+    C -->|"allowlisted / redacted telemetry"| G["Gemini 2.5 Flash\nstrict supplied offerId 선택"]
+    C -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run 00008-hrb\n2 immutable signed offers"]
+    C -->|"IAM decision envelope"| E["Private executor Cloud Run 00009-wgq\nauthoritative reload + policy + reserve + sign"]
     E -->|"PAYMENT-SIGNATURE\nno broadcast"| C
     C -->|"paid retry"| V
     V -->|"verify → settle → 200 resource\n+ signed receipt"| C
-    E <--> S["Transactional repository\nin-memory / Firestore adapter"]
+    E <--> S["Managed Firestore\nreservation + authorization + claim"]
     V <--> S
     C <--> S
 
@@ -22,15 +22,15 @@ flowchart LR
     K ~~~ G
 ```
 
-로컬 통합 테스트는 official x402 v2 header shape와 SVM signing adapter를 사용하지만 facilitator/chain 결과는 `local-simulated`다. key material은 control-plane/Gemini/browser로 전달되지 않는다.
+세 Cloud Run revision은 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이며 동일 Git SHA `c938a866b74c9f2682b0d1c1fe27391e562b7caa` 이미지로 배포됐다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다.
 
-## P0 live target와 아직 열린 증거
+## Demo5 실제 runtime flow
 
 ```mermaid
 sequenceDiagram
     actor Operator
     participant UI as Control plane / UI
-    participant Gemini as Gemini 3.6 Flash
+    participant Gemini as Gemini 2.5 Flash
     participant Vendor as Vendor A2A Cloud Run
     participant Executor as Private executor Cloud Run
     participant Store as Firestore
@@ -66,7 +66,20 @@ sequenceDiagram
     Executor-->>UI: nonce deny, transactionCreated=false
 ```
 
-Devnet, Cloud Run, Firestore, raw IAM, live Gemini, public URL과 영상은 해당 evidence가 생성·검증되기 전까지 target이다.
+이 순서로 `finalist-demo-5`가 한 번 실행됐고 paid resource가 health를 `healthy`로 바꿨다. Evidence bundle과 co-sign-aware independent verification report는 검증을 통과했지만, 현재 capture revision에는 두 hash가 pin되지 않았으므로 UI에 승격되지 않았다. Capture revision은 reduced telemetry와 `runBindingHash`만 `LIVE UNVERIFIED`로 보여 주며, raw payment evidence를 verified로 렌더링하지 않는다.
+
+## Capture에서 final로 가는 단방향 승격
+
+```mermaid
+flowchart LR
+    A["capture revision\nno evidence hash env\nLIVE UNVERIFIED"] --> B["owner-only runtime capture\nFirestore + logs + RPC"]
+    B --> C["payment-evidence.json\nstrict promotion"]
+    C --> D["fresh nonce-bound verifier\nverification-report.json"]
+    D --> E["exact SHA-256 pair\nimmutable image build"]
+    E --> F["final revision\nread-only DEVNET VERIFIED replay"]
+```
+
+Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Final automated checker가 verifier를 다시 실행해 `artifacts/verification-report.json` SHA-256 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`로 `D`를 닫았다. 이제 이 exact pair만 `E`에서 pin한다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
 
 ## Trust and identity boundaries
 
@@ -142,6 +155,25 @@ stateDiagram-v2
 - USDC mint: `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`, decimals `6`.
 - request fingerprint binds method, normalized URL, operationId, canonical body hash, paymentId, scheme, network, mint, base units, payee.
 - vendor receipt binds offer/challenge/request/tx/resource/incident; distinct control-plane outcome binds that receipt to a healthy probe.
+
+For the SVM exact flow, the executor signs the payer slot and returns the x402 payload with the facilitator fee-payer slot intentionally empty. The vendor sends that same paid retry to the facilitator. Settlement may add only the configured fee-payer signature: the serialized message bytes and payer signature must remain identical, the previously empty fee-payer signature must become valid, and no other signer or message mutation is accepted. `signedTransactionSha256` continues to bind the pre-retry payload bytes; RPC verification separately proves the constrained facilitator co-signing.
+
+## Demo5 evidence snapshot — unpinned capture
+
+| Field | Captured value |
+|---|---|
+| Incident / payment | `incident-finalist-primary-5` / `payment-finalist-primary-5` |
+| Paid offer | `rpc-recovery-standard`, `15000` base units = `0.015 USDC` |
+| Transaction | `4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ` |
+| Confirmation | `finalized`, slot `480903755` |
+| Payer delta | owner `5ZT11…GPHu`, token account `3Xu6…JvQd`, `19970000 -> 19955000`, `-15000` |
+| Payee delta | owner `GKW6…odmk`, token account `7XiW…Z74J`, `30000 -> 45000`, `+15000` |
+| Gemini materiality | baseline `rpc-recovery-standard`; counterfactual `rpc-recovery-emergency` |
+| Over-cap denial | `amount.per_transaction_limit`, `25000 > 20000`, `transactionCreated:false`, `txSignature:null` |
+| Replay denial | `identifier.nonce_fresh`, reused `nonce-finalist-primary-5`, fresh payment/idempotency IDs, `transactionCreated:false`, `txSignature:null` |
+| Recovery | vendor receipt key `uptime402-vendor-v1`; distinct outcome key `uptime402-outcome-v1`; `statusAfter: healthy` |
+
+The Explorer URL is `https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet`. These live values passed the independent verifier, but are not yet a final UI claim: the post-checker report hash pin, final revision, and public/manual QA remain open.
 
 ## P1, not P0 claims
 

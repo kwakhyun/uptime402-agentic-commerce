@@ -1,0 +1,10 @@
+{
+  "incidentId": "incident-finalist-primary-5",
+  "paymentId": "payment-finalist-primary-5",
+  "fulfillmentReceiptHash": "sha256:bce4d34155f9a751f6ea294be866651927f3013a9852055b636acaa5a925c8b0",
+  "resourceResponseHash": "sha256:16ceecae0aa0b2157ee0717ec4045d7e7333f7b987c5e98e05ed9e45d7ad7e7e",
+  "statusBefore": "degraded",
+  "statusAfter": "healthy",
+  "healthProbeHash": "sha256:6680236839773f2dbed3aac4f324e21b99a2e95c1c9deed89e77c1ef4238f8b5",
+  "recoveredAt": "2026-08-03T11:18:10.340Z"
+}

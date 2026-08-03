@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "attestations",
+  "capturedAt": "2026-08-03T11:39:06.877Z",
+  "payloadHash": "sha256:13e38e5f6d4d31d2b7d5d6237cc1ca044580e5859dc2abe92d58252ea3d53287",
+  "payload": {
+    "gemini": {
+      "implemented": true,
+      "sourcePaths": [
+        "apps/control-plane/src/server/gemini.ts",
+        "apps/control-plane/src/server/gemini-evidence.ts"
+      ],
+      "runtimeArtifact": "artifacts/live-capture/gemini-runtime.json",
+      "runtimeArtifactSha256": "sha256:a44f4fc3a12581399edd888d6d54db2c82467bea9ee550b9a06b82eb02b1f8c3",
+      "model": "gemini-2.5-flash"
+    },
+    "a2a": {
+      "implemented": true,
+      "sourcePaths": [
+        "services/vendor-agent/src/index.ts"
+      ],
+      "runtimeArtifact": "artifacts/live-capture/vendor-agent-card.json",
+      "runtimeArtifactSha256": "sha256:2a52c8121e05ff6704089a7b4e5cae0c073dc13bc9fd016487eede4ab3339118",
+      "separateService": true,
+      "agentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+      "verificationKeyId": "uptime402-vendor-v1",
+      "verificationPublicKey": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+      "agentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32"
+    },
+    "autonomy": {
+      "implemented": true,
+      "sourcePaths": [
+        "apps/control-plane/src/server/operator-boundary.ts",
+        "services/payment-executor/src/index.ts"
+      ],
+      "runtimeArtifact": "artifacts/live-capture/autonomy-runtime.json",
+      "runtimeArtifactSha256": "sha256:2cc0010fdd043cd0b72211257b005861b4b4acab90e8969fb0f4fa2a127bf1c3",
+      "humanApprovalPerPayment": false,
+      "automaticSigning": true,
+      "verificationKeyId": "uptime402-outcome-v1",
+      "verificationPublicKey": "FrgE93V2ZzZPN45zZLB252Eb4hnQLLtoutMfTcXdrHzC"
+    },
+    "policy": {
+      "implemented": true,
+      "sourcePaths": [
+        "packages/policy/src/index.ts",
+        "services/payment-executor/src/index.ts"
+      ],
+      "runtimeArtifact": "artifacts/live-capture/execution-policy.json",
+      "runtimeArtifactSha256": "sha256:59f2df8a116f56586a3c6e66739e0cd5781410f51d82cb1f400a7fc539309541",
+      "deterministic": true,
+      "enforcedLimits": {
+        "applicationEnforced": true,
+        "dailyLimitBaseUnits": "50000",
+        "incidentLimitBaseUnits": "50000",
+        "perTransactionLimitBaseUnits": "20000"
+      },
+      "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+    }
+  }
+}

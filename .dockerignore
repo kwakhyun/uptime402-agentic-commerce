@@ -24,4 +24,7 @@ credentials
 *keypair*.json
 *wallet*.json
 artifacts/local
+artifacts/product-audit-current
 submission/*.mp4
+tmp
+*.inspect.ndjson

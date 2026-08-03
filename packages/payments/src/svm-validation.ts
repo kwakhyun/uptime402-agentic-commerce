@@ -44,6 +44,14 @@ export type StatelessSvmSignatureResult = Readonly<{
   transactionMessageHash: string;
 }>;
 
+export type VerifiedFacilitatorCosignedSvmTransaction = Readonly<{
+  payer: string;
+  feePayer: string;
+  transactionMessageHash: string;
+  payerSignatureVerified: true;
+  facilitatorSignatureVerified: true;
+}>;
+
 export type ExactSvmTransactionInspection = Readonly<{
   payer: string;
   feePayer: string;
@@ -160,6 +168,10 @@ function uniqueSorted(values: readonly string[]): readonly string[] {
   return Object.freeze([...new Set(values)].sort());
 }
 
+function bytesEqual(left: ReadonlyUint8Array, right: ReadonlyUint8Array): boolean {
+  return left.byteLength === right.byteLength && left.every((byte, index) => byte === right[index]);
+}
+
 function assertSameStrings(
   actual: readonly string[],
   expected: readonly string[],
@@ -180,6 +192,41 @@ function parsePositiveBaseUnits(value: string, label: string): bigint {
     throw new TypeError(`${label} must be a positive integer string`);
   }
   return BigInt(value);
+}
+
+async function verifyAddressSignature(
+  signerAddress: string,
+  signature: ReadonlyUint8Array,
+  messageBytes: ReadonlyUint8Array,
+): Promise<boolean> {
+  let publicKeyBytes: Uint8Array;
+  try {
+    publicKeyBytes = bs58.decode(signerAddress);
+  } catch {
+    throw new TypeError("Exact SVM signer is not Base58");
+  }
+  if (publicKeyBytes.byteLength !== 32) {
+    throw new TypeError("Exact SVM signer has invalid key length");
+  }
+  const publicKey = await crypto.subtle.importKey(
+    "raw",
+    Uint8Array.from(publicKeyBytes),
+    { name: "Ed25519" },
+    false,
+    ["verify"],
+  );
+  return verifySignature(publicKey, signatureBytes(signature), messageBytes);
+}
+
+function decodeCanonicalSvmTransaction(transactionBase64: string, label: string) {
+  const wireBytes = Buffer.from(transactionBase64, "base64");
+  if (
+    wireBytes.byteLength === 0 ||
+    wireBytes.toString("base64") !== transactionBase64
+  ) {
+    throw new TypeError(`${label} is not canonical Base64`);
+  }
+  return decodeTransactionFromPayload({ transaction: transactionBase64 });
 }
 
 async function loadStandardTokenAccount(input: {
@@ -571,6 +618,101 @@ export async function validateExactSvmTransactionBeforeRelease(
   });
 }
 
+/**
+ * Proves that settlement added only the facilitator fee-payer signature to the
+ * exact transaction released in PAYMENT-SIGNATURE. The transaction message and
+ * payer signature must remain byte-for-byte identical; the pre-settlement wire
+ * hash remains a separate evidence binding owned by the caller.
+ */
+export async function verifyFacilitatorCosignedSvmTransaction(
+  paymentPayload: PaymentPayload,
+  settledTransactionBase64: string,
+): Promise<VerifiedFacilitatorCosignedSvmTransaction> {
+  if (paymentPayload.x402Version !== 2 || paymentPayload.accepted.scheme !== "exact") {
+    throw new TypeError("Expected an x402 v2 exact payment payload");
+  }
+  const releasedTransactionBase64 = paymentPayload.payload.transaction;
+  if (typeof releasedTransactionBase64 !== "string" || releasedTransactionBase64.length === 0) {
+    throw new TypeError("Exact SVM payload is missing its transaction");
+  }
+  if (typeof settledTransactionBase64 !== "string" || settledTransactionBase64.length === 0) {
+    throw new TypeError("Settled exact SVM transaction is missing");
+  }
+
+  const released = decodeCanonicalSvmTransaction(
+    releasedTransactionBase64,
+    "Released exact SVM transaction",
+  );
+  const settled = decodeCanonicalSvmTransaction(
+    settledTransactionBase64,
+    "Settled exact SVM transaction",
+  );
+  const compiled = getCompiledTransactionMessageDecoder().decode(released.messageBytes);
+  const message = decompileTransactionMessage(compiled);
+  const payer = getTokenPayerFromTransaction(released);
+  if (!payer) throw new Error("Exact SVM transaction has no standard token payer");
+  const feePayer = message.feePayer.address;
+  if (feePayer === payer) {
+    throw new Error("Exact SVM facilitator fee payer must differ from the token payer");
+  }
+  if (paymentPayload.accepted.extra?.feePayer !== feePayer) {
+    throw new Error("Exact SVM facilitator fee payer differs from the accepted requirement");
+  }
+
+  const requiredSignerAddresses = [feePayer, payer] as const;
+  assertSameStrings(
+    Object.keys(released.signatures),
+    requiredSignerAddresses,
+    "released signer addresses",
+  );
+  assertSameStrings(
+    Object.keys(settled.signatures),
+    requiredSignerAddresses,
+    "settled signer addresses",
+  );
+  if (!bytesEqual(released.messageBytes, settled.messageBytes)) {
+    throw new Error("Facilitator settlement changed the exact SVM transaction message");
+  }
+
+  const releasedFeePayerSignature = released.signatures[feePayer];
+  const releasedPayerSignature = released.signatures[
+    payer as keyof typeof released.signatures
+  ];
+  const settledFeePayerSignature = settled.signatures[feePayer];
+  const settledPayerSignature = settled.signatures[
+    payer as keyof typeof settled.signatures
+  ];
+  if (releasedFeePayerSignature !== null) {
+    throw new Error("Exact SVM facilitator fee-payer slot was signed before the paid retry");
+  }
+  if (!releasedPayerSignature) {
+    throw new Error("Released exact SVM transaction lacks the payer signature");
+  }
+  if (!settledFeePayerSignature) {
+    throw new Error("Settled exact SVM transaction lacks the facilitator fee-payer signature");
+  }
+  if (!settledPayerSignature) {
+    throw new Error("Settled exact SVM transaction lacks the payer signature");
+  }
+  if (!bytesEqual(releasedPayerSignature, settledPayerSignature)) {
+    throw new Error("Facilitator settlement changed the exact SVM payer signature");
+  }
+  if (!(await verifyAddressSignature(payer, settledPayerSignature, released.messageBytes))) {
+    throw new Error("Settled exact SVM payer signature verification failed");
+  }
+  if (!(await verifyAddressSignature(feePayer, settledFeePayerSignature, released.messageBytes))) {
+    throw new Error("Settled exact SVM facilitator fee-payer signature verification failed");
+  }
+
+  return Object.freeze({
+    payer,
+    feePayer,
+    transactionMessageHash: transactionMessageHash(released),
+    payerSignatureVerified: true,
+    facilitatorSignatureVerified: true,
+  });
+}
+
 /** Validates the standard-wallet payer signature without RPC or settlement. */
 export async function validateExactSvmPayerSignature(
   paymentPayload: PaymentPayload,
@@ -588,21 +730,7 @@ export async function validateExactSvmPayerSignature(
   const payerSignature = transaction.signatures[payer as keyof typeof transaction.signatures];
   if (!payerSignature) throw new Error("Exact SVM transaction is not signed by its token payer");
 
-  let publicKeyBytes: Uint8Array;
-  try {
-    publicKeyBytes = bs58.decode(payer);
-  } catch {
-    throw new TypeError("Exact SVM payer is not Base58");
-  }
-  if (publicKeyBytes.byteLength !== 32) throw new TypeError("Exact SVM payer has invalid key length");
-  const publicKey = await crypto.subtle.importKey(
-    "raw",
-    Uint8Array.from(publicKeyBytes),
-    { name: "Ed25519" },
-    false,
-    ["verify"],
-  );
-  if (!(await verifySignature(publicKey, signatureBytes(payerSignature), transaction.messageBytes))) {
+  if (!(await verifyAddressSignature(payer, payerSignature, transaction.messageBytes))) {
     throw new Error("Exact SVM payer signature verification failed");
   }
   return { payer, transactionMessageHash: transactionMessageHash(transaction) };

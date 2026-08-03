@@ -410,8 +410,17 @@ export function missionControlStateFromVerifiedEvidence(
   const incidentLimit = requireLimit(limits, "incidentLimitBaseUnits");
   const perTransactionLimit = requireLimit(limits, "perTransactionLimitBaseUnits");
   const durationMinutes = requireDurationMinutes(limits);
-  const elapsed = Date.parse(payment.outcome.payload.recoveredAt) - Date.parse(payment.incidentAt);
-  if (!Number.isFinite(elapsed) || elapsed < 0) throw new Error("Recovery chronology is invalid");
+  const incidentAt = Date.parse(payment.incidentAt);
+  const recoveryStartedAt = Date.parse(evidence.selection.baseline.capturedAt);
+  const recoveredAt = Date.parse(payment.outcome.payload.recoveredAt);
+  const elapsed = recoveredAt - recoveryStartedAt;
+  if (
+    ![incidentAt, recoveryStartedAt, recoveredAt, elapsed].every(Number.isFinite) ||
+    incidentAt > recoveryStartedAt ||
+    elapsed < 0
+  ) {
+    throw new Error("Recovery chronology is invalid");
+  }
   const offerViews = evidence.offers.map((offer) => ({
     offerId: offer.payload.offerId,
     revision: compactHash(offer.payload.providerAgentCardHash),

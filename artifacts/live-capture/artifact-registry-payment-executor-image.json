@@ -1,0 +1,9 @@
+{
+  "image_summary": {
+    "digest": "sha256:a02b6167ac2f56a352a9e77946e9966f140e846d967bbdae717254b05bb07025",
+    "fully_qualified_digest": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/payment-executor@sha256:a02b6167ac2f56a352a9e77946e9966f140e846d967bbdae717254b05bb07025",
+    "registry": "asia-northeast3-docker.pkg.dev",
+    "repository": "uptime402",
+    "slsa_build_level": "unknown"
+  }
+}

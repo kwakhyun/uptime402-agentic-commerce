@@ -84,6 +84,7 @@ import {
   type EvidenceProject,
   type EvidenceSelection,
 } from "./verify-evidence.js";
+import { isCloudRunOriginBound } from "./cloud-run-evidence.js";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const MAX_INPUT_BYTES = 16 * 1024 * 1024;
@@ -754,9 +755,9 @@ async function validateDeploymentArtifacts(root: string, project: EvidenceProjec
       !Number.isInteger(metadata.generation) ||
       Number(metadata.generation) <= 0 ||
       templateSpec?.serviceAccountName !== service.serviceAccount ||
-      status?.url !== service.url ||
-      status.observedGeneration !== metadata?.generation ||
-      !Array.isArray(status.conditions) ||
+      !isCloudRunOriginBound(description, service.url) ||
+      status?.observedGeneration !== metadata?.generation ||
+      !Array.isArray(status?.conditions) ||
       !status.conditions.some((item) => {
         if (typeof item !== "object" || item === null) return false;
         const condition = item as Record<string, unknown>;
@@ -1130,7 +1131,12 @@ async function verifyFinalCandidateLocally(input: {
       "txSignature",
       "replayProof",
     ] as const) {
-      if (canonicalize(artifact[key]) !== canonicalize(denial[key])) {
+      const artifactValue = artifact[key];
+      const denialValue = denial[key];
+      const differs = artifactValue === undefined || denialValue === undefined
+        ? artifactValue !== denialValue
+        : canonicalize(artifactValue) !== canonicalize(denialValue);
+      if (differs) {
         throw new Error(`Denial artifact does not bind ${key}`);
       }
     }
@@ -1932,11 +1938,16 @@ async function readManifest(path: string): Promise<unknown> {
   return parseJsonRejectingDuplicateKeys(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
 }
 
-async function main(): Promise<void> {
-  const argument = process.argv[2];
-  if (!argument) {
+export function parseCaptureManifestArgument(args: readonly string[]): string {
+  const positional = args.filter((argument) => argument !== "--");
+  if (positional.length !== 1 || !positional[0]) {
     throw new Error("Usage: pnpm evidence:capture -- <promotion-manifest.json>");
   }
+  return positional[0];
+}
+
+async function main(): Promise<void> {
+  const argument = parseCaptureManifestArgument(process.argv.slice(2));
   const result = await captureOrPromoteLiveEvidence({ input: await readManifest(resolve(argument)) });
   if (!result.promoted) {
     console.error(`Captured ${result.fragmentPaths.length} raw fragment(s); missing: ${result.missing.join(", ")}`);

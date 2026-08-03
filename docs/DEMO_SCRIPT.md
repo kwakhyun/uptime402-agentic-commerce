@@ -1,6 +1,8 @@
 # Uptime402 2분 45초 데모 대본
 
-이 대본은 최종 live/Devnet evidence를 캡처한 뒤 사용한다. `payment-evidence.json`, UI, README, deck의 값이 모두 같지 않으면 촬영하지 않는다. 목표 길이: **2:45**, 절대 상한: **3:00**.
+이 대본은 보존된 `finalist-demo-5` operator/evidence artifacts를 hash-pinned final UI에서 read-only로 재생하는 새 영상을 촬영하는 기준이다. 기존 raw screen recordings는 usable footage가 아니므로 사용하지 않고, 새 incident나 결제도 실행하지 않는다. `payment-evidence.json`, UI, README, deck의 값이 모두 같지 않으면 final export하지 않는다. 목표 길이: **2:45**, 절대 상한: **3:00**.
+
+현재 handoff는 **capture complete / replacement video required**다. `submission/Uptime402_Demo.mp4`는 `164.966667`초지만 audio stream이 없고 sampled frames 대부분이 static Codex desktop + tiny UI inset이며 blank Google auth window가 중앙을 가린다. Manual QA에 실패했으므로 완료 산출물로 간주하지 않는다.
 
 ## 촬영 전 체크
 
@@ -8,14 +10,12 @@
 - executor URL은 인증 없이 401/403이다.
 - mandate는 incident `0.05 USDC`, per-tx `0.02 USDC`, TTL `10분`, Devnet USDC, allowed capability/recipient로 armed다.
 - primary dependency는 unhealthy, kill switch는 표시되지만 `STANDBY`이고 remaining은 `0.05 USDC`다.
-- 촬영 A의 UI live trigger가 configured이고 OAuth Web client ID = exact server audience,
-  authorized origin = control-plane origin, server demo request/slot이 fresh다.
-- 촬영 A의 `LIVE UNVERIFIED` panel에 표시된 `runBindingHash`를 기록한다. 이 값은
+- Demo5의 operator action, Firestore state, logs, x402 headers, transaction, denials는 보존됐지만 usable capture-stage footage는 없다. 같은 slot/button을 다시 클릭하거나 paid retry를 재전송하지 않는다.
+- Final replay의 `runBindingHash`는
+  `sha256:a4e7321d4f191d58b58eccb8898a1f55f5dc468d22dce05b0ae7944ae08110dc`다. 이 값은
   incident, mandate, operation, payment, nonce, idempotency key, execution-policy hash를
   canonical하게 묶는다.
-- 촬영 A 직후 promotion capture와 independent verifier를 실행하고, 그 exact evidence
-  hash를 pin한 final revision에서 촬영 B를 한다. 촬영 B evidence drawer의
-  `runBindingHash`가 촬영 A와 정확히 같고 verifier가 같은 필드에서 재계산했어야 한다.
+- Fresh verifier가 그 exact evidence hash와 `runBindingHash`를 재계산한 뒤 두 hash를 pin한 final revision에서만 촬영한다.
 - browser devtools, 터미널, env, wallet 파일, Secret Manager value는 화면에 나오지 않는다.
 - `ffprobe`로 최종 영상이 180초 이하인지 확인한다.
 
@@ -23,25 +23,22 @@
 
 | Time | 화면 / 클릭 | 대본 |
 |---:|---|---|
-| 0:00–0:12 | 촬영 A: capture revision의 `LIVE UNVERIFIED`와 `DEVNET EVIDENCE PENDING`, health red, mandate contract, kill switch를 가리킨다. | “장애는 구매 결재를 기다리지 않습니다. 이 화면은 아직 증거가 승격되지 않은 live capture 단계이고, 실제 Devnet 결제 증거는 독립 검증 뒤에만 표시됩니다.” |
-| 0:12–0:22 | 촬영 A: Google operator button을 한 번 클릭한다. 인증 callback 뒤에는 손을 떼고 포인터를 화면 밖으로 이동한다. Browser가 incident/policy body를 보내지 않는 `LIVE UNVERIFIED` label을 보여 준다. | “mandate는 촬영 전에 operator-authenticated route로 한 번 arm했습니다. 이 incident trigger 뒤에는 건별 결제 승인도, 지갑 팝업도 없습니다.” |
-| 0:22–0:47 | 촬영 A: reduced live event list와 `runBindingHash`만 보여 준다. 중앙 local preview의 offer·402·policy drawer는 새 run의 증거로 설명하지 않는다. | “서버가 고정한 요청으로 telemetry redaction, Gemini, A2A, x402 단계가 실행됐습니다. 하지만 지금 보이는 것은 reduced execution telemetry일 뿐이며 Explorer나 결제 확정은 아직 주장하지 않습니다.” |
-| 0:47–1:00 | 촬영 A: settle/recovery와 automatic over-cap + nonce-replay denial event를 끝까지 보여 주되 `LIVE UNVERIFIED`를 유지한다. | “vendor settle과 recovery 결과도 아직 미검증입니다. 이어진 한도 초과와 nonce replay는 둘 다 transactionCreated false로 끝났지만, 이 구간은 promotion 전 실행 기록입니다.” |
-| 1:00–1:18 | 촬영 B: hash-pinned final revision에서 `DEVNET VERIFIED`와 evidence drawer의 동일한 `runBindingHash`를 나란히 보여 준다. | “같은 run binding을 verifier가 incident와 payment identity에서 재계산했고, 이 화면은 그 evidence bundle의 read-only replay입니다.” |
-| 1:18–1:38 | 촬영 B: redaction/Gemini decision, A2A Agent Card와 두 signed offer, counterfactual toggle 전후 selectedOfferId 변화를 보여 준다. | “credential, PII, customer identifier를 제거한 allowlist만 Gemini에 갔습니다. 실제 schema-validated 출력은 두 immutable offer를 비교했고 counterfactual telemetry에서 선택을 바꿨습니다.” |
-| 1:38–1:58 | 촬영 B: verified timeline의 402, policy reserve, automatic sign, paid retry, settle, 200을 순서대로 짚는다. | “private executor가 authoritative policy를 다시 읽고 예산을 원자 예약했습니다. 먼저 broadcast하지 않고 PAYMENT-SIGNATURE를 자동 생성했고, vendor와 facilitator가 paid retry를 settle한 뒤에만 200을 반환했습니다.” |
-| 1:58–2:23 | 촬영 B: signature, Explorer, payer/payee, mint, 음·양 token delta, verified receipt와 outcome을 보여 준다. | “독립 RPC가 서로 다른 payer와 payee, 정확히 일치하는 USDC 음·양 delta와 confirmation을 확인했습니다. vendor receipt와 별도 outcome key가 결제된 응답을 실제 health recovery에 묶습니다.” |
-| 2:23–2:37 | 촬영 B: 자동 denial 두 row 확대. | “트랜잭션 한도 초과와 기존 nonce 재사용이 각각 자동 거절됐습니다. 두 건 모두 transactionCreated는 false이고 새로운 온체인 signature는 없습니다.” |
-| 2:37–2:45 | 촬영 B 전체 화면: health green, budget before/after, elapsed time. | “한 번의 mandate, 건별 승인 없는 결제, 실제 복구, 한 화면의 검증. Uptime402 — because an outage does not wait for procurement.” |
+| 0:00–0:15 | Final UI full screen: `DEVNET VERIFIED`, demo5 run ID, before-state `degraded`, mandate `0.05 / 0.02 USDC`, kill switch를 보여 준다. | “장애는 구매 결재를 기다리지 않습니다. 지금 보시는 것은 이미 실행된 finalist-demo-5를 exact evidence hash로 고정한 read-only replay입니다.” |
+| 0:15–0:30 | Operator action/mandate audit event와 `approval clicks after trigger: 0`을 확대한다. 새 trigger button은 클릭하지 않는다. | “운영자는 mandate를 한 번 설정했고 Google 인증으로 incident를 한 번 시작했습니다. 그 뒤에는 결제 승인 클릭도 지갑 팝업도 없었습니다.” |
+| 0:30–0:55 | Exact `runBindingHash`, redaction event, baseline `rpc-recovery-standard`, Agent Card와 두 signed offers를 차례로 보여 준다. | “서버가 고정한 요청에서 credential과 PII를 제거한 뒤 Gemini 2.5 Flash가 두 signed offer를 비교해 15,000-unit standard를 선택했습니다.” |
+| 0:55–1:15 | Counterfactual drawer에서 `12000ms / 100%`와 `rpc-recovery-emergency` 선택 flip을 보여 준다. | “같은 offer set에 full-outage telemetry를 주면 25,000-unit emergency로 선택이 바뀝니다. 모델은 offerId만 고르고 돈과 정책은 deterministic code가 결정합니다.” |
+| 1:15–1:43 | Timeline의 402, reserve, automatic signature, paid retry, facilitator settle, confirmed 200을 순서대로 짚는다. | “Private executor가 policy를 reload하고 예산을 원자 예약했습니다. 먼저 broadcast하지 않고 PAYMENT-SIGNATURE를 만들었고, vendor와 facilitator가 paid retry를 settle한 뒤에만 200을 반환했습니다.” |
+| 1:43–2:12 | Signature `4P7Y…KtmZ`, slot `480903755`, mint, payer/payee, token deltas, receipt와 outcome을 보여 준다. | “독립 RPC가 0.015 USDC와 서로 다른 owners를 확인했습니다. Payer는 15,000 감소하고 payee는 15,000 증가했습니다. Vendor receipt와 별도 outcome key가 응답을 healthy recovery에 묶습니다.” |
+| 2:12–2:32 | `amount.per_transaction_limit`와 `identifier.nonce_fresh` 두 row 확대. | “25,000-unit 한도 초과와 기존 nonce 재사용이 자동 거절됐습니다. 둘 다 transactionCreated false, txSignature null이라 추가 온체인 거래가 없습니다.” |
+| 2:32–2:45 | 전체 화면: health green, budget `0.050 -> 0.035 USDC`, exact Explorer link. | “한 번의 mandate, 건별 승인 없는 실제 결제와 복구, 그리고 자동 거절. Uptime402 — An outage does not wait for procurement.” |
 
 ## Capture handoff
 
-Codex가 OS 녹화나 업로드를 수행할 수 없으면 사용자가 촬영 A를 먼저 저장하고,
-그 run의 promotion/verification/final evidence-pin deploy가 끝난 뒤 촬영 B를 저장해
-1440p/30fps 단일 영상으로 편집한다. 두 구간의 `runBindingHash`가 다르거나 B의
-verifier가 그 값을 재계산하지 못하면 폐기하고 다시 촬영한다. Transaction과 Explorer는
-검증된 촬영 B에서만 증거로 제시한다. 결과를 `submission/Uptime402_Demo.mp4`에 두거나 접근
-가능한 final URL을 알려 준다. 그 뒤에만 다음을 확인한다.
+Owner-only raw recordings은 감사용으로만 보존하고 영상에 사용하지 않는다. Fresh
+verification과 final evidence-pin deploy 뒤 hash-pinned read-only replay만 full-screen으로
+새로 녹화한다. UI의 `runBindingHash`와 verifier 값이 다르면 녹화만 다시 하고 결제는
+재실행하지 않는다. 현재 QA-failed provisional 파일은 새 영상을 대체하지 않는다. 최종 결과를
+`submission/Uptime402_Demo.mp4`에 두거나 접근 가능한 final URL을 사용한 뒤 다음을 확인한다.
 
 ```bash
 ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 submission/Uptime402_Demo.mp4

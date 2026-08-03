@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "offers",
+  "capturedAt": "2026-08-03T11:39:06.877Z",
+  "payloadHash": "sha256:930e499ab862e0176b3a8cf7e22a482f68d0ddedbf93aed7c4c7e544d95457e5",
+  "payload": [
+    {
+      "payload": {
+        "offerId": "rpc-recovery-standard",
+        "providerAgentId": "uptime402-owned-vendor",
+        "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+        "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+        "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+        "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+        "asset": "USDC",
+        "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "amountBaseUnits": "15000",
+        "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+        "expiresAt": "2026-11-01T00:00:00.000Z",
+        "capability": "solana-rpc-health",
+        "method": "POST"
+      },
+      "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+      "keyId": "uptime402-vendor-v1",
+      "signature": "GtXomwYnDmMHjqLBGigmqaqF5QQo48sGoA9sqmzM7e9CTmQTnx7mQavbNK7dpvumqhhPCysk1u5eC27pP8FzCZS"
+    },
+    {
+      "payload": {
+        "offerId": "rpc-recovery-emergency",
+        "providerAgentId": "uptime402-owned-vendor",
+        "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+        "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+        "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+        "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+        "asset": "USDC",
+        "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "amountBaseUnits": "25000",
+        "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+        "expiresAt": "2026-11-01T00:00:00.000Z",
+        "capability": "solana-rpc-health",
+        "method": "POST"
+      },
+      "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+      "keyId": "uptime402-vendor-v1",
+      "signature": "5aZvyWuHtuXNwz7u1L2GNkN6u64nL8DoFPiNb5eU6EyE3sJiZhzS9G2p7EPkqj2M5yctBM34JXAxBgz2hrNd9w3a"
+    }
+  ]
+}

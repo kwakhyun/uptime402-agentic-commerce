@@ -1,0 +1,584 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "denials",
+  "capturedAt": "2026-08-03T11:39:06.877Z",
+  "payloadHash": "sha256:b9c4e592a537f6b144914871e7dbf415cd95801cc22f51425a853f1e60af3b7b",
+  "payload": {
+    "overTransactionLimit": {
+      "request": {
+        "incidentId": "incident-finalist-overcap-5",
+        "requiredCapability": "solana-rpc-health",
+        "mandateId": "mandate-finalist-demo-5",
+        "subject": "service:primary-solana-rpc",
+        "operationId": "operation-finalist-overcap-5",
+        "paymentId": "payment-finalist-overcap-5",
+        "nonce": "nonce-finalist-overcap-5",
+        "idempotencyKey": "idem-finalist-overcap-5",
+        "executionPolicy": {
+          "id": "policy-finalist-demo-1",
+          "version": 1,
+          "network": {
+            "clusterLabel": "devnet",
+            "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+            "x402NetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "sdkNetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "assetDecimals": 6,
+          "executorPublicKey": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+          "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+          "maxNetworkFeeLamports": "100000",
+          "allowedProgramIds": [
+            "ComputeBudget111111111111111111111111111111",
+            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+          ],
+          "allowedAccountRules": [
+            "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+            "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+            "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J"
+          ],
+          "allowedFacilitatorOrigins": [
+            "https://x402.org"
+          ],
+          "maxResponseBytes": 1048576,
+          "policyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+        }
+      },
+      "result": {
+        "outcome": "denied",
+        "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+        "reasonCode": "amount.per_transaction_limit",
+        "transactionCreated": false,
+        "txSignature": null,
+        "incident": {
+          "id": "incident-finalist-overcap-5",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-08-03T05:16:00.000Z",
+          "healthBefore": "down",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_OUTAGE",
+            "statusCode": 503,
+            "latencyMs": 12000,
+            "failureRate": 1,
+            "redactedMessage": "Primary Solana RPC is fully unavailable; select the fastest emergency recovery route."
+          },
+          "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+        },
+        "decision": {
+          "diagnosis": "The primary Solana RPC is completely down, causing a service outage. The high failure rate and latency indicate a critical issue requiring immediate and swift recovery.",
+          "requiredCapability": "solana-rpc-health",
+          "selectedOfferId": "rpc-recovery-emergency",
+          "rejectedOfferIds": [
+            "rpc-recovery-standard"
+          ],
+          "evidenceRefs": [
+            "incident.sanitizedTelemetry.errorClass",
+            "incident.sanitizedTelemetry.redactedMessage",
+            "incident.sanitizedTelemetry.failureRate",
+            "incident.sanitizedTelemetry.latencyMs",
+            "offers[1].offerId",
+            "offers[1].health",
+            "offers[1].latencyMs",
+            "offers[0].offerId",
+            "offers[0].health",
+            "offers[0].latencyMs"
+          ],
+          "rationale": "The incident telemetry clearly indicates a 'UPSTREAM_OUTAGE' with a 100% failure rate and extremely high latency, explicitly stating 'Primary Solana RPC is fully unavailable; select the fastest emergency recovery route.' This situation necessitates the fastest possible recovery, which the 'rpc-recovery-emergency' offer provides with a significantly lower latency (30ms) compared to 'rpc-recovery-standard' (180ms). While the standard option is cheaper, the critical nature of a full outage (as indicated by 'healthBefore': 'down' and 'failureRate': 1) outweighs the cost savings for the faster recovery.",
+          "confidence": 1
+        },
+        "geminiBaseline": {
+          "modelInput": {
+            "incident": {
+              "id": "incident-finalist-overcap-5",
+              "service": "primary-solana-rpc",
+              "signal": "dependency-degraded",
+              "observedAt": "2026-08-03T05:16:00.000Z",
+              "healthBefore": "down",
+              "sanitizedTelemetry": {
+                "errorClass": "UPSTREAM_OUTAGE",
+                "statusCode": 503,
+                "latencyMs": 12000,
+                "failureRate": 1,
+                "redactedMessage": "Primary Solana RPC is fully unavailable; select the fastest emergency recovery route."
+              },
+              "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+            },
+            "offers": [
+              {
+                "offerId": "rpc-recovery-standard",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "15000",
+                "latencyMs": 180,
+                "health": "available",
+                "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+              },
+              {
+                "offerId": "rpc-recovery-emergency",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "25000",
+                "latencyMs": 30,
+                "health": "available",
+                "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+              }
+            ]
+          },
+          "generation": {
+            "mode": "live-gemini",
+            "provider": "google-genai",
+            "requestedModel": "gemini-2.5-flash",
+            "modelVersion": "gemini-2.5-flash",
+            "responseId": "8nhwapOTKdyBncoPk9rMCA",
+            "rawText": "{\n  \"diagnosis\": \"The primary Solana RPC is completely down, causing a service outage. The high failure rate and latency indicate a critical issue requiring immediate and swift recovery.\",\n  \"requiredCapability\": \"solana-rpc-health\",\n  \"selectedOfferId\": \"rpc-recovery-emergency\",\n  \"rejectedOfferIds\": [\n    \"rpc-recovery-standard\"\n  ],\n  \"evidenceRefs\": [\n    \"incident.sanitizedTelemetry.errorClass\",\n    \"incident.sanitizedTelemetry.redactedMessage\",\n    \"incident.sanitizedTelemetry.failureRate\",\n    \"incident.sanitizedTelemetry.latencyMs\",\n    \"offers[1].offerId\",\n    \"offers[1].health\",\n    \"offers[1].latencyMs\",\n    \"offers[0].offerId\",\n    \"offers[0].health\",\n    \"offers[0].latencyMs\"\n  ],\n  \"rationale\": \"The incident telemetry clearly indicates a 'UPSTREAM_OUTAGE' with a 100% failure rate and extremely high latency, explicitly stating 'Primary Solana RPC is fully unavailable; select the fastest emergency recovery route.' This situation necessitates the fastest possible recovery, which the 'rpc-recovery-emergency' offer provides with a significantly lower latency (30ms) compared to 'rpc-recovery-standard' (180ms). While the standard option is cheaper, the critical nature of a full outage (as indicated by 'healthBefore': 'down' and 'failureRate': 1) outweighs the cost savings for the faster recovery.\",\n  \"confidence\": 1\n}"
+          },
+          "decision": {
+            "diagnosis": "The primary Solana RPC is completely down, causing a service outage. The high failure rate and latency indicate a critical issue requiring immediate and swift recovery.",
+            "requiredCapability": "solana-rpc-health",
+            "selectedOfferId": "rpc-recovery-emergency",
+            "rejectedOfferIds": [
+              "rpc-recovery-standard"
+            ],
+            "evidenceRefs": [
+              "incident.sanitizedTelemetry.errorClass",
+              "incident.sanitizedTelemetry.redactedMessage",
+              "incident.sanitizedTelemetry.failureRate",
+              "incident.sanitizedTelemetry.latencyMs",
+              "offers[1].offerId",
+              "offers[1].health",
+              "offers[1].latencyMs",
+              "offers[0].offerId",
+              "offers[0].health",
+              "offers[0].latencyMs"
+            ],
+            "rationale": "The incident telemetry clearly indicates a 'UPSTREAM_OUTAGE' with a 100% failure rate and extremely high latency, explicitly stating 'Primary Solana RPC is fully unavailable; select the fastest emergency recovery route.' This situation necessitates the fastest possible recovery, which the 'rpc-recovery-emergency' offer provides with a significantly lower latency (30ms) compared to 'rpc-recovery-standard' (180ms). While the standard option is cheaper, the critical nature of a full outage (as indicated by 'healthBefore': 'down' and 'failureRate': 1) outweighs the cost savings for the faster recovery.",
+            "confidence": 1
+          },
+          "capturedAt": "2026-08-03T11:18:13.381Z"
+        },
+        "selectedOffer": {
+          "payload": {
+            "offerId": "rpc-recovery-emergency",
+            "providerAgentId": "uptime402-owned-vendor",
+            "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+            "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+            "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+            "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "asset": "USDC",
+            "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "amountBaseUnits": "25000",
+            "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "expiresAt": "2026-11-01T00:00:00.000Z",
+            "capability": "solana-rpc-health",
+            "method": "POST"
+          },
+          "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+          "keyId": "uptime402-vendor-v1",
+          "signature": "5aZvyWuHtuXNwz7u1L2GNkN6u64nL8DoFPiNb5eU6EyE3sJiZhzS9G2p7EPkqj2M5yctBM34JXAxBgz2hrNd9w3a"
+        },
+        "events": [
+          {
+            "sequence": 1,
+            "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+            "kind": "incident_sanitized",
+            "occurredAt": "2026-08-03T05:16:00.000Z",
+            "protocolLabel": "Telemetry allowlist",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "incidentId": "incident-finalist-overcap-5",
+              "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+            }
+          },
+          {
+            "sequence": 2,
+            "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+            "kind": "a2a_offers_discovered",
+            "occurredAt": "2026-08-03T11:18:13.381Z",
+            "protocolLabel": "A2A JSONRPC",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "agentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+              "candidateOfferIds": [
+                "rpc-recovery-standard",
+                "rpc-recovery-emergency"
+              ],
+              "signaturesVerified": true
+            }
+          },
+          {
+            "sequence": 3,
+            "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+            "kind": "gemini_offer_selected",
+            "occurredAt": "2026-08-03T11:18:13.381Z",
+            "protocolLabel": "Gemini structured output",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "modelOutputHash": "sha256:e02c516a1952bae0b53e768b565a1f9914c8e618c6fd5a5ef2794e0585836a28",
+              "modelVersion": "gemini-2.5-flash",
+              "selectedOfferId": "rpc-recovery-emergency"
+            }
+          },
+          {
+            "sequence": 4,
+            "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+            "kind": "x402_402_received",
+            "occurredAt": "2026-08-03T11:18:13.437Z",
+            "protocolLabel": "HTTP 402 · PAYMENT-REQUIRED",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "challengeHash": "sha256:7543afcc098becd8b9100650056938a577252c4ca6f602aa3aad2c3b601c3f45",
+              "paymentId": "payment-finalist-overcap-5",
+              "requestFingerprint": "sha256:51442ea26cd69d599f6c71ebcd9d5f1ae6061561bd28cb21438158ff312958dc"
+            }
+          },
+          {
+            "sequence": 5,
+            "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+            "kind": "authoritative_context_persisted",
+            "occurredAt": "2026-08-03T11:18:13.439Z",
+            "protocolLabel": "Firestore immutable context",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "contextHash": "sha256:f9eec5d04d2119b2d2f5d21156f9212fe8eca6e928d22ed6527b0a514473e33e",
+              "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+              "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+            }
+          },
+          {
+            "sequence": 6,
+            "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+            "kind": "policy_denied",
+            "occurredAt": "2026-08-03T11:18:14.615Z",
+            "protocolLabel": "Deterministic policy deny",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "correlationId": "corr-43e6712c-517e-4000-b602-eeb8e38fb50f",
+              "decisionEnvelopeHash": "sha256:7dd9a00b5f5120301718e2d25bc62341bb26792b1b8e05eea1d873d0df6c3bb4",
+              "reasonCode": "amount.per_transaction_limit",
+              "transactionCreated": false,
+              "txSignature": null
+            }
+          }
+        ],
+        "evidence": {
+          "level": "live-unverified",
+          "explorerUrl": null,
+          "tokenDeltas": []
+        }
+      },
+      "attemptedAt": "2026-08-03T11:18:14.615Z",
+      "perTransactionLimitBaseUnits": "20000"
+    },
+    "replay": {
+      "request": {
+        "incidentId": "incident-finalist-replay-5",
+        "requiredCapability": "solana-rpc-health",
+        "mandateId": "mandate-finalist-demo-5",
+        "subject": "service:primary-solana-rpc",
+        "operationId": "operation-finalist-replay-5",
+        "paymentId": "payment-finalist-replay-5",
+        "nonce": "nonce-finalist-primary-5",
+        "idempotencyKey": "idem-finalist-replay-5",
+        "executionPolicy": {
+          "id": "policy-finalist-demo-1",
+          "version": 1,
+          "network": {
+            "clusterLabel": "devnet",
+            "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+            "x402NetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "sdkNetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "assetDecimals": 6,
+          "executorPublicKey": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+          "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+          "maxNetworkFeeLamports": "100000",
+          "allowedProgramIds": [
+            "ComputeBudget111111111111111111111111111111",
+            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+          ],
+          "allowedAccountRules": [
+            "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+            "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+            "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J"
+          ],
+          "allowedFacilitatorOrigins": [
+            "https://x402.org"
+          ],
+          "maxResponseBytes": 1048576,
+          "policyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+        }
+      },
+      "result": {
+        "outcome": "denied",
+        "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+        "reasonCode": "identifier.nonce_fresh",
+        "transactionCreated": false,
+        "txSignature": null,
+        "incident": {
+          "id": "incident-finalist-replay-5",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-08-03T05:17:00.000Z",
+          "healthBefore": "degraded",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_TIMEOUT",
+            "statusCode": 503,
+            "latencyMs": 1800,
+            "failureRate": 0.45,
+            "redactedMessage": "Primary Solana RPC is degraded; select a reliable cost-efficient recovery route."
+          },
+          "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+        },
+        "decision": {
+          "diagnosis": "The primary Solana RPC is experiencing significant degradation, characterized by high latency, a substantial failure rate, and frequent timeouts. This indicates a critical need for an alternative RPC solution to maintain service availability and performance.",
+          "requiredCapability": "solana-rpc-health",
+          "selectedOfferId": "rpc-recovery-standard",
+          "rejectedOfferIds": [
+            "rpc-recovery-emergency"
+          ],
+          "evidenceRefs": [
+            "incident-finalist-replay-5:$.sanitizedTelemetry.errorClass",
+            "incident-finalist-replay-5:$.sanitizedTelemetry.failureRate",
+            "incident-finalist-replay-5:$.sanitizedTelemetry.latencyMs",
+            "incident-finalist-replay-5:$.sanitizedTelemetry.redactedMessage",
+            "incident-finalist-replay-5:$.sanitizedTelemetry.statusCode",
+            "incident-finalist-replay-5:$.signal",
+            "rpc-recovery-standard:$.health",
+            "rpc-recovery-standard:$.latencyMs"
+          ],
+          "rationale": "The incident indicates a 'degraded' health state with high latency (1800ms) and a 45% failure rate, categorized by 'UPSTREAM_TIMEOUT' and a 503 status code. This aligns with the 'degraded' signal and the message 'Primary Solana RPC is degraded; select a reliable cost-efficient recovery route.' The 'rpc-recovery-standard' offer provides an 'available' solution with significantly lower latency (180ms) at a cost-effective price (15000 units), which directly addresses the stated need for a 'cost-efficient recovery route' for a degraded RPC. While 'rpc-recovery-emergency' offers even lower latency, the incident description specifically asks for a 'cost-efficient' recovery, making 'rpc-recovery-standard' the more appropriate choice for the current level of degradation, rather than a full 'emergency' outage.",
+          "confidence": 0.95
+        },
+        "geminiBaseline": {
+          "modelInput": {
+            "incident": {
+              "id": "incident-finalist-replay-5",
+              "service": "primary-solana-rpc",
+              "signal": "dependency-degraded",
+              "observedAt": "2026-08-03T05:17:00.000Z",
+              "healthBefore": "degraded",
+              "sanitizedTelemetry": {
+                "errorClass": "UPSTREAM_TIMEOUT",
+                "statusCode": 503,
+                "latencyMs": 1800,
+                "failureRate": 0.45,
+                "redactedMessage": "Primary Solana RPC is degraded; select a reliable cost-efficient recovery route."
+              },
+              "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+            },
+            "offers": [
+              {
+                "offerId": "rpc-recovery-standard",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "15000",
+                "latencyMs": 180,
+                "health": "available",
+                "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+              },
+              {
+                "offerId": "rpc-recovery-emergency",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "25000",
+                "latencyMs": 30,
+                "health": "available",
+                "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+              }
+            ]
+          },
+          "generation": {
+            "mode": "live-gemini",
+            "provider": "google-genai",
+            "requestedModel": "gemini-2.5-flash",
+            "modelVersion": "gemini-2.5-flash",
+            "responseId": "9nhwatqyMNyBncoPk9rMCA",
+            "rawText": "{\"diagnosis\":\"The primary Solana RPC is experiencing significant degradation, characterized by high latency, a substantial failure rate, and frequent timeouts. This indicates a critical need for an alternative RPC solution to maintain service availability and performance.\",\"requiredCapability\":\"solana-rpc-health\",\"selectedOfferId\":\"rpc-recovery-standard\",\"rejectedOfferIds\":[\"rpc-recovery-emergency\"],\"evidenceRefs\":[\"incident-finalist-replay-5:$.sanitizedTelemetry.errorClass\",\"incident-finalist-replay-5:$.sanitizedTelemetry.failureRate\",\"incident-finalist-replay-5:$.sanitizedTelemetry.latencyMs\",\"incident-finalist-replay-5:$.sanitizedTelemetry.redactedMessage\",\"incident-finalist-replay-5:$.sanitizedTelemetry.statusCode\",\"incident-finalist-replay-5:$.signal\",\"rpc-recovery-standard:$.health\",\"rpc-recovery-standard:$.latencyMs\"],\"rationale\":\"The incident indicates a 'degraded' health state with high latency (1800ms) and a 45% failure rate, categorized by 'UPSTREAM_TIMEOUT' and a 503 status code. This aligns with the 'degraded' signal and the message 'Primary Solana RPC is degraded; select a reliable cost-efficient recovery route.' The 'rpc-recovery-standard' offer provides an 'available' solution with significantly lower latency (180ms) at a cost-effective price (15000 units), which directly addresses the stated need for a 'cost-efficient recovery route' for a degraded RPC. While 'rpc-recovery-emergency' offers even lower latency, the incident description specifically asks for a 'cost-efficient' recovery, making 'rpc-recovery-standard' the more appropriate choice for the current level of degradation, rather than a full 'emergency' outage.\",\"confidence\":0.95}"
+          },
+          "decision": {
+            "diagnosis": "The primary Solana RPC is experiencing significant degradation, characterized by high latency, a substantial failure rate, and frequent timeouts. This indicates a critical need for an alternative RPC solution to maintain service availability and performance.",
+            "requiredCapability": "solana-rpc-health",
+            "selectedOfferId": "rpc-recovery-standard",
+            "rejectedOfferIds": [
+              "rpc-recovery-emergency"
+            ],
+            "evidenceRefs": [
+              "incident-finalist-replay-5:$.sanitizedTelemetry.errorClass",
+              "incident-finalist-replay-5:$.sanitizedTelemetry.failureRate",
+              "incident-finalist-replay-5:$.sanitizedTelemetry.latencyMs",
+              "incident-finalist-replay-5:$.sanitizedTelemetry.redactedMessage",
+              "incident-finalist-replay-5:$.sanitizedTelemetry.statusCode",
+              "incident-finalist-replay-5:$.signal",
+              "rpc-recovery-standard:$.health",
+              "rpc-recovery-standard:$.latencyMs"
+            ],
+            "rationale": "The incident indicates a 'degraded' health state with high latency (1800ms) and a 45% failure rate, categorized by 'UPSTREAM_TIMEOUT' and a 503 status code. This aligns with the 'degraded' signal and the message 'Primary Solana RPC is degraded; select a reliable cost-efficient recovery route.' The 'rpc-recovery-standard' offer provides an 'available' solution with significantly lower latency (180ms) at a cost-effective price (15000 units), which directly addresses the stated need for a 'cost-efficient recovery route' for a degraded RPC. While 'rpc-recovery-emergency' offers even lower latency, the incident description specifically asks for a 'cost-efficient' recovery, making 'rpc-recovery-standard' the more appropriate choice for the current level of degradation, rather than a full 'emergency' outage.",
+            "confidence": 0.95
+          },
+          "capturedAt": "2026-08-03T11:18:21.236Z"
+        },
+        "selectedOffer": {
+          "payload": {
+            "offerId": "rpc-recovery-standard",
+            "providerAgentId": "uptime402-owned-vendor",
+            "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+            "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+            "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+            "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "asset": "USDC",
+            "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "amountBaseUnits": "15000",
+            "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "expiresAt": "2026-11-01T00:00:00.000Z",
+            "capability": "solana-rpc-health",
+            "method": "POST"
+          },
+          "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+          "keyId": "uptime402-vendor-v1",
+          "signature": "GtXomwYnDmMHjqLBGigmqaqF5QQo48sGoA9sqmzM7e9CTmQTnx7mQavbNK7dpvumqhhPCysk1u5eC27pP8FzCZS"
+        },
+        "events": [
+          {
+            "sequence": 1,
+            "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+            "kind": "incident_sanitized",
+            "occurredAt": "2026-08-03T05:17:00.000Z",
+            "protocolLabel": "Telemetry allowlist",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "incidentId": "incident-finalist-replay-5",
+              "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+            }
+          },
+          {
+            "sequence": 2,
+            "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+            "kind": "a2a_offers_discovered",
+            "occurredAt": "2026-08-03T11:18:21.236Z",
+            "protocolLabel": "A2A JSONRPC",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "agentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+              "candidateOfferIds": [
+                "rpc-recovery-standard",
+                "rpc-recovery-emergency"
+              ],
+              "signaturesVerified": true
+            }
+          },
+          {
+            "sequence": 3,
+            "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+            "kind": "gemini_offer_selected",
+            "occurredAt": "2026-08-03T11:18:21.236Z",
+            "protocolLabel": "Gemini structured output",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "modelOutputHash": "sha256:ec93eb51a83017ca88bca4a3324d642f06848f5b09a29e246583b79e99bc9d6a",
+              "modelVersion": "gemini-2.5-flash",
+              "selectedOfferId": "rpc-recovery-standard"
+            }
+          },
+          {
+            "sequence": 4,
+            "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+            "kind": "x402_402_received",
+            "occurredAt": "2026-08-03T11:18:21.288Z",
+            "protocolLabel": "HTTP 402 · PAYMENT-REQUIRED",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "challengeHash": "sha256:74e2ebdd5eedf9d72a0ef7e0489db598530f12d4b3963b3c068d4368f26caf9b",
+              "paymentId": "payment-finalist-replay-5",
+              "requestFingerprint": "sha256:59f60527e7207f84472c1ab193adccf4a146608e41f45a6ec4f84b673bc5f0e5"
+            }
+          },
+          {
+            "sequence": 5,
+            "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+            "kind": "authoritative_context_persisted",
+            "occurredAt": "2026-08-03T11:18:21.289Z",
+            "protocolLabel": "Firestore immutable context",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "contextHash": "sha256:5c580e94383e9611a0a9aa4322f359c89f1e6d8e4b586109bff4cff985bc3779",
+              "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+              "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+            }
+          },
+          {
+            "sequence": 6,
+            "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+            "kind": "policy_denied",
+            "occurredAt": "2026-08-03T11:18:22.421Z",
+            "protocolLabel": "Deterministic policy deny",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "correlationId": "corr-9b066123-a1f6-4792-aa9f-b34c9b5516e2",
+              "decisionEnvelopeHash": "sha256:c36b7e2396e9a9c903e2f83799229d2ccad42755347bed5dd1e223654570c911",
+              "reasonCode": "identifier.nonce_fresh",
+              "transactionCreated": false,
+              "txSignature": null
+            }
+          }
+        ],
+        "evidence": {
+          "level": "live-unverified",
+          "explorerUrl": null,
+          "tokenDeltas": []
+        }
+      },
+      "attemptedAt": "2026-08-03T11:18:22.421Z",
+      "perTransactionLimitBaseUnits": "20000",
+      "replayProof": {
+        "denialBinding": {
+          "identifierType": "nonce",
+          "mandateId": "mandate-finalist-demo-5",
+          "originalPaymentId": "payment-finalist-primary-5",
+          "deniedPaymentId": "payment-finalist-replay-5",
+          "originalIncidentId": "incident-finalist-primary-5",
+          "deniedIncidentId": "incident-finalist-replay-5",
+          "originalNonce": "nonce-finalist-primary-5",
+          "deniedNonce": "nonce-finalist-primary-5",
+          "originalIdempotencyKey": "idem-finalist-primary-5",
+          "deniedIdempotencyKey": "idem-finalist-replay-5",
+          "reasonCode": "identifier.nonce_fresh",
+          "transactionCreated": false,
+          "txSignature": null
+        },
+        "denialBindingHash": "sha256:0a5dc58658f34625737c5dd0ceec2e58b18b21d89f57bf82c08098be1831b9fc",
+        "originalTxSignature": "4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ",
+        "originalExplorerUrl": "https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet"
+      }
+    }
+  }
+}

@@ -313,6 +313,7 @@ describe("verified mission-control evidence adapter", () => {
         evidence.payments[0]!.txSignature,
       );
       expect(state.paymentEvidence.healthProbeHash).toBe(`sha256:${"8".repeat(64)}`);
+      expect(state.paymentEvidence.recoveryTimeMs).toBe(5_000);
       expect(state.paymentEvidence.x402Headers.map((header) => header.name)).toEqual([
         "PAYMENT-REQUIRED",
         "PAYMENT-SIGNATURE",
@@ -339,6 +340,18 @@ describe("verified mission-control evidence adapter", () => {
     const { evidence, report } = fixture();
     evidence.payments[0]!.explorerUrl = "https://explorer.solana.com/tx/wrong?cluster=devnet";
     expect(() => missionControlStateFromVerifiedEvidence(evidence, report)).toThrow(/Explorer/u);
+  });
+
+  it("measures recovery from the captured model decision, not an older incident onset", () => {
+    const { evidence, report } = fixture();
+    evidence.payments[0]!.incidentAt = "2026-08-03T01:00:00.000Z";
+    const state = missionControlStateFromVerifiedEvidence(evidence, report);
+    expect(state.paymentEvidence).toMatchObject({ recoveryTimeMs: 5_000 });
+
+    evidence.selection.baseline.capturedAt = "2026-08-03T07:00:07.000Z";
+    expect(() => missionControlStateFromVerifiedEvidence(evidence, report)).toThrow(
+      /Recovery chronology/u,
+    );
   });
 
   it("keeps capture LIVE UNVERIFIED without reading or promoting artifacts", async () => {
