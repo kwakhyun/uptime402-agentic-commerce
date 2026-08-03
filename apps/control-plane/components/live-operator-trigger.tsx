@@ -92,8 +92,10 @@ function resultLabel(response: LiveOperatorUiResponse): string {
 
 export function LiveOperatorTrigger({
   config,
+  onRunStarted,
 }: {
   config: LiveOperatorUiConfig;
+  onRunStarted?: () => void;
 }) {
   const [libraryReady, setLibraryReady] = useState(false);
   const [run, setRun] = useState<LiveRunState>({ status: "idle" });
@@ -104,6 +106,7 @@ export function LiveOperatorTrigger({
   const executeServerOwnedIncident = useCallback(async (idToken: string) => {
     if (busyRef.current) return;
     busyRef.current = true;
+    onRunStarted?.();
     setRun({ status: "running" });
     let credential = idToken;
     const headers = new Headers({
@@ -144,7 +147,7 @@ export function LiveOperatorTrigger({
     } finally {
       busyRef.current = false;
     }
-  }, []);
+  }, [onRunStarted]);
 
   useEffect(() => {
     if (window.google?.accounts.id) setLibraryReady(true);

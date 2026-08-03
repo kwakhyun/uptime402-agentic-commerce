@@ -327,7 +327,23 @@ code {
   white-space: nowrap;
 }
 
+.automation-note__step {
+  padding: 2px 6px;
+  color: var(--ink-950);
+  border-radius: 4px;
+  background: var(--green);
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.automation-note.is-guided {
+  animation: guide-enter 520ms ease-out both;
+}
+
 .trigger-button {
+  position: relative;
   display: flex;
   min-height: 52px;
   padding: 9px 13px;
@@ -340,6 +356,20 @@ code {
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 28px rgba(41, 217, 255, 0.06);
   transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.trigger-button.needs-attention {
+  animation: action-breathe 1.9s ease-in-out 560ms infinite;
+}
+
+.trigger-button.needs-attention::after {
+  position: absolute;
+  pointer-events: none;
+  content: "";
+  inset: -5px;
+  border: 1px solid rgba(41, 217, 255, 0.48);
+  border-radius: 13px;
+  animation: action-ring 1.9s ease-out 560ms infinite;
 }
 
 .trigger-button:hover:not(:disabled) {
@@ -435,6 +465,33 @@ code {
   align-self: center;
 }
 
+.hero-entry-guide {
+  display: flex;
+  width: fit-content;
+  margin-bottom: 12px;
+  padding: 6px 9px;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-soft);
+  border: 1px solid rgba(41, 217, 255, 0.22);
+  border-radius: 7px;
+  background: rgba(41, 217, 255, 0.06);
+  animation: guide-enter 480ms ease-out 80ms both;
+  font-size: 9px;
+}
+
+.hero-entry-guide span {
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.hero-entry-guide strong {
+  font-size: 9px;
+}
+
 .recovery-hero__copy h1 {
   max-width: 760px;
   margin: 8px 0 10px;
@@ -481,6 +538,57 @@ code {
   font-weight: 800;
 }
 
+.outcome-panel {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 8px;
+}
+
+.judge-guide {
+  position: relative;
+  display: grid;
+  padding: 10px 12px 10px 38px;
+  overflow: hidden;
+  border: 1px solid rgba(110, 242, 166, 0.24);
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(110, 242, 166, 0.1), rgba(110, 242, 166, 0.025));
+  animation: guide-enter 480ms ease-out 180ms both;
+}
+
+.judge-guide::before {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 12px;
+  height: 12px;
+  content: "";
+  border: 2px solid var(--green);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px var(--ink-850), 0 0 0 4px rgba(110, 242, 166, 0.12);
+  transform: translateY(-50%);
+  animation: judge-pulse 1.8s ease-out 360ms 3;
+}
+
+.judge-guide > span {
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.judge-guide strong {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.judge-guide small {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
 .outcome-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -496,6 +604,23 @@ code {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(4, 10, 16, 0.48);
+  animation: metric-reveal 460ms ease-out both;
+}
+
+.outcome-metrics article:nth-child(1) {
+  animation-delay: 260ms;
+}
+
+.outcome-metrics article:nth-child(2) {
+  animation-delay: 340ms;
+}
+
+.outcome-metrics article:nth-child(3) {
+  animation-delay: 420ms;
+}
+
+.outcome-metrics article:nth-child(4) {
+  animation-delay: 500ms;
 }
 
 .outcome-metrics article > span {
@@ -591,6 +716,10 @@ code {
   margin-top: 10px;
 }
 
+.protocol-disclosure {
+  scroll-margin-top: 10px;
+}
+
 .operator-disclosure > summary,
 .protocol-disclosure > summary {
   list-style: none;
@@ -642,6 +771,51 @@ code {
 
 .protocol-disclosure[open] > summary {
   border-color: var(--line-strong);
+}
+
+.trace-guide {
+  display: flex;
+  margin-top: 8px;
+  padding: 9px 12px;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-soft);
+  border: 1px solid rgba(41, 217, 255, 0.18);
+  border-radius: 9px;
+  background: linear-gradient(90deg, rgba(41, 217, 255, 0.08), rgba(41, 217, 255, 0.015));
+  animation: guide-enter 360ms ease-out both;
+}
+
+.trace-guide > span {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  color: var(--cyan);
+  border: 1px solid rgba(41, 217, 255, 0.28);
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+.trace-guide > div {
+  display: grid;
+  min-width: 0;
+}
+
+.trace-guide strong {
+  font-size: 10px;
+}
+
+.trace-guide small {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 8px;
+}
+
+.trace-guide.is-active {
+  border-color: rgba(41, 217, 255, 0.36);
+  animation: trace-active 1.5s ease-out 2;
 }
 
 .live-operator-panel {
@@ -1706,6 +1880,70 @@ code {
   }
 }
 
+@keyframes guide-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes metric-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes action-breathe {
+  0%,
+  100% {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 22px rgba(41, 217, 255, 0.06);
+  }
+  50% {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 32px rgba(41, 217, 255, 0.2);
+  }
+}
+
+@keyframes action-ring {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.055);
+  }
+}
+
+@keyframes judge-pulse {
+  0% {
+    box-shadow: inset 0 0 0 3px var(--ink-850), 0 0 0 0 rgba(110, 242, 166, 0.36);
+  }
+  75%,
+  100% {
+    box-shadow: inset 0 0 0 3px var(--ink-850), 0 0 0 8px rgba(110, 242, 166, 0);
+  }
+}
+
+@keyframes trace-active {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(41, 217, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(41, 217, 255, 0.12);
+  }
+}
+
 @media (max-width: 1380px) {
   .topbar {
     grid-template-columns: 220px minmax(690px, 1fr);
@@ -1835,6 +2073,12 @@ code {
 
   .recovery-hero__copy h1 {
     font-size: 25px;
+  }
+
+  .hero-entry-guide,
+  .trace-guide {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .outcome-metrics article {

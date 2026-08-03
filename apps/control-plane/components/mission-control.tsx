@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   applyTimelineProgress,
@@ -254,8 +254,22 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
     initialState.timeline[0]?.id ?? "incident",
   );
   const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [protocolOpen, setProtocolOpen] = useState(
+    initialState.paymentEvidence.level !== "devnet-verified",
+  );
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef(0);
+  const protocolDisclosureRef = useRef<HTMLDetailsElement | null>(null);
+
+  const revealProtocolFlow = useCallback(() => {
+    setProtocolOpen(true);
+    window.requestAnimationFrame(() => {
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth";
+      protocolDisclosureRef.current?.scrollIntoView({ behavior, block: "start" });
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -290,6 +304,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
 
   const startIncident = () => {
     if (runStarted) return;
+    revealProtocolFlow();
     progressRef.current = 0;
     setRunStarted(true);
     setSelectedStepId("incident");
@@ -370,11 +385,22 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
         </section> : null}
 
         <div className="topbar-actions">
-          <div className="automation-note">
-            <span aria-hidden="true">◎</span>
+          <div
+            className={`automation-note${!runStarted ? " is-guided" : ""}`}
+            id={devnetVerified ? "replay-guide" : undefined}
+          >
+            <span className="automation-note__step" aria-hidden="true">
+              {runComplete ? "DONE" : runStarted ? "PLAY" : "NEXT"}
+            </span>
             <span>
               {devnetVerified ? (
-                <>검증된 run · 결제 승인 클릭 <strong>0회</strong></>
+                runComplete ? (
+                  <>판단 완료 · 자동 결제, 정책 준수, 복구 결과가 모두 <strong>PASS</strong></>
+                ) : runStarted ? (
+                  <>현재 cyan 단계가 결제·복구 순서대로 이동합니다</>
+                ) : (
+                  <>버튼을 눌러 <strong>10-step 증거 흐름</strong>을 확인하세요</>
+                )
               ) : liveUnverified ? (
                 <>LIVE capture · 결과는 verifier 전까지 미검증</>
               ) : (
@@ -383,10 +409,11 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
             </span>
           </div>
           <button
-            className="trigger-button"
+            className={`trigger-button${!runStarted ? " needs-attention" : ""}`}
             type="button"
             onClick={startIncident}
             disabled={runStarted}
+            aria-describedby={devnetVerified ? "replay-guide" : undefined}
           >
             <span className="trigger-button__icon" aria-hidden="true">↯</span>
             <span>
@@ -416,6 +443,10 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
       {verifiedEvidence ? (
         <section className="recovery-hero" id="verified-result" aria-labelledby="verified-result-heading">
           <div className="recovery-hero__copy">
+            <div className="hero-entry-guide">
+              <span>01 · 먼저 확인</span>
+              <strong>결론 → 판단 신호 → 증거 흐름 순서로 보세요</strong>
+            </div>
             <p className="eyebrow">AUTONOMOUS RECOVERY · VERIFIED DEVNET EVIDENCE</p>
             <h1 id="verified-result-heading">
               Gemini가 정책 한도 안에서 <em>{paidAmountLabel} USDC</em>를 자동 결제해 장애를 복구했습니다.
@@ -431,28 +462,35 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
             </div>
           </div>
 
-          <div className="outcome-metrics" aria-label="핵심 복구 결과">
-            <article>
-              <span>AUTOMATIC PAYMENT</span>
-              <strong>{paidAmountLabel} USDC</strong>
-              <small>Solana Devnet · finalized</small>
-            </article>
-            <article>
-              <span>PER-PAYMENT APPROVAL</span>
-              <strong>0회</strong>
-              <small>최초 mandate 이후</small>
-            </article>
-            <article>
-              <span>RECOVERY TIME</span>
-              <strong>{recoverySecondsLabel}초</strong>
-              <small>degraded → healthy</small>
-            </article>
-            <article>
-              <span>POLICY RESULT</span>
-              <strong>IN POLICY</strong>
-              <small>{verifiedEvidence.amountBaseUnits} ≤ 20000 base units</small>
-            </article>
-          </div>
+          <section className="outcome-panel" aria-labelledby="judge-guide-heading">
+            <header className="judge-guide">
+              <span>JUDGE CHECK · 3 SIGNALS</span>
+              <strong id="judge-guide-heading">자동 결제 · 정책 준수 · 복구 완료를 확인하세요</strong>
+              <small>세 조건 모두 실제 Devnet evidence에 bind되어야 PASS입니다.</small>
+            </header>
+            <div className="outcome-metrics" aria-label="핵심 복구 결과">
+              <article>
+                <span>AUTOMATIC PAYMENT</span>
+                <strong>{paidAmountLabel} USDC</strong>
+                <small>Solana Devnet · finalized</small>
+              </article>
+              <article>
+                <span>PER-PAYMENT APPROVAL</span>
+                <strong>0회</strong>
+                <small>최초 mandate 이후</small>
+              </article>
+              <article>
+                <span>RECOVERY TIME</span>
+                <strong>{recoverySecondsLabel}초</strong>
+                <small>degraded → healthy</small>
+              </article>
+              <article>
+                <span>POLICY RESULT</span>
+                <strong>IN POLICY</strong>
+                <small>{verifiedEvidence.amountBaseUnits} ≤ 20000 base units</small>
+              </article>
+            </div>
+          </section>
 
           <ol className="recovery-path" aria-label="자동 복구 핵심 경로">
             <li><span>01</span><strong>Gemini 진단</strong><small>2 offers 비교</small></li>
@@ -497,11 +535,20 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
       {!devnetVerified ? (
         <details className="operator-disclosure">
           <summary>Capture-only operator controls · Google OIDC</summary>
-          <LiveOperatorTrigger config={liveOperatorConfig} />
+          <LiveOperatorTrigger
+            config={liveOperatorConfig}
+            onRunStarted={revealProtocolFlow}
+          />
         </details>
       ) : null}
 
-      <details className="protocol-disclosure" id="protocol-detail" open={!devnetVerified}>
+      <details
+        className="protocol-disclosure"
+        id="protocol-detail"
+        open={protocolOpen}
+        onToggle={(event) => setProtocolOpen(event.currentTarget.open)}
+        ref={protocolDisclosureRef}
+      >
         <summary>
           <span>
             <span className="eyebrow">PROTOCOL &amp; POLICY DETAIL</span>
@@ -509,6 +556,27 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
           </span>
           <span>10-step trace · 2 signed offers · 2 automatic denials</span>
         </summary>
+        <div
+          className={`trace-guide${runStarted ? " is-active" : ""}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span>{runComplete ? "03 · 판단 완료" : runStarted ? "02 · 흐름 재생 중" : "02 · 실행 흐름"}</span>
+          <div>
+            <strong>
+              {runComplete
+                ? "PASS · Gemini → A2A → 402 → 자동 서명 → settle → 200 → healthy"
+                : runStarted
+                  ? "cyan으로 강조된 현재 단계가 자동으로 이동합니다."
+                  : `상단 ${devnetVerified ? "'검증된 trace 보기'" : "'로컬 incident preview'"}를 누르면 10단계가 자동 재생됩니다.`}
+            </strong>
+            <small>
+              {runComplete
+                ? "우측 offer 선택과 아래 두 denial의 transactionCreated:false까지 확인하세요."
+                : "좌측 실행 순서와 우측 Gemini 선택 근거를 함께 확인하세요."}
+            </small>
+          </div>
+        </div>
       <div className="workspace-grid">
         <section className="timeline-panel panel" id="timeline" aria-labelledby="timeline-heading">
           <header className="panel-heading timeline-heading">

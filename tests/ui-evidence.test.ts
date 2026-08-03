@@ -474,6 +474,43 @@ describe("verified mission-control evidence adapter", () => {
     expect(source).toMatch(/\{!devnetVerified \? \([\s\S]*?<LiveOperatorTrigger/u);
   });
 
+  it("reveals the protocol flow when replay or live execution starts", async () => {
+    const missionSource = await readFile(
+      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
+      "utf8",
+    );
+    const triggerSource = await readFile(
+      new URL("../apps/control-plane/components/live-operator-trigger.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(missionSource).toContain("const [protocolOpen, setProtocolOpen]");
+    expect(missionSource).toMatch(/const startIncident = \(\) => \{[\s\S]*?revealProtocolFlow\(\);/u);
+    expect(missionSource).toContain("open={protocolOpen}");
+    expect(missionSource).toContain("onRunStarted={revealProtocolFlow}");
+    expect(triggerSource).toContain("onRunStarted?.();");
+  });
+
+  it("guides first-time viewers from the verified outcome to the replay verdict", async () => {
+    const source = await readFile(
+      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
+      "utf8",
+    );
+    const styles = await readFile(
+      new URL("../apps/control-plane/app/globals.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("01 · 먼저 확인");
+    expect(source).toContain("JUDGE CHECK · 3 SIGNALS");
+    expect(source).toContain("02 · 흐름 재생 중");
+    expect(source).toContain("03 · 판단 완료");
+    expect(source).toContain("transactionCreated:false까지 확인하세요");
+    expect(source).toContain('aria-describedby={devnetVerified ? "replay-guide" : undefined}');
+    expect(styles).toContain(".trigger-button.needs-attention");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+  });
+
   it("makes only the two public final artifacts readable by the nonroot image", async () => {
     const dockerfile = await readFile(
       new URL("../apps/control-plane/Dockerfile", import.meta.url),
