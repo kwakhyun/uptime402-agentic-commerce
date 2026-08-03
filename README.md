@@ -271,14 +271,16 @@ private/nonstandard RPC를 썼다면 마지막 명령에
 
 배포 계약과 실행 순서는 [deploy/README.md](deploy/README.md), 세 독립 manifest
 template과 [ARCHITECTURE.md](docs/ARCHITECTURE.md)에 있습니다. 현재 project는
-`uptime402-hack-260803`, region은 `asia-northeast3`입니다. Final revision은 control
-`uptime402-control-plane-00015-sqw`, executor `uptime402-payment-executor-00012-2dg`,
-vendor `uptime402-vendor-agent-00011-88p`이며 모두 Git SHA
-`10ca5f2ccaf2af45e2d80f6065de9c623b24e559` 이미지에 100% traffic을 받습니다. Cloud Build
-`793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`은 취소 없이 `SUCCESS`로 끝났고 image digest는
-각각 control `sha256:1f9313ae…53db`, executor `sha256:766bed6a…50ad`, vendor
-`sha256:cc249b8f…f694`입니다. Cloud Build는 세 이미지를 build/push만 하며
-배포/IAM/Secret을 자동 변경하지 않습니다.
+`uptime402-hack-260803`, region은 `asia-northeast3`입니다. Ready revision은 control
+`uptime402-control-plane-ux-d8beb24`, executor `uptime402-payment-executor-00012-2dg`,
+vendor `uptime402-vendor-agent-00011-88p`이며 각 latest revision이 100% traffic을 받습니다.
+Executor/vendor는 검증된 payment runtime SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`를
+유지합니다. Control만 evidence bytes를 바꾸지 않은 UX-only SHA
+`d8beb2499486f02d78486710e6c9388b4624881e`로 재배포됐으며 Cloud Build
+`8dd2da54-4d87-4731-8775-ba060373c3e9`과 digest
+`sha256:5426343b1020824aae2eb6f1abf631759276dd7553f214b998673b68442d66e7`에 고정돼 있습니다.
+이 후속 build/deploy는 executor, vendor, IAM, Secret, Firestore, Devnet transaction을
+변경하지 않았습니다.
 
 Control-plane은 두 단계로 배포합니다. `capture` stage는 evidence hash env 없이
 렌더링되고 화면 전체를 `LIVE UNVERIFIED`로 유지합니다. 실제 capture와 verifier가

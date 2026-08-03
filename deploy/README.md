@@ -77,11 +77,13 @@ gcloud builds submit \
   .
 ```
 
-현재 final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`로 build됐습니다.
-Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`은 `SUCCESS`이며 control/executor/vendor
-digest는 각각 `sha256:1f9313ae…53db`, `sha256:766bed6a…50ad`,
-`sha256:cc249b8f…f694`입니다. 후속 build도 audited commit의 actual
-`GIT_COMMIT_HEX`와 renderer `IMAGE_TAG`를 일치시켜야 합니다.
+Executor/vendor final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
+Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. Control은 같은
+evidence/report pair를 포함한 UX-only SHA `d8beb2499486f02d78486710e6c9388b4624881e`,
+Cloud Build `8dd2da54-4d87-4731-8775-ba060373c3e9`, digest
+`sha256:5426343b1020824aae2eb6f1abf631759276dd7553f214b998673b68442d66e7`로
+재배포됐습니다. 후속 build도 audited commit의 actual `GIT_COMMIT_HEX`와 renderer
+`IMAGE_TAG`를 일치시켜야 합니다.
 
 ## Secret Manager 계약
 
@@ -210,7 +212,7 @@ Final loader는 configured evidence hash, configured report hash, report 안의
 현재 final 배포는 evidence SHA-256
 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`와 report SHA-256
 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`를 pin했습니다.
-Ready revisions are control `uptime402-control-plane-00015-sqw`, executor
+Ready revisions are control `uptime402-control-plane-ux-d8beb24`, executor
 `uptime402-payment-executor-00012-2dg`, vendor `uptime402-vendor-agent-00011-88p`, all at
 100% traffic. Logged-out desktop/mobile, evidence drawer, unauthenticated mutation/executor
 `403`, IAM/Secret boundaries, and zero recent ERROR logs were checked without another payment.
