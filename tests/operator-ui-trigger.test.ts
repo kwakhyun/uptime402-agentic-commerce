@@ -7,19 +7,24 @@ import {
   DEVNET_USDC_MINT,
   DEVNET_X402_NETWORK_ID,
   computeExecutionPolicyHash,
+  computeMandateHash,
   createNetworkIdentity,
 } from "@uptime402/domain";
+import bs58 from "bs58";
 import { describe, expect, it } from "vitest";
 
 import { parseLiveOperatorUiResponse } from "../apps/control-plane/src/live-ui-contract.js";
 import type { OperatorIncidentMutationResult } from "../apps/control-plane/src/server/operator-boundary.js";
 import {
   assertSameOriginBodylessLiveRequest,
+  parseDemoAutoArmConfig,
   hashServerOwnedIncidentRunBinding,
   parseLiveOperatorUiConfig,
   projectLiveOperatorUiResponse,
   readServerOwnedIncidentRequest,
+  readServerOwnedSignedMandate,
   requireLiveOperatorUiConfig,
+  runConfiguredDemoIncident,
 } from "../apps/control-plane/src/server/operator-ui-trigger.js";
 
 const CLIENT_ID = "123456789-uptime402.apps.googleusercontent.com";
@@ -121,6 +126,39 @@ function requestFixture() {
   };
 }
 
+function mandateFixture() {
+  const request = requestFixture().request;
+  const unsigned = {
+    id: request.mandateId,
+    subject: request.subject,
+    clusterLabel: "devnet" as const,
+    assetMint: DEVNET_USDC_MINT,
+    perTransactionLimitBaseUnits: "20000",
+    incidentLimitBaseUnits: "50000",
+    dailyLimitBaseUnits: "50000",
+    allowedRecipients: [KEY_A],
+    allowedCapabilities: [request.requiredCapability],
+    allowedVendorOrigins: ["https://vendor.uptime402.example"],
+    allowedAgentCardHashes: [`sha256:${"a".repeat(64)}`],
+    notBefore: "2026-08-03T00:00:00.000Z",
+    expiresAt: "2026-08-04T00:00:00.000Z",
+    nonce: "mandate-live-ui-nonce",
+    issuerPrincipal: "operator:operator@example.com",
+    issuedAt: "2026-08-02T23:59:00.000Z",
+    executionPolicyHash: request.executionPolicy.policyHash,
+    protocolLabel: "internal" as const,
+  };
+  return {
+    ...unsigned,
+    mandateHash: computeMandateHash(unsigned),
+    attestation: {
+      kid: "operator-key-1",
+      algorithm: "EdDSA" as const,
+      signature: bs58.encode(new Uint8Array(64).fill(7)),
+    },
+  };
+}
+
 function event(sequence = 1) {
   return {
     sequence,
@@ -183,6 +221,120 @@ describe("dormant secure live UI trigger", () => {
     await expect(
       readServerOwnedIncidentRequest({ requestPath: duplicatePath, requestRoot: root }),
     ).rejects.toThrow(/Duplicate JSON key/u);
+  });
+
+  it("auto-arms one root-contained signed mandate before the incident and fails closed", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uptime402-demo-mandate-"));
+    const versionDirectory = join(root, "..2026_08_03_01");
+    await mkdir(versionDirectory);
+    await writeFile(
+      join(versionDirectory, "mandate.json"),
+      JSON.stringify(mandateFixture()),
+      { mode: 0o600 },
+    );
+    await symlink("..2026_08_03_01", join(root, "..data"));
+    const mountedPath = join(root, "mandate.json");
+    await symlink("..data/mandate.json", mountedPath);
+    const config = parseDemoAutoArmConfig({
+      NODE_ENV: "test",
+      CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED: "true",
+      CONTROL_PLANE_DEMO_MANDATE_ID: "mandate-live-ui",
+      CONTROL_PLANE_DEMO_SIGNED_MANDATE_PATH: mountedPath,
+      CONTROL_PLANE_DEMO_SIGNED_MANDATE_ROOT: root,
+    });
+    expect((await readServerOwnedSignedMandate(config as Extract<typeof config, { mode: "signed-mandate" }>)).id)
+      .toBe("mandate-live-ui");
+    const calls: string[] = [];
+    const identity = {
+      audience: CLIENT_ID,
+      principal: "operator@example.com",
+      subject: "google-subject-1",
+      issuer: "https://accounts.google.com" as const,
+    };
+    const response = await runConfiguredDemoIncident({
+      config,
+      identity,
+      serverRequest: requestFixture(),
+      boundary: {
+        async armMandate() {
+          calls.push("arm");
+          return {};
+        },
+        async runIncident() {
+          calls.push("run");
+          return {
+            schemaVersion: "1",
+            separation: "application-role",
+            idempotentReplay: false,
+            result: {
+              primary: { outcome: "denied", transactionCreated: false, txSignature: null },
+              denials: null,
+              denialBindings: null,
+              denialBindingHashes: null,
+            },
+          } as unknown as OperatorIncidentMutationResult;
+        },
+      },
+    });
+    expect(response.idempotentReplay).toBe(false);
+    expect(calls).toEqual(["arm", "run"]);
+
+    const mismatchConfig = { ...config, expectedMandateId: "different-mandate" } as const;
+    await expect(
+      runConfiguredDemoIncident({
+        config: mismatchConfig,
+        identity,
+        serverRequest: requestFixture(),
+        boundary: {
+          async armMandate() {
+            calls.push("unexpected-arm");
+            return {};
+          },
+          async runIncident() {
+            calls.push("unexpected-run");
+            throw new Error("must not run");
+          },
+        },
+      }),
+    ).rejects.toThrow(/mandate_mismatch/u);
+    expect(calls).toEqual(["arm", "run"]);
+
+    await expect(
+      runConfiguredDemoIncident({
+        config,
+        identity,
+        serverRequest: requestFixture(),
+        boundary: {
+          async armMandate() {
+            throw new Error("arm failed");
+          },
+          async runIncident() {
+            calls.push("unexpected-run");
+            throw new Error("must not run");
+          },
+        },
+      }),
+    ).rejects.toThrow(/arm failed/u);
+    expect(calls).toEqual(["arm", "run"]);
+
+    await expect(
+      runConfiguredDemoIncident({
+        config: { mode: "disabled" },
+        identity,
+        serverRequest: requestFixture(),
+        boundary: {
+          async armMandate() {
+            calls.push("unexpected-arm");
+            return {};
+          },
+          async runIncident() {
+            calls.push("disabled-run");
+            return response;
+          },
+        },
+      }),
+    ).resolves.toEqual(response);
+    expect(calls).toEqual(["arm", "run", "disabled-run"]);
   });
 
   it("rejects path escape, writable config, and oversized config", async () => {

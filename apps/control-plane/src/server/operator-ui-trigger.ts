@@ -2,12 +2,15 @@ import "server-only";
 
 import { constants as fsConstants } from "node:fs";
 import { open, realpath } from "node:fs/promises";
-import { isAbsolute, relative, resolve } from "node:path";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import {
+  IdentifierSchema,
+  MandateSchema,
   Sha256Schema,
   createIncidentRunBindingHash,
   normalizePinnedOrigin,
+  type Mandate,
 } from "@uptime402/domain";
 import { z } from "zod";
 
@@ -21,9 +24,11 @@ import {
   type OperatorIncidentMutationResult,
   type OperatorRunIncidentRequest,
 } from "./operator-boundary.js";
+import type { OperatorOidcIdentity } from "./operator-auth.js";
 import { parseStrictJson } from "./strict-json.js";
 
 const MAX_DEMO_REQUEST_BYTES = 512 * 1024;
+const MAX_DEMO_MANDATE_BYTES = 256 * 1024;
 const GOOGLE_WEB_CLIENT_ID = /^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$/u;
 
 const LiveOperatorEventProjectionSchema = z
@@ -84,6 +89,15 @@ type EnabledLiveUiConfig = Readonly<{
   requestRoot: string;
 }>;
 
+export type DemoAutoArmConfig =
+  | Readonly<{ mode: "disabled" }>
+  | Readonly<{
+      mode: "signed-mandate";
+      expectedMandateId: string;
+      mandatePath: string;
+      mandateRoot: string;
+    }>;
+
 function required(environment: Readonly<NodeJS.ProcessEnv>, name: string): string {
   const value = environment[name]?.trim();
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
@@ -92,7 +106,12 @@ function required(environment: Readonly<NodeJS.ProcessEnv>, name: string): strin
 
 function isInsideRoot(candidate: string, root: string): boolean {
   const fromRoot = relative(root, candidate);
-  return fromRoot === "" || (!fromRoot.startsWith("..") && !isAbsolute(fromRoot));
+  return (
+    fromRoot === "" ||
+    (fromRoot !== ".." &&
+      !fromRoot.startsWith(`..${sep}`) &&
+      !isAbsolute(fromRoot))
+  );
 }
 
 function parseEnabledConfig(
@@ -150,20 +169,47 @@ export function requireLiveOperatorUiConfig(
   return parseEnabledConfig(environment);
 }
 
-/**
- * Reads only a server-configured immutable file. Cloud Run secret-volume
- * symlink indirection is allowed after realpath containment; the resolved
- * target must be a bounded, owner-readable, non-writable regular file.
- */
-export async function readServerOwnedIncidentRequest(
-  config: Pick<EnabledLiveUiConfig, "requestPath" | "requestRoot">,
-): Promise<OperatorRunIncidentRequest> {
+export function parseDemoAutoArmConfig(
+  environment: Readonly<NodeJS.ProcessEnv>,
+): DemoAutoArmConfig {
+  const enabled = environment.CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED?.trim();
+  if (!enabled || enabled === "false") return Object.freeze({ mode: "disabled" });
+  if (enabled !== "true") {
+    throw new TypeError("CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED must be true or false");
+  }
+  const mandatePath = required(
+    environment,
+    "CONTROL_PLANE_DEMO_SIGNED_MANDATE_PATH",
+  );
+  const mandateRoot = required(
+    environment,
+    "CONTROL_PLANE_DEMO_SIGNED_MANDATE_ROOT",
+  );
+  if (!isAbsolute(mandatePath) || !isAbsolute(mandateRoot)) {
+    throw new TypeError("Demo signed mandate path and root must be absolute");
+  }
+  return Object.freeze({
+    mode: "signed-mandate",
+    expectedMandateId: IdentifierSchema.parse(
+      required(environment, "CONTROL_PLANE_DEMO_MANDATE_ID"),
+    ),
+    mandatePath: resolve(mandatePath),
+    mandateRoot: resolve(mandateRoot),
+  });
+}
+
+async function readServerOwnedStrictJson(input: {
+  path: string;
+  root: string;
+  maximumBytes: number;
+  label: string;
+}): Promise<unknown> {
   const [resolvedRoot, resolvedPath] = await Promise.all([
-    realpath(config.requestRoot),
-    realpath(config.requestPath),
+    realpath(input.root),
+    realpath(input.path),
   ]);
   if (!isInsideRoot(resolvedPath, resolvedRoot)) {
-    throw new Error("Live UI request resolves outside its configured root");
+    throw new Error(`${input.label} resolves outside its configured root`);
   }
   const noFollow = typeof fsConstants.O_NOFOLLOW === "number" ? fsConstants.O_NOFOLLOW : 0;
   const handle = await open(resolvedPath, fsConstants.O_RDONLY | noFollow);
@@ -173,12 +219,12 @@ export async function readServerOwnedIncidentRequest(
     if (
       !stat.isFile() ||
       stat.size < 1 ||
-      stat.size > MAX_DEMO_REQUEST_BYTES ||
+      stat.size > input.maximumBytes ||
       (stat.mode & 0o400) === 0 ||
       (stat.mode & 0o022) !== 0
     ) {
       throw new Error(
-        "Live UI request must be a bounded owner-readable, non-writable regular file",
+        `${input.label} must be a bounded owner-readable, non-writable regular file`,
       );
     }
     if (
@@ -186,17 +232,85 @@ export async function readServerOwnedIncidentRequest(
       stat.uid !== process.getuid() &&
       stat.uid !== 0
     ) {
-      throw new Error("Live UI request must be owned by the runtime user or root");
+      throw new Error(`${input.label} must be owned by the runtime user or root`);
     }
     bytes = Buffer.allocUnsafe(stat.size);
     const { bytesRead } = await handle.read(bytes, 0, stat.size, 0);
-    if (bytesRead !== stat.size) throw new Error("Live UI request read was incomplete");
-    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    return OperatorRunIncidentRequestSchema.parse(parseStrictJson(text));
+    if (bytesRead !== stat.size) throw new Error(`${input.label} read was incomplete`);
+    return parseStrictJson(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } finally {
     bytes?.fill(0);
     await handle.close();
   }
+}
+
+/**
+ * Reads only a server-configured immutable file. Cloud Run secret-volume
+ * symlink indirection is allowed after realpath containment; the resolved
+ * target must be a bounded, owner-readable, non-writable regular file.
+ */
+export async function readServerOwnedIncidentRequest(
+  config: Pick<EnabledLiveUiConfig, "requestPath" | "requestRoot">,
+): Promise<OperatorRunIncidentRequest> {
+  return OperatorRunIncidentRequestSchema.parse(
+    await readServerOwnedStrictJson({
+      path: config.requestPath,
+      root: config.requestRoot,
+      maximumBytes: MAX_DEMO_REQUEST_BYTES,
+      label: "Live UI request",
+    }),
+  );
+}
+
+export async function readServerOwnedSignedMandate(
+  config: Extract<DemoAutoArmConfig, { mode: "signed-mandate" }>,
+): Promise<Mandate> {
+  return MandateSchema.parse(
+    await readServerOwnedStrictJson({
+      path: config.mandatePath,
+      root: config.mandateRoot,
+      maximumBytes: MAX_DEMO_MANDATE_BYTES,
+      label: "Demo signed mandate",
+    }),
+  );
+}
+
+export async function autoArmConfiguredDemoMandate(input: {
+  config: DemoAutoArmConfig;
+  identity: OperatorOidcIdentity;
+  serverRequest: OperatorRunIncidentRequest;
+  boundary: Readonly<{
+    armMandate(identity: OperatorOidcIdentity, rawRequest: unknown): Promise<unknown>;
+  }>;
+}): Promise<void> {
+  if (input.config.mode === "disabled") return;
+  const mandate = await readServerOwnedSignedMandate(input.config);
+  if (
+    mandate.id !== input.config.expectedMandateId ||
+    mandate.id !== input.serverRequest.request.mandateId
+  ) {
+    throw new OperatorLiveUiHttpError(400, "operator_demo_mandate_mismatch");
+  }
+  await input.boundary.armMandate(input.identity, {
+    schemaVersion: "1",
+    mandate,
+  });
+}
+
+export async function runConfiguredDemoIncident(input: {
+  config: DemoAutoArmConfig;
+  identity: OperatorOidcIdentity;
+  serverRequest: OperatorRunIncidentRequest;
+  boundary: Readonly<{
+    armMandate(identity: OperatorOidcIdentity, rawRequest: unknown): Promise<unknown>;
+    runIncident(
+      identity: OperatorOidcIdentity,
+      rawRequest: unknown,
+    ): Promise<OperatorIncidentMutationResult>;
+  }>;
+}): Promise<OperatorIncidentMutationResult> {
+  await autoArmConfiguredDemoMandate(input);
+  return input.boundary.runIncident(input.identity, input.serverRequest);
 }
 
 export class OperatorLiveUiHttpError extends Error {
@@ -205,7 +319,8 @@ export class OperatorLiveUiHttpError extends Error {
     readonly code:
       | "operator_live_trigger_disabled"
       | "operator_live_origin_forbidden"
-      | "operator_live_request_body_forbidden",
+      | "operator_live_request_body_forbidden"
+      | "operator_demo_mandate_mismatch",
   ) {
     super(code);
     this.name = "OperatorLiveUiHttpError";

@@ -13,7 +13,7 @@ spec:
         autoscaling.knative.dev/maxScale: "3"
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/startup-cpu-boost: "true"
-        run.googleapis.com/secrets: "control-outcome:projects/{{PROJECT_ID}}/secrets/{{CONTROL_PLANE_OUTCOME_SECRET_NAME}},demo-request:projects/{{PROJECT_ID}}/secrets/{{CONTROL_PLANE_DEMO_REQUEST_SECRET_NAME}}"
+        run.googleapis.com/secrets: "control-outcome:projects/{{PROJECT_ID}}/secrets/{{CONTROL_PLANE_OUTCOME_SECRET_NAME}},demo-request:projects/{{PROJECT_ID}}/secrets/{{CONTROL_PLANE_DEMO_REQUEST_SECRET_NAME}},demo-mandate:projects/{{PROJECT_ID}}/secrets/{{CONTROL_PLANE_DEMO_MANDATE_SECRET_NAME}}"
     spec:
       serviceAccountName: "{{CONTROL_PLANE_SERVICE_ACCOUNT}}"
       containerConcurrency: 40
@@ -76,6 +76,12 @@ spec:
               value: "{{CONTROL_PLANE_DEMO_RUN_SLOT}}"
             - name: CONTROL_PLANE_DEMO_MANDATE_ID
               value: "{{CONTROL_PLANE_DEMO_MANDATE_ID}}"
+            - name: CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED
+              value: "{{CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED}}"
+            - name: CONTROL_PLANE_DEMO_SIGNED_MANDATE_PATH
+              value: /var/run/config/uptime402/demo-mandate/mandate.json
+            - name: CONTROL_PLANE_DEMO_SIGNED_MANDATE_ROOT
+              value: /var/run/config/uptime402/demo-mandate
             - name: RECOVERY_HEALTH_PROBE_URL
               value: "{{RECOVERY_HEALTH_PROBE_URL}}"
             - name: HTTP_TIMEOUT_MS
@@ -105,6 +111,9 @@ spec:
             - name: demo-request
               mountPath: /var/run/config/uptime402/demo-request
               readOnly: true
+            - name: demo-mandate
+              mountPath: /var/run/config/uptime402/demo-mandate
+              readOnly: true
       volumes:
         - name: control-outcome
           secret:
@@ -120,3 +129,10 @@ spec:
             items:
               - key: "{{CONTROL_PLANE_DEMO_REQUEST_SECRET_VERSION}}"
                 path: request.json
+        - name: demo-mandate
+          secret:
+            secretName: demo-mandate
+            defaultMode: 292
+            items:
+              - key: "{{CONTROL_PLANE_DEMO_MANDATE_SECRET_VERSION}}"
+                path: mandate.json

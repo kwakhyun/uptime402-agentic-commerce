@@ -80,7 +80,7 @@ commit ID로 교체해야 하며 renderer의 `IMAGE_TAG`에도 같은 값을 사
 
 ## Secret Manager 계약
 
-키를 새로 만들지 않습니다. 사용자가 이미 소유하거나 검토한 다음 다섯 파일만 각자 다른
+키를 새로 만들지 않습니다. 사용자가 이미 소유하거나 검토한 다음 여섯 파일만 각자 다른
 Secret Manager secret의 새 버전으로 올립니다.
 
 1. 기존 저잔액 Devnet executor Solana CLI keypair → executor service account만
@@ -93,6 +93,9 @@ Secret Manager secret의 새 버전으로 올립니다.
    account만 `secretAccessor` (confidential secret가 아니라 immutable mount 용도).
 5. operator가 검토한 exact incident-run JSON → control-plane service account만
    `secretAccessor` (credential이 아니라 browser에서 변경할 수 없는 immutable config mount).
+6. operator가 기존 key로 서명한 exact demo mandate JSON → control-plane service account만
+   `secretAccessor` (capture revision의 동일 Google OIDC callback이 audited arm route를 먼저
+   호출할 때만 사용하며 signing key는 control-plane에 제공하지 않음).
 
 각 manifest는 Secret Manager의 **숫자 버전**을 mount합니다. `latest`는 금지합니다.
 Secret 내용은 chat, env, Git, Cloud Build args, manifest, 로그에 넣지 않습니다.

@@ -237,6 +237,7 @@ def validate_values(values: dict[str, str], placeholders: set[str]) -> None:
         "VENDOR_RECEIPT_SECRET_NAME",
         "CONTROL_PLANE_OUTCOME_SECRET_NAME",
         "CONTROL_PLANE_DEMO_REQUEST_SECRET_NAME",
+        "CONTROL_PLANE_DEMO_MANDATE_SECRET_NAME",
         "VENDOR_OFFER_CATALOG_SECRET_NAME",
     ):
         if not RESOURCE_NAME.fullmatch(values[name]):
@@ -338,6 +339,8 @@ def validate_values(values: dict[str, str], placeholders: set[str]) -> None:
     for name in ("CONTROL_PLANE_DEMO_RUN_SLOT", "CONTROL_PLANE_DEMO_MANDATE_ID"):
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", values[name]):
             fail(f"{name} is not a valid immutable identifier")
+    if values["CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED"] not in ("true", "false"):
+        fail("CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED must be true or false")
     if stage == "capture":
         if values.get("UPTIME402_UI_EVIDENCE_SHA256", "").strip() or values.get(
             "UPTIME402_UI_VERIFICATION_REPORT_SHA256", ""
@@ -367,6 +370,7 @@ def validate_values(values: dict[str, str], placeholders: set[str]) -> None:
         "VENDOR_RECEIPT_SECRET_VERSION",
         "CONTROL_PLANE_OUTCOME_SECRET_VERSION",
         "CONTROL_PLANE_DEMO_REQUEST_SECRET_VERSION",
+        "CONTROL_PLANE_DEMO_MANDATE_SECRET_VERSION",
         "VENDOR_OFFER_CATALOG_SECRET_VERSION",
     ):
         if not values[name].isdigit() or int(values[name]) <= 0:

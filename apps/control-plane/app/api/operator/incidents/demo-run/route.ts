@@ -7,9 +7,11 @@ import {
   OperatorLiveUiHttpError,
   assertSameOriginBodylessLiveRequest,
   hashServerOwnedIncidentRunBinding,
+  parseDemoAutoArmConfig,
   projectLiveOperatorUiResponse,
   readServerOwnedIncidentRequest,
   requireLiveOperatorUiConfig,
+  runConfiguredDemoIncident,
 } from "../../../../../src/server/operator-ui-trigger";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,12 @@ export async function POST(request: Request): Promise<Response> {
     );
     const serverRequest = await readServerOwnedIncidentRequest(config);
     const runBindingHash = hashServerOwnedIncidentRunBinding(serverRequest);
-    const result = await boundary.runIncident(identity, serverRequest);
+    const result = await runConfiguredDemoIncident({
+      config: parseDemoAutoArmConfig(process.env),
+      identity,
+      serverRequest,
+      boundary,
+    });
     const response = operatorJsonResponse(
       projectLiveOperatorUiResponse(result, runBindingHash),
     );
