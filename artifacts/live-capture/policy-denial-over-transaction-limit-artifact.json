@@ -1,0 +1,11 @@
+{
+  "incidentId": "incident-finalist-overcap-5",
+  "mandateId": "mandate-finalist-demo-5",
+  "reasonCode": "amount.per_transaction_limit",
+  "attemptedAt": "2026-08-03T11:18:14.615Z",
+  "attemptedAmountBaseUnits": "25000",
+  "perTransactionLimitBaseUnits": "20000",
+  "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+  "transactionCreated": false,
+  "txSignature": null
+}

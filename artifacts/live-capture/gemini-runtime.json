@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1",
+  "model": "gemini-2.5-flash",
+  "provider": "google-genai",
+  "mode": "live-gemini",
+  "modelVersion": "gemini-2.5-flash",
+  "baselineResponseId": "5nhwaonUC_Wax9gP4u3B4As",
+  "counterfactualResponseId": "8nhwapOTKdyBncoPk9rMCA"
+}

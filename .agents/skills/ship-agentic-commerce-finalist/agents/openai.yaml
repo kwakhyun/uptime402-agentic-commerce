@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ship Agentic Commerce Finalist"
+  short_description: "Build and prove a finalist-ready autonomous payment product"
+  default_prompt: "Use $ship-agentic-commerce-finalist to build and verify the Uptime402 hackathon submission."

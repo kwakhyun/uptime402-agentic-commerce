@@ -1,0 +1,154 @@
+{
+  "candidateOfferIds": [
+    "rpc-recovery-standard",
+    "rpc-recovery-emergency"
+  ],
+  "baseline": {
+    "telemetryHash": "sha256:c1c10475ffb7605c1e2c1edb44096e4b26bcbfaa9560fe076644d0dad11f2401",
+    "modelOutputHash": "sha256:1dc9bb147a5533c146596db9365a58ade0bee5a93b4925648325774365869d22",
+    "selectedOfferId": "rpc-recovery-standard",
+    "schemaValidated": true,
+    "capturedAt": "2026-08-03T11:18:01.000Z"
+  },
+  "counterfactual": {
+    "telemetryHash": "sha256:0a8b3c90a3ac301dcf32988df94356269d4f6ae91a5575fe0ec2184b886e19d8",
+    "modelOutputHash": "sha256:e02c516a1952bae0b53e768b565a1f9914c8e618c6fd5a5ef2794e0585836a28",
+    "selectedOfferId": "rpc-recovery-emergency",
+    "schemaValidated": true,
+    "capturedAt": "2026-08-03T11:18:13.381Z"
+  },
+  "actualGeminiCalls": {
+    "baseline": {
+      "modelInput": {
+        "incident": {
+          "id": "incident-finalist-primary-5",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-08-03T05:15:00.000Z",
+          "healthBefore": "degraded",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_TIMEOUT",
+            "statusCode": 503,
+            "latencyMs": 1800,
+            "failureRate": 0.45,
+            "redactedMessage": "Primary Solana RPC is degraded; select a reliable cost-efficient recovery route."
+          },
+          "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+        },
+        "offers": [
+          {
+            "offerId": "rpc-recovery-standard",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "15000",
+            "latencyMs": 180,
+            "health": "available",
+            "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+          },
+          {
+            "offerId": "rpc-recovery-emergency",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "25000",
+            "latencyMs": 30,
+            "health": "available",
+            "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+          }
+        ]
+      },
+      "generation": {
+        "mode": "live-gemini",
+        "provider": "google-genai",
+        "requestedModel": "gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash",
+        "responseId": "5nhwaonUC_Wax9gP4u3B4As",
+        "rawText": "{\n  \"diagnosis\": \"The primary Solana RPC is experiencing degradation, indicated by a 503 status code, UPSTREAM_TIMEOUT error class, high latency (1800ms), and a significant failure rate (45%). The system health is already degraded.\",\n  \"requiredCapability\": \"solana-rpc-health\",\n  \"selectedOfferId\": \"rpc-recovery-standard\",\n  \"rejectedOfferIds\": [\n    \"rpc-recovery-emergency\"\n  ],\n  \"evidenceRefs\": [\n    \"incident.sanitizedTelemetry.statusCode\",\n    \"incident.sanitizedTelemetry.errorClass\",\n    \"incident.sanitizedTelemetry.latencyMs\",\n    \"incident.sanitizedTelemetry.failureRate\",\n    \"incident.healthBefore\",\n    \"incident.sanitizedTelemetry.redactedMessage\"\n  ],\n  \"rationale\": \"The incident telemetry shows a degraded primary RPC with high latency and a notable failure rate. While 'rpc-recovery-emergency' offers faster recovery (30ms latency), 'rpc-recovery-standard' is a more cost-effective option for degradation with available latency of 180ms, which is a significant improvement over the current 1800ms. The description for 'rpc-recovery-standard' explicitly states it's for 'degraded RPC latency and intermittent errors', aligning perfectly with the incident's characteristics. The situation is degradation, not a complete outage, making the standard recovery suitable and efficient.\",\n  \"confidence\": 0.9\n}"
+      },
+      "decision": {
+        "diagnosis": "The primary Solana RPC is experiencing degradation, indicated by a 503 status code, UPSTREAM_TIMEOUT error class, high latency (1800ms), and a significant failure rate (45%). The system health is already degraded.",
+        "requiredCapability": "solana-rpc-health",
+        "selectedOfferId": "rpc-recovery-standard",
+        "rejectedOfferIds": [
+          "rpc-recovery-emergency"
+        ],
+        "evidenceRefs": [
+          "incident.sanitizedTelemetry.statusCode",
+          "incident.sanitizedTelemetry.errorClass",
+          "incident.sanitizedTelemetry.latencyMs",
+          "incident.sanitizedTelemetry.failureRate",
+          "incident.healthBefore",
+          "incident.sanitizedTelemetry.redactedMessage"
+        ],
+        "rationale": "The incident telemetry shows a degraded primary RPC with high latency and a notable failure rate. While 'rpc-recovery-emergency' offers faster recovery (30ms latency), 'rpc-recovery-standard' is a more cost-effective option for degradation with available latency of 180ms, which is a significant improvement over the current 1800ms. The description for 'rpc-recovery-standard' explicitly states it's for 'degraded RPC latency and intermittent errors', aligning perfectly with the incident's characteristics. The situation is degradation, not a complete outage, making the standard recovery suitable and efficient.",
+        "confidence": 0.9
+      },
+      "capturedAt": "2026-08-03T11:18:01.000Z"
+    },
+    "counterfactual": {
+      "modelInput": {
+        "incident": {
+          "id": "incident-finalist-overcap-5",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-08-03T05:16:00.000Z",
+          "healthBefore": "down",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_OUTAGE",
+            "statusCode": 503,
+            "latencyMs": 12000,
+            "failureRate": 1,
+            "redactedMessage": "Primary Solana RPC is fully unavailable; select the fastest emergency recovery route."
+          },
+          "redactionReportHash": "sha256:414bced8fde3bc06b36a9a018223188818e0ef6f4b8747655e0c3e0563edddb2"
+        },
+        "offers": [
+          {
+            "offerId": "rpc-recovery-standard",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "15000",
+            "latencyMs": 180,
+            "health": "available",
+            "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+          },
+          {
+            "offerId": "rpc-recovery-emergency",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "25000",
+            "latencyMs": 30,
+            "health": "available",
+            "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+          }
+        ]
+      },
+      "generation": {
+        "mode": "live-gemini",
+        "provider": "google-genai",
+        "requestedModel": "gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash",
+        "responseId": "8nhwapOTKdyBncoPk9rMCA",
+        "rawText": "{\n  \"diagnosis\": \"The primary Solana RPC is completely down, causing a service outage. The high failure rate and latency indicate a critical issue requiring immediate and swift recovery.\",\n  \"requiredCapability\": \"solana-rpc-health\",\n  \"selectedOfferId\": \"rpc-recovery-emergency\",\n  \"rejectedOfferIds\": [\n    \"rpc-recovery-standard\"\n  ],\n  \"evidenceRefs\": [\n    \"incident.sanitizedTelemetry.errorClass\",\n    \"incident.sanitizedTelemetry.redactedMessage\",\n    \"incident.sanitizedTelemetry.failureRate\",\n    \"incident.sanitizedTelemetry.latencyMs\",\n    \"offers[1].offerId\",\n    \"offers[1].health\",\n    \"offers[1].latencyMs\",\n    \"offers[0].offerId\",\n    \"offers[0].health\",\n    \"offers[0].latencyMs\"\n  ],\n  \"rationale\": \"The incident telemetry clearly indicates a 'UPSTREAM_OUTAGE' with a 100% failure rate and extremely high latency, explicitly stating 'Primary Solana RPC is fully unavailable; select the fastest emergency recovery route.' This situation necessitates the fastest possible recovery, which the 'rpc-recovery-emergency' offer provides with a significantly lower latency (30ms) compared to 'rpc-recovery-standard' (180ms). While the standard option is cheaper, the critical nature of a full outage (as indicated by 'healthBefore': 'down' and 'failureRate': 1) outweighs the cost savings for the faster recovery.\",\n  \"confidence\": 1\n}"
+      },
+      "decision": {
+        "diagnosis": "The primary Solana RPC is completely down, causing a service outage. The high failure rate and latency indicate a critical issue requiring immediate and swift recovery.",
+        "requiredCapability": "solana-rpc-health",
+        "selectedOfferId": "rpc-recovery-emergency",
+        "rejectedOfferIds": [
+          "rpc-recovery-standard"
+        ],
+        "evidenceRefs": [
+          "incident.sanitizedTelemetry.errorClass",
+          "incident.sanitizedTelemetry.redactedMessage",
+          "incident.sanitizedTelemetry.failureRate",
+          "incident.sanitizedTelemetry.latencyMs",
+          "offers[1].offerId",
+          "offers[1].health",
+          "offers[1].latencyMs",
+          "offers[0].offerId",
+          "offers[0].health",
+          "offers[0].latencyMs"
+        ],
+        "rationale": "The incident telemetry clearly indicates a 'UPSTREAM_OUTAGE' with a 100% failure rate and extremely high latency, explicitly stating 'Primary Solana RPC is fully unavailable; select the fastest emergency recovery route.' This situation necessitates the fastest possible recovery, which the 'rpc-recovery-emergency' offer provides with a significantly lower latency (30ms) compared to 'rpc-recovery-standard' (180ms). While the standard option is cheaper, the critical nature of a full outage (as indicated by 'healthBefore': 'down' and 'failureRate': 1) outweighs the cost savings for the faster recovery.",
+        "confidence": 1
+      },
+      "capturedAt": "2026-08-03T11:18:13.381Z"
+    }
+  }
+}

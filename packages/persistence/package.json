@@ -1,0 +1,16 @@
+{
+  "name": "@uptime402/persistence",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "8.7.0",
+    "@uptime402/domain": "workspace:*"
+  }
+}

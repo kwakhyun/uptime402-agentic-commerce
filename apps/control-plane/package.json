@@ -1,0 +1,35 @@
+{
+  "name": "@uptime402/control-plane",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./server": "./src/server/index.ts"
+  },
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "1.0.1",
+    "@google-cloud/firestore": "8.7.0",
+    "@google/genai": "2.15.0",
+    "@solana/kit": "5.1.0",
+    "@uptime402/domain": "workspace:*",
+    "@uptime402/payments": "workspace:*",
+    "@uptime402/persistence": "workspace:*",
+    "@x402/core": "2.20.0",
+    "bs58": "6.0.0",
+    "google-auth-library": "11.0.0",
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3"
+  }
+}

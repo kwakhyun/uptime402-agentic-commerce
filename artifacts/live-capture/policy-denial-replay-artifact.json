@@ -1,0 +1,25 @@
+{
+  "incidentId": "incident-finalist-replay-5",
+  "mandateId": "mandate-finalist-demo-5",
+  "reasonCode": "identifier.nonce_fresh",
+  "attemptedAt": "2026-08-03T11:18:22.421Z",
+  "attemptedAmountBaseUnits": "15000",
+  "perTransactionLimitBaseUnits": "20000",
+  "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+  "transactionCreated": false,
+  "txSignature": null,
+  "replayProof": {
+    "identifierType": "nonce",
+    "identifierValue": "nonce-finalist-primary-5",
+    "originalPaymentId": "payment-finalist-primary-5",
+    "deniedPaymentId": "payment-finalist-replay-5",
+    "originalIncidentId": "incident-finalist-primary-5",
+    "deniedIncidentId": "incident-finalist-replay-5",
+    "originalNonce": "nonce-finalist-primary-5",
+    "deniedNonce": "nonce-finalist-primary-5",
+    "originalIdempotencyKey": "idem-finalist-primary-5",
+    "deniedIdempotencyKey": "idem-finalist-replay-5",
+    "originalTxSignature": "4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ",
+    "originalExplorerUrl": "https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet"
+  }
+}

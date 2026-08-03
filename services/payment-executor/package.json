@@ -1,0 +1,30 @@
+{
+  "name": "@uptime402/payment-executor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsup",
+    "start": "node dist/main.js",
+    "dev": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "8.7.0",
+    "@solana-program/token-2022": "0.6.1",
+    "@solana/kit": "5.1.0",
+    "@uptime402/domain": "workspace:*",
+    "@uptime402/payments": "workspace:*",
+    "@uptime402/persistence": "workspace:*",
+    "@uptime402/policy": "workspace:*",
+    "@x402/core": "2.20.0",
+    "@x402/extensions": "2.20.0",
+    "@x402/svm": "2.20.0",
+    "express": "5.2.1",
+    "google-auth-library": "11.0.0",
+    "zod": "4.4.3"
+  }
+}

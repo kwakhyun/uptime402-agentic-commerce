@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "artifact": "submission/Uptime402_Deck.pdf",
+  "generatedAt": "2026-08-03T22:21:38+09:00",
+  "evidenceLevel": "local",
+  "pageCount": 9,
+  "pageSizePoints": {
+    "width": 960,
+    "height": 540
+  },
+  "sourceRender": {
+    "directory": "submission/Uptime402_Deck",
+    "slideCount": 9,
+    "pixelWidth": 1600,
+    "pixelHeight": 900
+  },
+  "sha256": {
+    "pdf": "983ac8354b76f06b4e364abf5f5aa70afa1d40fd828255b4c79b09b35ef6a263",
+    "pptx": "cc5eefbb2d7c659deeedce3aa3899d6c06b7f35c422982e1aca694ffbaf68264"
+  },
+  "evidenceBindings": {
+    "runId": "finalist-demo-5",
+    "paymentEvidenceSha256": "0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
+  },
+  "checks": {
+    "pptxOverflow": "passed",
+    "templateFidelity": "passed",
+    "sourceSlideVisualInspection": "passed",
+    "finalPdfRenderInspection": "passed",
+    "demo5ClaimsMatchedPaymentEvidence": true,
+    "decimalBudgetBeforeAfterPresent": true,
+    "evidenceAndReportHashPrefixesPresent": true,
+    "readOnlyReplayLabelPresent": true,
+    "noNewPaymentLabelPresent": true,
+    "cloudRunRevisionClaimsAbsent": true,
+    "hangulGlyphsVisible": true,
+    "javascript": false,
+    "encrypted": false
+  },
+  "exportMethod": "Verified artifact-tool PNG renders placed full-bleed on PDF pages by scripts/export-deck-pdf.py",
+  "limitations": [
+    "The PDF is image-backed because the available headless LibreOffice build dropped Hangul glyphs during direct PPTX-to-PDF conversion.",
+    "The image-backed PDF is not tagged or text-searchable; the editable PPTX is included alongside it."
+  ]
+}

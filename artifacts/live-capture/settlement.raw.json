@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "settlement",
+  "capturedAt": "2026-08-03T11:39:06.877Z",
+  "payloadHash": "sha256:ef63d8b79b7d7e88ba31ac0db1269985ea5b4f7c7cbcc25a67b64d46925a9b63",
+  "payload": {
+    "verification": "verified",
+    "clusterLabel": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    "decimals": 6,
+    "amountBaseUnits": "15000",
+    "txSignature": "4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ",
+    "confirmationStatus": "finalized",
+    "slot": 480903755,
+    "confirmedAt": "2026-08-03T11:18:06.000Z",
+    "payerOwner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+    "payeeOwner": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+    "payerDeltaBaseUnits": "-15000",
+    "payeeDeltaBaseUnits": "15000",
+    "tokenAccountDeltas": [
+      {
+        "accountIndex": 2,
+        "tokenAccount": "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+        "owner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+        "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "decimals": 6,
+        "preAmountBaseUnits": "19970000",
+        "postAmountBaseUnits": "19955000",
+        "deltaBaseUnits": "-15000"
+      },
+      {
+        "accountIndex": 3,
+        "tokenAccount": "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J",
+        "owner": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+        "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "decimals": 6,
+        "preAmountBaseUnits": "30000",
+        "postAmountBaseUnits": "45000",
+        "deltaBaseUnits": "15000"
+      }
+    ],
+    "explorerUrl": "https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet"
+  }
+}

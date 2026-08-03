@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "mode": "firestore-emulator",
+  "verifiedAt": "2026-08-03T21:25:44+09:00",
+  "nodeRuntime": "v22.21.0",
+  "command": "NODE_BIN=\"$(command -v node)\"; firebase emulators:exec --only firestore '\"${NODE_BIN}\" node_modules/vitest/vitest.mjs run tests/persistence-firestore.test.ts tests/payment-authorization-firestore.test.ts --reporter=verbose'",
+  "testFiles": [
+    "tests/persistence-firestore.test.ts",
+    "tests/payment-authorization-firestore.test.ts"
+  ],
+  "testFilesPassed": 2,
+  "testsPassed": 10,
+  "testsFailed": 0,
+  "verifiedBehaviors": [
+    "unsafe collection prefixes rejected before I/O",
+    "concurrent overspend prevented across repository instances",
+    "nonce replay returned before an exhausted held budget",
+    "immutable challenge replacement rejected",
+    "vendor payment claimed once and ambiguous settling not released",
+    "payment authorization published exactly once across two repository clients",
+    "cached authorization denied after mandate revocation",
+    "revoke-to-rearm ABA denied for the old activation",
+    "reservation state/version changes prevent cached release and republish",
+    "same-version activation canonical-hash tampering denied"
+  ],
+  "limitations": [
+    "This is local emulator evidence, not managed Firestore or Cloud Run evidence.",
+    "No blockchain transaction or live deployment was created."
+  ]
+}

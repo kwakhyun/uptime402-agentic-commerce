@@ -1,0 +1,118 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "{{VENDOR_AGENT_SERVICE_NAME}}"
+  labels:
+    cloud.googleapis.com/location: "{{GCP_REGION}}"
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/secrets: "vendor-receipt:projects/{{PROJECT_ID}}/secrets/{{VENDOR_RECEIPT_SECRET_NAME}},vendor-offers:projects/{{PROJECT_ID}}/secrets/{{VENDOR_OFFER_CATALOG_SECRET_NAME}}"
+    spec:
+      serviceAccountName: "{{VENDOR_SERVICE_ACCOUNT}}"
+      containerConcurrency: 20
+      timeoutSeconds: 300
+      containers:
+        - image: "{{GCP_REGION}}-docker.pkg.dev/{{PROJECT_ID}}/{{ARTIFACT_REPOSITORY}}/vendor-agent:{{IMAGE_TAG}}"
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: FIRESTORE_PROJECT_ID
+              value: "{{FIRESTORE_PROJECT_ID}}"
+            - name: FIRESTORE_DATABASE_ID
+              value: "{{FIRESTORE_DATABASE_ID}}"
+            - name: FIRESTORE_COLLECTION_PREFIX
+              value: "{{FIRESTORE_COLLECTION_PREFIX}}"
+            - name: PUBLIC_VENDOR_ORIGIN
+              value: "{{PUBLIC_VENDOR_ORIGIN}}"
+            - name: VENDOR_AGENT_ID
+              value: "{{VENDOR_AGENT_ID}}"
+            - name: VENDOR_AGENT_NAME
+              value: "{{VENDOR_AGENT_NAME}}"
+            - name: VENDOR_AGENT_DESCRIPTION
+              value: "{{VENDOR_AGENT_DESCRIPTION}}"
+            - name: VENDOR_TENANT
+              value: "{{VENDOR_TENANT}}"
+            - name: VENDOR_OFFER_CATALOG_PATH
+              value: /var/run/config/uptime402/vendor-offers/offers.json
+            - name: VENDOR_OFFER_CATALOG_ROOT
+              value: /var/run/config/uptime402/vendor-offers
+            - name: VENDOR_OFFER_SIGNER_PUBLIC_KEY
+              value: "{{VENDOR_OFFER_SIGNER_PUBLIC_KEY}}"
+            - name: VENDOR_OFFER_SIGNER_KEY_ID
+              value: "{{VENDOR_OFFER_SIGNER_KEY_ID}}"
+            - name: VENDOR_RECEIPT_KEY_PATH
+              value: /var/run/secrets/uptime402/vendor-receipt/keypair.json
+            - name: VENDOR_RECEIPT_SECRET_ROOT
+              value: /var/run/secrets/uptime402/vendor-receipt
+            - name: VENDOR_RECEIPT_PUBLIC_KEY
+              value: "{{VENDOR_RECEIPT_PUBLIC_KEY}}"
+            - name: VENDOR_RECEIPT_KEY_ID
+              value: "{{VENDOR_RECEIPT_KEY_ID}}"
+            - name: VENDOR_USDC_RECIPIENT
+              value: "{{VENDOR_USDC_RECIPIENT}}"
+            - name: VENDOR_EXPECTED_PAYER_PUBLIC_KEY
+              value: "{{EXECUTOR_WALLET_PUBLIC_KEY}}"
+            - name: VENDOR_RECONCILE_EXPECTED_AUDIENCE
+              value: "{{PUBLIC_VENDOR_ORIGIN}}"
+            - name: VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL
+              value: "{{CONTROL_PLANE_SERVICE_ACCOUNT}}"
+            - name: SOLANA_RPC_URL
+              value: "{{SOLANA_RPC_URL}}"
+            - name: X402_FACILITATOR_URL
+              value: "{{X402_FACILITATOR_URL}}"
+            - name: X402_FACILITATOR_FEE_PAYER
+              value: "{{X402_FACILITATOR_FEE_PAYER}}"
+            - name: X402_MAX_TIMEOUT_SECONDS
+              value: "{{X402_MAX_TIMEOUT_SECONDS}}"
+            - name: SETTLEMENT_CONFIRMATION_ATTEMPTS
+              value: "{{SETTLEMENT_CONFIRMATION_ATTEMPTS}}"
+            - name: SETTLEMENT_CONFIRMATION_DELAY_MS
+              value: "{{SETTLEMENT_CONFIRMATION_DELAY_MS}}"
+            - name: SOLANA_CLUSTER_LABEL
+              value: devnet
+            - name: SOLANA_GENESIS_HASH
+              value: EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG
+            - name: X402_NETWORK_ID
+              value: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1
+            - name: X402_SDK_NETWORK_ID
+              value: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1
+            - name: USDC_MINT
+              value: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+            - name: USDC_DECIMALS
+              value: "6"
+          volumeMounts:
+            - name: vendor-receipt
+              mountPath: /var/run/secrets/uptime402/vendor-receipt
+              readOnly: true
+            - name: vendor-offers
+              mountPath: /var/run/config/uptime402/vendor-offers
+              readOnly: true
+      volumes:
+        - name: vendor-receipt
+          secret:
+            secretName: vendor-receipt
+            defaultMode: 292
+            items:
+              - key: "{{VENDOR_RECEIPT_SECRET_VERSION}}"
+                path: keypair.json
+        - name: vendor-offers
+          secret:
+            secretName: vendor-offers
+            defaultMode: 292
+            items:
+              - key: "{{VENDOR_OFFER_CATALOG_SECRET_VERSION}}"
+                path: offers.json

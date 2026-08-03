@@ -1,0 +1,56 @@
+# Build-and-push only. Cloud Run deployment is a separate, authorization-gated
+# step using the validated templates under deploy/. This file never creates IAM,
+# services, secrets, wallets, or live evidence.
+timeout: 1800s
+options:
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _REGION: asia-northeast3
+  _REPOSITORY: uptime402
+  # Override with an immutable lowercase hexadecimal commit/build identifier.
+  _IMAGE_TAG: REQUIRED_HEX_IMAGE_TAG
+steps:
+  - id: validate-image-tag
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ ! "${_IMAGE_TAG}" =~ ^[0-9a-f]{7,64}$ ]]; then
+          echo "_IMAGE_TAG must be an immutable lowercase hexadecimal identifier" >&2
+          exit 2
+        fi
+  - id: build-control-plane
+    name: gcr.io/cloud-builders/docker
+    waitFor: [validate-image-tag]
+    args:
+      - build
+      - --file
+      - apps/control-plane/Dockerfile
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/control-plane:${_IMAGE_TAG}
+      - .
+  - id: build-payment-executor
+    name: gcr.io/cloud-builders/docker
+    waitFor: [validate-image-tag]
+    args:
+      - build
+      - --file
+      - services/payment-executor/Dockerfile
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/payment-executor:${_IMAGE_TAG}
+      - .
+  - id: build-vendor-agent
+    name: gcr.io/cloud-builders/docker
+    waitFor: [validate-image-tag]
+    args:
+      - build
+      - --file
+      - services/vendor-agent/Dockerfile
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/vendor-agent:${_IMAGE_TAG}
+      - .
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/control-plane:${_IMAGE_TAG}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/payment-executor:${_IMAGE_TAG}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/vendor-agent:${_IMAGE_TAG}

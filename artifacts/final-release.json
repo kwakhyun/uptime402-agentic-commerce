@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "1.0",
+  "artifactKind": "human-readable-deployment-qa-summary",
+  "notPaymentEvidence": true,
+  "publicSnapshotNote": "Operator-identifying raw Cloud Run service/revision exports and project-wide IAM exports are intentionally omitted from the public repository. Their original SHA-256 commitments remain in the canonical hash-pinned payment evidence; public leaf IAM proofs below contain no personal identity or secret value.",
+  "capturedAt": "2026-08-03T13:50:21.000Z",
+  "projectId": "uptime402-hack-260803",
+  "projectNumber": "1065649463621",
+  "region": "asia-northeast3",
+  "sourceCommit": "10ca5f2ccaf2af45e2d80f6065de9c623b24e559",
+  "cloudBuild": {
+    "id": "793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3",
+    "status": "SUCCESS",
+    "startedAt": "2026-08-03T13:39:53.793653279Z",
+    "finishedAt": "2026-08-03T13:47:32.055981Z",
+    "activeBuildsAfterInspection": 0
+  },
+  "images": {
+    "controlPlane": "sha256:1f9313ae6915f09a81d78b26816fa918a0a22750f57cdedb95b7f1c256e953db",
+    "paymentExecutor": "sha256:766bed6a1c1f12968e18b7a1fadab1afe61c916fd65a29243af7d2b37bb550ad",
+    "vendorAgent": "sha256:cc249b8f161fe96ec0fde0b6f79c2a977aef5433fe2ac0726fde2eae4b7ff694"
+  },
+  "services": {
+    "controlPlane": {
+      "revision": "uptime402-control-plane-00015-sqw",
+      "url": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+      "trafficPercent": 100,
+      "unauthenticatedRootStatus": 200,
+      "healthStatus": 200
+    },
+    "paymentExecutor": {
+      "revision": "uptime402-payment-executor-00012-2dg",
+      "url": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app",
+      "trafficPercent": 100,
+      "unauthenticatedStatus": 403
+    },
+    "vendorAgent": {
+      "revision": "uptime402-vendor-agent-00011-88p",
+      "url": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app",
+      "trafficPercent": 100,
+      "agentCardStatus": 200,
+      "healthStatus": 200
+    }
+  },
+  "evidencePins": {
+    "stage": "final",
+    "paymentEvidenceSha256": "sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
+  },
+  "iamAssertions": {
+    "controlPlanePublicInvoker": true,
+    "vendorAgentPublicInvoker": true,
+    "executorOnlyControlPlaneInvoker": true,
+    "executorSignerOnlyExecutorRuntimeAccessor": true,
+    "vendorOfferAndReceiptOnlyVendorRuntimeAccessor": true,
+    "runtimeIdentitiesHaveNoPrimitiveOwnerOrEditor": true,
+    "unauthenticatedOperatorMutationStatus": 403
+  },
+  "uiQa": {
+    "loggedOutReadOnlyReplayDefault": true,
+    "googleLoginRendered": false,
+    "livePaymentTriggerRendered": false,
+    "desktopViewport": "1440x1000",
+    "mobileViewport": "390x844",
+    "protocolDisclosureChecked": true,
+    "evidenceDrawerChecked": true,
+    "twoSignedOffersVisible": true,
+    "counterfactualSelectionFlipVisible": true,
+    "dualNoTransactionDenialsVisible": true
+  },
+  "recentRevisionErrorLogCounts": {
+    "controlPlane": 0,
+    "paymentExecutor": 0,
+    "vendorAgent": 0
+  },
+  "rawArtifacts": {
+    "controlPlaneIam": {
+      "path": "artifacts/final-deployment/control-plane.iam.json",
+      "sha256": "sha256:37529abb4c0cce34d60ccf60d2ed02a71ad70ea38af8fe0bc799a40f97ff0414"
+    },
+    "paymentExecutorIam": {
+      "path": "artifacts/final-deployment/payment-executor.iam.json",
+      "sha256": "sha256:4dc3c3676fd309dfb608c5234774332455ad2d96144938a465074769f8c5f0ab"
+    },
+    "vendorAgentIam": {
+      "path": "artifacts/final-deployment/vendor-agent.iam.json",
+      "sha256": "sha256:fa09f02acc69c24747a818bb3d1ff3e0817d80919067bbea797f260b8e2ad99f"
+    },
+    "executorSignerIam": {
+      "path": "artifacts/final-deployment/executor-signer.iam.json",
+      "sha256": "sha256:6a4494bb3f7f20b9d2aa65ded1194384361df8c8fbf6c3655e069f28d2aa20d7"
+    },
+    "vendorOffersIam": {
+      "path": "artifacts/final-deployment/vendor-offers.iam.json",
+      "sha256": "sha256:e711ae08cde4fcb997de382c4a874e3d43fe23fb8750d9e8ef41375a13cd92cc"
+    },
+    "vendorReceiptIam": {
+      "path": "artifacts/final-deployment/vendor-receipt.iam.json",
+      "sha256": "sha256:957244cf26a645ea2056b971880df27a075913ec59e7cba25586ce5f712a2bce"
+    }
+  },
+  "remainingSubmissionBlocker": "Final demo video capture, playback QA, and upload are not complete."
+}
