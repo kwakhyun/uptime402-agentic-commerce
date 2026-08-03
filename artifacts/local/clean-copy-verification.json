@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "mode": "clean-copy",
+  "verifiedAt": "2026-08-03T07:11:35+09:00",
+  "sourceExclusions": [
+    ".git",
+    "node_modules",
+    ".next",
+    "dist",
+    "*.tsbuildinfo",
+    "__pycache__"
+  ],
+  "checks": {
+    "pnpmInstallFrozenLockfile": "passed",
+    "lint": "passed",
+    "typecheck": "passed",
+    "tests": {
+      "filesPassed": 16,
+      "filesSkipped": 1,
+      "testsPassed": 134,
+      "testsSkipped": 8
+    },
+    "productionBuild": "passed",
+    "deploymentTemplateContract": "passed",
+    "structuralReadiness": {
+      "passed": 29,
+      "info": 2,
+      "failed": 2,
+      "expectedOpenFailures": [
+        "evidence.payments",
+        "evidence.denials"
+      ]
+    }
+  },
+  "limitations": [
+    "Firestore emulator cases are skipped in the ordinary full suite and were verified separately in artifacts/local/firestore-emulator-verification.json.",
+    "The intentionally empty payment and denial arrays prevent structural and submission readiness from passing.",
+    "This run proves local reproducibility only; it is not Devnet, Cloud Run, managed Firestore, Gemini-live, or submission evidence."
+  ]
+}

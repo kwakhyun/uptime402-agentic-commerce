@@ -1,0 +1,15 @@
+{
+  "name": "@uptime402/policy",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts"
+  },
+  "dependencies": {
+    "@uptime402/domain": "workspace:*"
+  }
+}

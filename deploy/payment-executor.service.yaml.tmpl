@@ -1,0 +1,94 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "{{PAYMENT_EXECUTOR_SERVICE_NAME}}"
+  labels:
+    cloud.googleapis.com/location: "{{GCP_REGION}}"
+  annotations:
+    # Network-reachable so the unauthenticated 401/403 boundary can be probed;
+    # access remains private because allUsers is never granted run.invoker.
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "2"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/secrets: "executor-signer:projects/{{PROJECT_ID}}/secrets/{{EXECUTOR_SIGNER_SECRET_NAME}}"
+    spec:
+      serviceAccountName: "{{EXECUTOR_SERVICE_ACCOUNT}}"
+      containerConcurrency: 8
+      timeoutSeconds: 300
+      containers:
+        - image: "{{GCP_REGION}}-docker.pkg.dev/{{PROJECT_ID}}/{{ARTIFACT_REPOSITORY}}/payment-executor:{{IMAGE_TAG}}"
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: FIRESTORE_PROJECT_ID
+              value: "{{FIRESTORE_PROJECT_ID}}"
+            - name: FIRESTORE_DATABASE_ID
+              value: "{{FIRESTORE_DATABASE_ID}}"
+            - name: FIRESTORE_COLLECTION_PREFIX
+              value: "{{FIRESTORE_COLLECTION_PREFIX}}"
+            - name: EXECUTOR_EXPECTED_AUDIENCE
+              value: "{{EXECUTOR_EXPECTED_AUDIENCE}}"
+            - name: CONTROL_PLANE_SERVICE_ACCOUNT
+              value: "{{CONTROL_PLANE_SERVICE_ACCOUNT}}"
+            - name: OPERATOR_PRINCIPAL
+              value: "{{OPERATOR_PRINCIPAL}}"
+            - name: MANDATE_ISSUER_PRINCIPAL
+              value: "{{MANDATE_ISSUER_PRINCIPAL}}"
+            - name: MANDATE_SIGNER_PUBLIC_KEY
+              value: "{{MANDATE_SIGNER_PUBLIC_KEY}}"
+            - name: MANDATE_SIGNER_KEY_ID
+              value: "{{MANDATE_SIGNER_KEY_ID}}"
+            - name: VENDOR_OFFER_SIGNER_PUBLIC_KEY
+              value: "{{VENDOR_OFFER_SIGNER_PUBLIC_KEY}}"
+            - name: VENDOR_OFFER_SIGNER_KEY_ID
+              value: "{{VENDOR_OFFER_SIGNER_KEY_ID}}"
+            - name: EXECUTOR_WALLET_KEYPAIR_PATH
+              value: /var/run/secrets/uptime402/executor-signer/keypair.json
+            - name: EXECUTOR_WALLET_SECRET_ROOT
+              value: /var/run/secrets/uptime402/executor-signer
+            - name: EXECUTOR_WALLET_PUBLIC_KEY
+              value: "{{EXECUTOR_WALLET_PUBLIC_KEY}}"
+            - name: SOLANA_RPC_URL
+              value: "{{SOLANA_RPC_URL}}"
+            - name: X402_FACILITATOR_URL
+              value: "{{X402_FACILITATOR_URL}}"
+            - name: ALLOWED_VENDOR_ORIGINS
+              value: "{{ALLOWED_VENDOR_ORIGINS}}"
+            - name: ESTIMATED_NETWORK_FEE_LAMPORTS
+              value: "{{ESTIMATED_NETWORK_FEE_LAMPORTS}}"
+            - name: SOLANA_CLUSTER_LABEL
+              value: devnet
+            - name: SOLANA_GENESIS_HASH
+              value: EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG
+            - name: X402_NETWORK_ID
+              value: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1
+            - name: X402_SDK_NETWORK_ID
+              value: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1
+            - name: USDC_MINT
+              value: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+            - name: USDC_DECIMALS
+              value: "6"
+          volumeMounts:
+            - name: executor-signer
+              mountPath: /var/run/secrets/uptime402/executor-signer
+              readOnly: true
+      volumes:
+        - name: executor-signer
+          secret:
+            secretName: executor-signer
+            defaultMode: 292
+            items:
+              - key: "{{EXECUTOR_SIGNER_SECRET_VERSION}}"
+                path: keypair.json

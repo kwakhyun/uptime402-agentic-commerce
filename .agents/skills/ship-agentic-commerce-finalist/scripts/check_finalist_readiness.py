@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import binascii
 import hashlib
 import ipaddress
 import json
@@ -638,6 +639,58 @@ def looks_like_literal_secret(value: str) -> bool:
     return True
 
 
+PEM_PRIVATE_KEY_LABELS = (
+    "PRIVATE KEY",
+    "ENCRYPTED PRIVATE KEY",
+    "RSA PRIVATE KEY",
+    "EC PRIVATE KEY",
+    "DSA PRIVATE KEY",
+    "OPENSSH PRIVATE KEY",
+)
+
+
+def looks_like_pem_private_key_body(value: str) -> bool:
+    """Distinguish actual PEM payload bytes from parser/marker literals.
+
+    Generated dependency chunks legitimately contain regular expressions such
+    as ``BEGIN ... .*? ... END``. A leaked key instead has a Base64 payload of
+    at least 32 decoded bytes. JavaScript/JSON bundles may spell PEM line breaks
+    as one or more escaped ``\\n``/``\\r\\n`` sequences, so normalize those
+    before validating the payload.
+    """
+    normalized = re.sub(r"\\+(?:r\\n|n|r)", "\n", value)
+    compact = re.sub(r"\s+", "", normalized)
+    if len(compact) < 43 or not re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", compact):
+        return False
+    if len(compact) % 4 == 1:
+        return False
+    padded = compact + "=" * ((-len(compact)) % 4)
+    try:
+        decoded = base64.b64decode(padded, validate=True)
+    except (ValueError, binascii.Error):
+        return False
+    return len(decoded) >= 32
+
+
+def contains_pem_private_key(text: str) -> bool:
+    for label in PEM_PRIVATE_KEY_LABELS:
+        begin_marker = "-----BEGIN " + label + "-----"
+        end_marker = "-----END " + label + "-----"
+        search_from = 0
+        while True:
+            begin_at = text.find(begin_marker, search_from)
+            if begin_at < 0:
+                break
+            body_at = begin_at + len(begin_marker)
+            end_at = text.find(end_marker, body_at)
+            if end_at < 0:
+                break
+            if looks_like_pem_private_key_body(text[body_at:end_at]):
+                return True
+            search_from = body_at
+    return False
+
+
 def git_file_sets(root: Path) -> tuple[set[Path], set[Path]]:
     try:
         git_root_result = subprocess.run(
@@ -717,7 +770,7 @@ def check_secret_contents(root: Path, *, submission: bool) -> list[Result]:
         except UnicodeDecodeError:
             continue
         relative = path.relative_to(root).as_posix()
-        if "-----BEGIN PRIVATE KEY-----" in text or "-----BEGIN EC PRIVATE KEY-----" in text:
+        if contains_pem_private_key(text):
             issues.append((path, "PEM private key"))
         for match in assignment_re.finditer(text):
             if looks_like_literal_secret(match.group(1)):
@@ -899,10 +952,22 @@ def check_payment_shape(payload: dict[str, Any]) -> list[Result]:
             results.append(result("FAIL", f"evidence.{prefix}.timestamps", "confirmedAt cannot precede incidentAt"))
 
     denials = payload.get("denials")
-    if isinstance(denials, list) and denials:
-        results.append(result("PASS", "evidence.denials", "At least one denial object is present"))
+    if isinstance(denials, list) and len(denials) == 2:
+        results.append(
+            result(
+                "PASS",
+                "evidence.denials",
+                "Exactly two denial objects are present for over-cap and replay verification",
+            )
+        )
     else:
-        results.append(result("FAIL", "evidence.denials", "At least one denial object is required"))
+        results.append(
+            result(
+                "FAIL",
+                "evidence.denials",
+                "Exactly two denial objects are required: over-cap and nonce/idempotency replay",
+            )
+        )
     return results
 
 
@@ -1369,8 +1434,14 @@ def check_outcome(
 def check_denials(root: Path, payload: dict[str, Any]) -> list[Result]:
     denials = payload.get("denials")
     if not isinstance(denials, list) or not denials:
-        return [result("FAIL", "evidence.denial", "At least one denial is required")]
+        return [result("FAIL", "evidence.denial", "Both P0 denial records are required")]
     results: list[Result] = []
+    if len(denials) != 2:
+        results.append(
+            result("FAIL", "evidence.denial.count", "Exactly two P0 denial records are required")
+        )
+    over_cap_count = 0
+    replay_count = 0
     for index, denial in enumerate(denials):
         prefix = f"evidence.denial[{index}]"
         if not isinstance(denial, dict):
@@ -1395,8 +1466,101 @@ def check_denials(root: Path, payload: dict[str, Any]) -> list[Result]:
             continue
         attempted = parse_positive_int(denial.get("attemptedAmountBaseUnits"))
         limit = parse_positive_int(denial.get("perTransactionLimitBaseUnits"))
-        if attempted is None or limit is None or attempted <= limit:
-            results.append(result("FAIL", f"{prefix}.limit", "Denied amount must exceed the recorded limit"))
+        replay = denial.get("replayProof")
+        if attempted is None or limit is None:
+            results.append(result("FAIL", f"{prefix}.limit", "Denied amount and limit must be positive integers"))
+        elif replay is None:
+            over_cap_count += 1
+            if attempted <= limit or denial.get("reasonCode") != "amount.per_transaction_limit":
+                results.append(
+                    result(
+                        "FAIL",
+                        f"{prefix}.limit",
+                        "Over-cap denial must exceed the recorded limit and bind amount.per_transaction_limit",
+                    )
+                )
+        elif attempted > limit:
+            results.append(
+                result("FAIL", f"{prefix}.replay", "Replay denial must isolate replay protection below the cap")
+            )
+        elif not isinstance(replay, dict):
+            results.append(result("FAIL", f"{prefix}.replay", "Replay proof must be an object"))
+        else:
+            identifier_type = replay.get("identifierType")
+            if identifier_type in {"nonce", "idempotencyKey"}:
+                replay_count += 1
+            original_payment_id = replay.get("originalPaymentId")
+            original = next(
+                (
+                    payment
+                    for payment in (payload.get("payments") or [])
+                    if isinstance(payment, dict) and payment.get("paymentId") == original_payment_id
+                ),
+                None,
+            )
+            expected_reason = {
+                "paymentId": "identifier.payment_id_fresh",
+                "nonce": "identifier.nonce_fresh",
+                "idempotencyKey": "identifier.idempotency_key_fresh",
+            }.get(identifier_type)
+            expected_identifier = (
+                original.get("paymentId")
+                if isinstance(original, dict) and identifier_type == "paymentId"
+                else original.get("nonce")
+                if isinstance(original, dict) and identifier_type == "nonce"
+                else original.get("idempotencyKey")
+                if isinstance(original, dict) and identifier_type == "idempotencyKey"
+                else None
+            )
+            expected_explorer = (
+                f"https://explorer.solana.com/tx/{replay.get('originalTxSignature')}?cluster=devnet"
+            )
+            if (
+                not isinstance(original, dict)
+                or denial.get("mandateId") != original.get("mandateId")
+                or replay.get("originalIncidentId") != original.get("incidentId")
+                or replay.get("deniedIncidentId") != denial.get("incidentId")
+                or replay.get("originalNonce") != original.get("nonce")
+                or replay.get("originalIdempotencyKey") != original.get("idempotencyKey")
+                or denial.get("attemptedAmountBaseUnits") != original.get("amountBaseUnits")
+                or denial.get("reasonCode") != expected_reason
+                or replay.get("identifierValue") != expected_identifier
+                or replay.get("originalTxSignature") != original.get("txSignature")
+                or replay.get("originalExplorerUrl") != original.get("explorerUrl")
+                or replay.get("originalExplorerUrl") != expected_explorer
+                or replay.get("deniedIncidentId") == replay.get("originalIncidentId")
+                or (
+                    identifier_type == "paymentId"
+                    and (
+                        replay.get("deniedPaymentId") != original.get("paymentId")
+                        or replay.get("deniedNonce") == replay.get("originalNonce")
+                        or replay.get("deniedIdempotencyKey") == replay.get("originalIdempotencyKey")
+                    )
+                )
+                or (
+                    identifier_type == "nonce"
+                    and (
+                        replay.get("deniedNonce") != original.get("nonce")
+                        or replay.get("deniedPaymentId") == original.get("paymentId")
+                        or replay.get("deniedIdempotencyKey") == replay.get("originalIdempotencyKey")
+                    )
+                )
+                or (
+                    identifier_type == "idempotencyKey"
+                    and (
+                        replay.get("deniedIdempotencyKey") != original.get("idempotencyKey")
+                        or replay.get("deniedPaymentId") == original.get("paymentId")
+                        or replay.get("deniedNonce") == replay.get("originalNonce")
+                    )
+                )
+            ):
+                results.append(
+                    result(
+                        "FAIL",
+                        f"{prefix}.replay",
+                        "Replay denial must bind the original identifier, mandate, amount, Devnet transaction, and freshness rule",
+                    )
+                )
         if denial.get("transactionCreated") is not False or denial.get("txSignature") is not None:
             results.append(result("FAIL", f"{prefix}.transaction", "Denial must have no transaction/signature"))
         if parse_timestamp(denial.get("attemptedAt")) is None or not HASH_RE.fullmatch(
@@ -1415,11 +1579,39 @@ def check_denials(root: Path, payload: dict[str, Any]) -> list[Result]:
             if not isinstance(artifact, dict):
                 results.append(result("FAIL", f"{prefix}.artifact", "Denial artifact must be JSON"))
             else:
-                for key in ("incidentId", "reasonCode", "transactionCreated", "executionPolicyHash"):
+                for key in (
+                    "incidentId",
+                    "reasonCode",
+                    "transactionCreated",
+                    "executionPolicyHash",
+                    "replayProof",
+                ):
                     if artifact.get(key) != denial.get(key):
                         results.append(result("FAIL", f"{prefix}.binding", f"Denial artifact mismatches {key}"))
+    if over_cap_count != 1:
+        results.append(
+            result(
+                "FAIL",
+                "evidence.denial.over_cap",
+                "Exactly one per-transaction over-cap denial is required",
+            )
+        )
+    if replay_count != 1:
+        results.append(
+            result(
+                "FAIL",
+                "evidence.denial.replay",
+                "Exactly one nonce or idempotency replay denial is required",
+            )
+        )
     if not any(item.level == "FAIL" for item in results):
-        results.append(result("PASS", "evidence.denial", "Policy denial is hash-bound and has no transaction"))
+        results.append(
+            result(
+                "PASS",
+                "evidence.denial",
+                "Over-cap and replay denials are hash-bound and create no transactions",
+            )
+        )
     return results
 
 

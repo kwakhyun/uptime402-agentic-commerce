@@ -1,0 +1,218 @@
+{"kind":"deck","id":"pr/qkw7pa","name":"Deck"}
+{"kind":"layout","layoutId":"8330b98d-74ae-4efa-b982-4697ec3115e3","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"f40cfed5-0eb7-442e-9f9e-7df82ea011f6","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/j92pu7","slide":1,"title":"UPTIME402","textShapes":5}
+{"kind":"shape","id":"sh/vixkn694","slide":1,"bbox":[74,78,8,510]}
+{"kind":"textbox","id":"sh/gj61wrap","slide":1,"text":"UPTIME402","textPreview":"UPTIME402","textChars":9,"textLines":1,"bbox":[116,82,560,44]}
+{"kind":"textbox","id":"sh/hkf2pwra","slide":1,"name":"hero-title","text":"An outage does not\nwait for procurement.","textPreview":"An outage does not | wait for procurement.","textChars":40,"textLines":2,"bbox":[116,178,980,220]}
+{"kind":"textbox","id":"sh/6t4jqhsn","slide":1,"text":"AI SRE가 복구 리소스를 발견하고, 제한 안에서 지불하고, 실제 회복을 증명합니다.","textPreview":"AI SRE가 복구 리소스를 발견하고, 제한 안에서 지불하고, 실제 회복을 증명합니다.","textChars":48,"textLines":1,"bbox":[120,438,930,66]}
+{"kind":"textbox","id":"sh/7udkjmts","slide":1,"text":"Gemini  ·  A2A  ·  x402  ·  Solana Devnet USDC  ·  Cloud Run","textPreview":"Gemini  ·  A2A  ·  x402  ·  Solana Devnet USDC  ·  Cloud Run","textChars":60,"textLines":1,"bbox":[120,570,980,32]}
+{"kind":"textbox","id":"sh/8fm1srad","slide":1,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[1120,608,90,60]}
+{"kind":"notes","id":"nt/j92pu7","slide":1,"text":"[Sources]\n- Repository: docs/BUILD_STATUS.md\n- https://www.gcp-solana-ai-agentic-hacks-kr.xyz/"}
+{"kind":"slide","id":"sl/x7136o","slide":2,"title":"02","textShapes":18}
+{"kind":"textbox","id":"sh/knm1czm5","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[66,42,50,26]}
+{"kind":"textbox","id":"sh/j2d0jul0","slide":2,"text":"THE PROCUREMENT GAP","textPreview":"THE PROCUREMENT GAP","textChars":19,"textLines":1,"bbox":[116,42,580,26]}
+{"kind":"shape","id":"sh/i14jap4f","slide":2,"bbox":[66,684,1148,0]}
+{"kind":"textbox","id":"sh/x0bihk3u","slide":2,"text":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textPreview":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textChars":56,"textLines":1,"bbox":[66,690,740,18]}
+{"kind":"textbox","id":"sh/wz218fm9","slide":2,"text":"EVIDENCE-FIRST P0","textPreview":"EVIDENCE-FIRST P0","textChars":17,"textLines":1,"bbox":[1000,690,214,18]}
+{"kind":"textbox","id":"sh/vyt0fa5o","slide":2,"text":"구매 대기 시간은\n그대로 장애 시간이 됩니다.","textPreview":"구매 대기 시간은 | 그대로 장애 시간이 됩니다.","textChars":25,"textLines":2,"bbox":[66,108,560,150]}
+{"kind":"textbox","id":"sh/axkj6543","slide":2,"text":"복구에 필요한 routing·capacity·diagnostics는 지금 필요하지만, 기존 흐름은 사람이 시스템 사이를 옮겨 다닙니다.","textPreview":"복구에 필요한 routing·capacity·diagnostics는 지금 필요하지만, 기존 흐름은 사람이 시스템 사이를 옮겨 다닙니다.","textChars":75,"textLines":1,"bbox":[68,300,520,110]}
+{"kind":"shape","id":"sh/1wf2t43y","slide":2,"bbox":[770,136,0,410]}
+{"kind":"shape","id":"sh/gv61kjmd","slide":2,"bbox":[762,138,16,16]}
+{"kind":"textbox","id":"sh/at0nmx4b","slide":2,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[810,116,46,34]}
+{"kind":"textbox","id":"sh/bu9ov2lw","slide":2,"text":"진단","textPreview":"진단","textChars":2,"textLines":1,"bbox":[862,114,280,38]}
+{"kind":"textbox","id":"sh/wvi5onm1","slide":2,"text":"무엇이 깨졌는가","textPreview":"무엇이 깨졌는가","textChars":8,"textLines":1,"bbox":[862,158,340,28]}
+{"kind":"shape","id":"sh/xwr6xs3m","slide":2,"bbox":[762,264,16,16]}
+{"kind":"textbox","id":"sh/m5gnid4z","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[810,242,46,34]}
+{"kind":"textbox","id":"sh/n6p4ri5k","slide":2,"text":"공급자 탐색","textPreview":"공급자 탐색","textChars":6,"textLines":1,"bbox":[862,240,280,38]}
+{"kind":"textbox","id":"sh/ory5knm5","slide":2,"text":"누가 즉시 복구할 수 있는가","textPreview":"누가 즉시 복구할 수 있는가","textChars":15,"textLines":1,"bbox":[862,284,340,28]}
+{"kind":"shape","id":"sh/9s76tsnq","slide":2,"bbox":[762,390,16,16]}
+{"kind":"textbox","id":"sh/61knuh4j","slide":2,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[810,368,46,34]}
+{"kind":"textbox","id":"sh/72to3mlo","slide":2,"text":"승인·결제","textPreview":"승인·결제","textChars":5,"textLines":1,"bbox":[862,366,280,38]}
+{"kind":"textbox","id":"sh/3u1czah4","slide":2,"text":"누가 지금 돈을 승인하는가","textPreview":"누가 지금 돈을 승인하는가","textChars":14,"textLines":1,"bbox":[862,410,340,28]}
+{"kind":"shape","id":"sh/itsb65gj","slide":2,"bbox":[762,516,16,16]}
+{"kind":"textbox","id":"sh/5wju1kza","slide":2,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[810,494,46,34]}
+{"kind":"textbox","id":"sh/4vat8fyp","slide":2,"text":"프로비저닝","textPreview":"프로비저닝","textChars":5,"textLines":1,"bbox":[862,492,280,38]}
+{"kind":"textbox","id":"sh/rylc3ux0","slide":2,"text":"결제가 실제 회복으로 이어졌는가","textPreview":"결제가 실제 회복으로 이어졌는가","textChars":17,"textLines":1,"bbox":[862,536,340,28]}
+{"kind":"notes","id":"nt/x7136o","slide":2,"text":"[Sources]\n- Repository: docs/SUBMISSION_DECK.md\n- Repository: docs/ARCHITECTURE.md"}
+{"kind":"slide","id":"sl/otv3fq","slide":3,"title":"03","textShapes":18}
+{"kind":"textbox","id":"sh/hcbmlsfq","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[66,42,50,26]}
+{"kind":"textbox","id":"sh/u90nadgf","slide":3,"text":"AUTONOMOUS WITHIN A MANDATE","textPreview":"AUTONOMOUS WITHIN A MANDATE","textChars":27,"textLines":1,"bbox":[116,42,580,26]}
+{"kind":"shape","id":"sh/vat4jix0","slide":3,"bbox":[66,684,1148,0]}
+{"kind":"textbox","id":"sh/4f25g7yh","slide":3,"text":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textPreview":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textChars":56,"textLines":1,"bbox":[66,690,740,18]}
+{"kind":"textbox","id":"sh/5gbmpcf2","slide":3,"text":"EVIDENCE-FIRST P0","textPreview":"EVIDENCE-FIRST P0","textChars":17,"textLines":1,"bbox":[1000,690,214,18]}
+{"kind":"textbox","id":"sh/idknexgb","slide":3,"text":"사람이 정하는 것은\n건별 결제가 아니라 경계입니다.","textPreview":"사람이 정하는 것은 | 건별 결제가 아니라 경계입니다.","textChars":28,"textLines":2,"bbox":[66,104,670,128]}
+{"kind":"textbox","id":"sh/jet4n2xw","slide":3,"text":"0","textPreview":"0","textChars":1,"textLines":1,"bbox":[74,280,250,210]}
+{"kind":"textbox","id":"sh/0ji543yd","slide":3,"text":"payment approval clicks\nafter incident trigger","textPreview":"payment approval clicks | after incident trigger","textChars":46,"textLines":2,"bbox":[270,338,330,90]}
+{"kind":"shape","id":"sh/lkrmd8fy","slide":3,"bbox":[720,110,0,480]}
+{"kind":"textbox","id":"sh/5gfu1wny","slide":3,"text":"INCIDENT","textPreview":"INCIDENT","textChars":8,"textLines":1,"bbox":[764,122,190,24]}
+{"kind":"textbox","id":"sh/4f6t8bmd","slide":3,"text":"0.05 USDC","textPreview":"0.05 USDC","textChars":9,"textLines":1,"bbox":[764,148,390,44]}
+{"kind":"shape","id":"sh/jexcz658","slide":3,"bbox":[764,198,400,0]}
+{"kind":"textbox","id":"sh/idob614n","slide":3,"text":"PER TRANSACTION","textPreview":"PER TRANSACTION","textChars":15,"textLines":1,"bbox":[764,212,190,24]}
+{"kind":"textbox","id":"sh/dkfu5gna","slide":3,"text":"0.02 USDC","textPreview":"0.02 USDC","textChars":9,"textLines":1,"bbox":[764,238,390,44]}
+{"kind":"shape","id":"sh/sj6dcbmp","slide":3,"bbox":[764,288,400,0]}
+{"kind":"textbox","id":"sh/rixc3654","slide":3,"text":"TIME WINDOW","textPreview":"TIME WINDOW","textChars":11,"textLines":1,"bbox":[764,302,190,24]}
+{"kind":"textbox","id":"sh/6hova14j","slide":3,"text":"10 MIN","textPreview":"10 MIN","textChars":6,"textLines":1,"bbox":[764,328,390,44]}
+{"kind":"shape","id":"sh/18zu9gn6","slide":3,"bbox":[764,378,400,0]}
+{"kind":"textbox","id":"sh/07qdgvml","slide":3,"text":"ASSET / NETWORK","textPreview":"ASSET / NETWORK","textChars":15,"textLines":1,"bbox":[764,392,190,24]}
+{"kind":"textbox","id":"sh/0ryxczux","slide":3,"text":"USDC / DEVNET","textPreview":"USDC / DEVNET","textChars":13,"textLines":1,"bbox":[764,418,390,44]}
+{"kind":"shape","id":"sh/lc7e54vi","slide":3,"bbox":[764,468,400,0]}
+{"kind":"textbox","id":"sh/ypgfapcr","slide":3,"text":"ALLOWLIST","textPreview":"ALLOWLIST","textChars":9,"textLines":1,"bbox":[764,482,190,24]}
+{"kind":"textbox","id":"sh/zqpw3udc","slide":3,"text":"CAPABILITY + RECIPIENT","textPreview":"CAPABILITY + RECIPIENT","textChars":22,"textLines":1,"bbox":[764,508,390,44]}
+{"kind":"textbox","id":"sh/8fyxgzut","slide":3,"text":"Application-enforced policy + low-balance blast-radius isolation","textPreview":"Application-enforced policy + low-balance blast-radius isolation","textChars":64,"textLines":1,"bbox":[70,610,1070,34]}
+{"kind":"notes","id":"nt/otv3fq","slide":3,"text":"[Sources]\n- Repository: AGENTS.md\n- Repository: docs/ARCHITECTURE.md"}
+{"kind":"slide","id":"sl/lgvd2f","slide":4,"title":"04","textShapes":18}
+{"kind":"textbox","id":"sh/bq90z6tw","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[66,42,50,26]}
+{"kind":"textbox","id":"sh/wri18bu1","slide":4,"text":"STANDARD X402 FLOW","textPreview":"STANDARD X402 FLOW","textChars":18,"textLines":1,"bbox":[116,42,580,26]}
+{"kind":"shape","id":"sh/xsri1gbm","slide":4,"bbox":[66,684,1148,0]}
+{"kind":"textbox","id":"sh/yt0jalc7","slide":4,"text":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textPreview":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textChars":56,"textLines":1,"bbox":[66,690,740,18]}
+{"kind":"textbox","id":"sh/jut03qts","slide":4,"text":"EVIDENCE-FIRST P0","textPreview":"EVIDENCE-FIRST P0","textChars":17,"textLines":1,"bbox":[1000,690,214,18]}
+{"kind":"textbox","id":"sh/kv21cbud","slide":4,"text":"먼저 송금하고 proof를 붙이는 흐름이 아닙니다.","textPreview":"먼저 송금하고 proof를 붙이는 흐름이 아닙니다.","textChars":28,"textLines":1,"bbox":[66,100,1010,64]}
+{"kind":"textbox","id":"sh/lwb25gby","slide":4,"text":"402가 가격을 제시하고, client가 같은 요청에 자동 서명 payload를 붙여 재시도합니다.","textPreview":"402가 가격을 제시하고, client가 같은 요청에 자동 서명 payload를 붙여 재시도합니다.","textChars":55,"textLines":1,"bbox":[68,174,1000,42]}
+{"kind":"shape","id":"sh/6xkjelcj","slide":4,"bbox":[114,374,92,0]}
+{"kind":"shape","id":"sh/7itk7qto","slide":4,"bbox":[254,374,92,0]}
+{"kind":"shape","id":"sh/r2187ypo","slide":4,"bbox":[394,374,92,0]}
+{"kind":"shape","id":"sh/6hs7yto3","slide":4,"bbox":[534,374,92,0]}
+{"kind":"shape","id":"sh/t4jq987u","slide":4,"bbox":[674,374,102,0]}
+{"kind":"shape","id":"sh/s3ap0369","slide":4,"bbox":[824,374,102,0]}
+{"kind":"shape","id":"sh/jeho3yps","slide":4,"bbox":[974,374,92,0]}
+{"kind":"shape","id":"sh/id87uto7","slide":4,"bbox":[78,362,24,24]}
+{"kind":"textbox","id":"sh/5gj65o7i","slide":4,"text":"REQUEST","textPreview":"REQUEST","textChars":7,"textLines":1,"bbox":[30,406,120,32]}
+{"kind":"shape","id":"sh/4fapwj6x","slide":4,"bbox":[218,362,24,24]}
+{"kind":"textbox","id":"sh/3al8fipw","slide":4,"text":"402","textPreview":"402","textChars":3,"textLines":1,"bbox":[170,406,120,32]}
+{"kind":"shape","id":"sh/29c76dob","slide":4,"bbox":[358,362,24,24]}
+{"kind":"textbox","id":"sh/yhgjulcv","slide":4,"text":"RESERVE","textPreview":"RESERVE","textChars":7,"textLines":1,"bbox":[310,406,120,32]}
+{"kind":"shape","id":"sh/jipknqdg","slide":4,"bbox":[498,362,24,24]}
+{"kind":"textbox","id":"sh/k3i1wbu1","slide":4,"text":"SIGN","textPreview":"SIGN","textChars":4,"textLines":1,"bbox":[450,406,120,32]}
+{"kind":"shape","id":"sh/l4r2pgv6","slide":4,"bbox":[638,362,24,24]}
+{"kind":"textbox","id":"sh/650jylcr","slide":4,"text":"PAID RETRY","textPreview":"PAID RETRY","textChars":10,"textLines":1,"bbox":[590,406,120,32]}
+{"kind":"shape","id":"sh/769krqdc","slide":4,"bbox":[788,362,24,24]}
+{"kind":"textbox","id":"sh/87i10vux","slide":4,"text":"SETTLE","textPreview":"SETTLE","textChars":6,"textLines":1,"bbox":[740,406,120,32]}
+{"kind":"shape","id":"sh/t8r2t0vi","slide":4,"bbox":[938,362,24,24]}
+{"kind":"textbox","id":"sh/29wjm1wn","slide":4,"text":"200","textPreview":"200","textChars":3,"textLines":1,"bbox":[890,406,120,32]}
+{"kind":"shape","id":"sh/na50fmd8","slide":4,"bbox":[1078,362,24,24]}
+{"kind":"textbox","id":"sh/54vml4fq","slide":4,"text":"RECOVERY","textPreview":"RECOVERY","textChars":8,"textLines":1,"bbox":[1030,406,120,32]}
+{"kind":"textbox","id":"sh/43m5sze5","slide":4,"text":"PAYMENT-REQUIRED","textPreview":"PAYMENT-REQUIRED","textChars":16,"textLines":1,"bbox":[160,482,250,34]}
+{"kind":"textbox","id":"sh/32d4juxk","slide":4,"text":"PAYMENT-SIGNATURE","textPreview":"PAYMENT-SIGNATURE","textChars":17,"textLines":1,"bbox":[475,482,260,34]}
+{"kind":"textbox","id":"sh/i1k3qpwz","slide":4,"text":"PAYMENT-RESPONSE","textPreview":"PAYMENT-RESPONSE","textChars":16,"textLines":1,"bbox":[825,482,280,34]}
+{"kind":"textbox","id":"sh/d8vmp4fm","slide":4,"text":"executor: signs, never broadcasts first","textPreview":"executor: signs, never broadcasts first","textChars":39,"textLines":1,"bbox":[330,566,620,32]}
+{"kind":"notes","id":"nt/lgvd2f","slide":4,"text":"[Sources]\n- https://docs.x402.org/core-concepts/client-server\n- https://docs.x402.org/core-concepts/facilitator\n- https://docs.x402.org/extensions/payment-identifier"}
+{"kind":"slide","id":"sl/2wkm53","slide":5,"title":"05","textShapes":14}
+{"kind":"textbox","id":"sh/fil47eho","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[66,42,50,26]}
+{"kind":"textbox","id":"sh/gjul0jy9","slide":5,"text":"THREE TRUST BOUNDARIES","textPreview":"THREE TRUST BOUNDARIES","textChars":22,"textLines":1,"bbox":[116,42,580,26]}
+{"kind":"shape","id":"sh/1k3m9ozu","slide":5,"bbox":[66,684,1148,0]}
+{"kind":"textbox","id":"sh/2lw329gf","slide":5,"text":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textPreview":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textChars":56,"textLines":1,"bbox":[66,690,740,18]}
+{"kind":"textbox","id":"sh/3m54beh0","slide":5,"text":"EVIDENCE-FIRST P0","textPreview":"EVIDENCE-FIRST P0","textChars":17,"textLines":1,"bbox":[1000,690,214,18]}
+{"kind":"textbox","id":"sh/one54jyl","slide":5,"text":"모델은 signer를 볼 수 없습니다.","textPreview":"모델은 signer를 볼 수 없습니다.","textChars":21,"textLines":1,"bbox":[66,100,900,64]}
+{"kind":"textbox","id":"sh/ponmdoz6","slide":5,"text":"각 서비스는 다른 identity와 responsibility를 가집니다.","textPreview":"각 서비스는 다른 identity와 responsibility를 가집니다.","textChars":41,"textLines":1,"bbox":[68,170,800,36]}
+{"kind":"shape","id":"sh/qpwn6tgb","slide":5,"bbox":[326,374,112,0]}
+{"kind":"shape","id":"sh/ba54fyhw","slide":5,"bbox":[746,374,112,0]}
+{"kind":"shape","id":"sh/jmx83y94","slide":5,"bbox":[326,522,532,0]}
+{"kind":"shape","id":"sh/ylorutsj","slide":5,"bbox":[70,258,300,238]}
+{"kind":"textbox","id":"sh/lozq58ru","slide":5,"text":"CONTROL PLANE","textPreview":"CONTROL PLANE","textChars":13,"textLines":1,"bbox":[94,284,252,30]}
+{"kind":"shape","id":"sh/kn69w3ap","slide":5,"bbox":[98,330,244,0]}
+{"kind":"textbox","id":"sh/byx8zy9s","slide":5,"text":"Incident orchestration\nGemini + A2A buyer\nReceipt verification\nNo wallet signer","textPreview":"Incident orchestration | Gemini + A2A buyer | Receipt verification | No wallet signer","textChars":79,"textLines":4,"bbox":[100,352,240,126]}
+{"kind":"shape","id":"sh/axorqts7","slide":5,"bbox":[438,258,300,238]}
+{"kind":"textbox","id":"sh/x0fq18ry","slide":5,"text":"PAYMENT EXECUTOR","textPreview":"PAYMENT EXECUTOR","textChars":16,"textLines":1,"bbox":[462,284,252,30]}
+{"kind":"shape","id":"sh/wz69s3ad","slide":5,"bbox":[466,330,244,0]}
+{"kind":"textbox","id":"sh/vuhsbi9c","slide":5,"text":"Private IAM audience\nAuthoritative reload\nAtomic reserve\nx402 payload signer","textPreview":"Private IAM audience | Authoritative reload | Atomic reserve | x402 payload signer","textChars":76,"textLines":4,"bbox":[468,352,240,126]}
+{"kind":"shape","id":"sh/ut8r2xsr","slide":5,"bbox":[858,258,300,238]}
+{"kind":"textbox","id":"sh/q1w3qlgb","slide":5,"text":"VENDOR AGENT","textPreview":"VENDOR AGENT","textChars":12,"textLines":1,"bbox":[882,284,252,30]}
+{"kind":"shape","id":"sh/rm5kjqxg","slide":5,"bbox":[886,330,244,0]}
+{"kind":"textbox","id":"sh/cnelsvy1","slide":5,"text":"Agent Card + 2 offers\n402 challenge\nVerify + settle\nSigned fulfillment","textPreview":"Agent Card + 2 offers | 402 challenge | Verify + settle | Signed fulfillment","textChars":70,"textLines":4,"bbox":[888,352,240,126]}
+{"kind":"shape","id":"sh/don2l0fm","slide":5,"bbox":[438,532,300,58]}
+{"kind":"textbox","id":"sh/epw3ulg7","slide":5,"text":"FIRESTORE · SHARED ATOMIC STATE","textPreview":"FIRESTORE · SHARED ATOMIC STATE","textChars":31,"textLines":1,"bbox":[454,550,268,26]}
+{"kind":"textbox","id":"sh/zq54nqxs","slide":5,"text":"executor signer secret → executor identity only","textPreview":"executor signer secret → executor identity only","textChars":47,"textLines":1,"bbox":[436,620,480,28]}
+{"kind":"notes","id":"nt/2wkm53","slide":5,"text":"[Sources]\n- https://cloud.google.com/run/docs/ai-agents\n- https://cloud.google.com/secret-manager/docs/best-practices\n- https://firebase.google.com/docs/firestore/manage-data/transactions\n- Repository: docs/ARCHITECTURE.md"}
+{"kind":"slide","id":"sl/tp1ok8","slide":6,"title":"06","textShapes":14}
+{"kind":"textbox","id":"sh/zi14zu10","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[66,42,50,26]}
+{"kind":"textbox","id":"sh/0jal8z2l","slide":6,"text":"GEMINI IS MATERIAL — NOT THE BANK","textPreview":"GEMINI IS MATERIAL — NOT THE BANK","textChars":33,"textLines":1,"bbox":[116,42,580,26]}
+{"kind":"shape","id":"sh/1kjm14j6","slide":6,"bbox":[66,684,1148,0]}
+{"kind":"textbox","id":"sh/qd832pkj","slide":6,"text":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textPreview":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textChars":56,"textLines":1,"bbox":[66,690,740,18]}
+{"kind":"textbox","id":"sh/reh4vu14","slide":6,"text":"EVIDENCE-FIRST P0","textPreview":"EVIDENCE-FIRST P0","textChars":17,"textLines":1,"bbox":[1000,690,214,18]}
+{"kind":"textbox","id":"sh/cfql4z29","slide":6,"text":"AI는 ‘무엇을 살지’를 고르고,\n코드는 ‘살 수 있는지’를 결정합니다.","textPreview":"AI는 ‘무엇을 살지’를 고르고, | 코드는 ‘살 수 있는지’를 결정합니다.","textChars":40,"textLines":2,"bbox":[66,100,950,118]}
+{"kind":"shape","id":"sh/dgzmxkju","slide":6,"bbox":[290,346,140,0]}
+{"kind":"shape","id":"sh/a9c3e9kn","slide":6,"bbox":[290,506,140,0]}
+{"kind":"shape","id":"sh/val47e18","slide":6,"bbox":[758,346,166,36]}
+{"kind":"shape","id":"sh/7e1kbupc","slide":6,"bbox":[758,472,166,34]}
+{"kind":"textbox","id":"sh/6dsj2po7","slide":6,"text":"BASELINE","textPreview":"BASELINE","textChars":8,"textLines":1,"bbox":[68,300,180,28]}
+{"kind":"textbox","id":"sh/t032d47i","slide":6,"text":"latency spike\nregional failure","textPreview":"latency spike | regional failure","textChars":30,"textLines":2,"bbox":[68,336,220,86]}
+{"kind":"textbox","id":"sh/sfal4z6x","slide":6,"text":"COUNTERFACTUAL","textPreview":"COUNTERFACTUAL","textChars":14,"textLines":1,"bbox":[68,460,200,28]}
+{"kind":"textbox","id":"sh/f2lkfupo","slide":6,"text":"cost pressure\nhealthy region","textPreview":"cost pressure | healthy region","textChars":28,"textLines":2,"bbox":[68,496,220,86]}
+{"kind":"shape","id":"sh/u1c36po3","slide":6,"bbox":[430,304,328,240]}
+{"kind":"textbox","id":"sh/h432h47u","slide":6,"text":"GEMINI STRICT OUTPUT","textPreview":"GEMINI STRICT OUTPUT","textChars":20,"textLines":1,"bbox":[460,334,268,32]}
+{"kind":"textbox","id":"sh/g3ul8z69","slide":6,"text":"diagnosis\nrequiredCapability\nselectedOfferId\nrationale + confidence","textPreview":"diagnosis | requiredCapability | selectedOfferId | rationale + confidence","textChars":67,"textLines":4,"bbox":[470,388,248,136]}
+{"kind":"textbox","id":"sh/36lkjepk","slide":6,"text":"OFFER FAST","textPreview":"OFFER FAST","textChars":10,"textLines":1,"bbox":[956,302,230,38]}
+{"kind":"textbox","id":"sh/25c3a9oz","slide":6,"text":"OFFER ECONOMY","textPreview":"OFFER ECONOMY","textChars":13,"textLines":1,"bbox":[930,488,282,38]}
+{"kind":"textbox","id":"sh/y1gn2d87","slide":6,"text":"amount · recipient · mint · network · budget math · raw signature = deterministic code","textPreview":"amount · recipient · mint · network · budget math · raw signature = deterministic code","textChars":86,"textLines":1,"bbox":[110,610,1060,34]}
+{"kind":"notes","id":"nt/tp1ok8","slide":6,"text":"[Sources]\n- https://ai.google.dev/gemini-api/docs/models\n- https://a2a-protocol.org/latest/specification/\n- Repository: docs/ARCHITECTURE.md"}
+{"kind":"slide","id":"sl/e0qwn2","slide":7,"title":"07","textShapes":17}
+{"kind":"textbox","id":"sh/1gz61cry","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[66,42,50,26]}
+{"kind":"textbox","id":"sh/et8n6hsn","slide":7,"text":"EVIDENCE IS THE PRODUCT","textPreview":"EVIDENCE IS THE PRODUCT","textChars":23,"textLines":1,"bbox":[116,42,580,26]}
+{"kind":"shape","id":"sh/fuhoz298","slide":7,"bbox":[66,684,1148,0]}
+{"kind":"textbox","id":"sh/ojapcrap","slide":7,"text":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textPreview":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textChars":56,"textLines":1,"bbox":[66,690,740,18]}
+{"kind":"textbox","id":"sh/pkj65wra","slide":7,"text":"EVIDENCE-FIRST P0","textPreview":"EVIDENCE-FIRST P0","textChars":17,"textLines":1,"bbox":[1000,690,214,18]}
+{"kind":"textbox","id":"sh/2h87ahsj","slide":7,"text":"결제 성공보다 중요한 것은\n복구까지 한 줄로 증명하는 일입니다.","textPreview":"결제 성공보다 중요한 것은 | 복구까지 한 줄로 증명하는 일입니다.","textChars":35,"textLines":2,"bbox":[66,98,880,122]}
+{"kind":"shape","id":"sh/3i1o3m94","slide":7,"bbox":[638,254,0,346]}
+{"kind":"shape","id":"sh/4n650nal","slide":7,"bbox":[631,263,14,14]}
+{"kind":"textbox","id":"sh/5of6tsrq","slide":7,"text":"MODEL","textPreview":"MODEL","textChars":5,"textLines":1,"bbox":[92,250,170,28]}
+{"kind":"textbox","id":"sh/58fq9ofa","slide":7,"text":"modelVersion + redacted input/output hashes","textPreview":"modelVersion + redacted input/output hashes","textChars":43,"textLines":1,"bbox":[274,248,320,48]}
+{"kind":"shape","id":"sh/kn69gjy5","slide":7,"bbox":[631,319,14,14]}
+{"kind":"textbox","id":"sh/jmx87exk","slide":7,"text":"A2A","textPreview":"A2A","textChars":3,"textLines":1,"bbox":[692,306,130,28]}
+{"kind":"textbox","id":"sh/ilo7e9gz","slide":7,"text":"Agent Card + 2 signed offers","textPreview":"Agent Card + 2 signed offers","textChars":28,"textLines":1,"bbox":[842,304,354,48]}
+{"kind":"shape","id":"sh/tczqdofm","slide":7,"bbox":[631,375,14,14]}
+{"kind":"textbox","id":"sh/sbq9kjy1","slide":7,"text":"POLICY","textPreview":"POLICY","textChars":6,"textLines":1,"bbox":[92,362,170,28]}
+{"kind":"textbox","id":"sh/7ah8bexg","slide":7,"text":"ordered rules + budget before/after","textPreview":"ordered rules + budget before/after","textChars":35,"textLines":1,"bbox":[274,360,320,48]}
+{"kind":"shape","id":"sh/69oritgv","slide":7,"bbox":[631,431,14,14]}
+{"kind":"textbox","id":"sh/hgzqh8fi","slide":7,"text":"x402","textPreview":"x402","textChars":4,"textLines":1,"bbox":[692,418,130,28]}
+{"kind":"textbox","id":"sh/gfq9o3ex","slide":7,"text":"402 / signed retry / 200 raw headers","textPreview":"402 / signed retry / 200 raw headers","textChars":36,"textLines":1,"bbox":[842,416,354,48]}
+{"kind":"shape","id":"sh/0jytk7m9","slide":7,"bbox":[631,487,14,14]}
+{"kind":"textbox","id":"sh/1k7adcnu","slide":7,"text":"SOLANA","textPreview":"SOLANA","textChars":6,"textLines":1,"bbox":[92,474,170,28]}
+{"kind":"textbox","id":"sh/ehgbix43","slide":7,"text":"payer/payee + exact token deltas + Explorer","textPreview":"payer/payee + exact token deltas + Explorer","textChars":43,"textLines":1,"bbox":[274,472,320,48]}
+{"kind":"shape","id":"sh/fipsb25o","slide":7,"bbox":[631,543,14,14]}
+{"kind":"textbox","id":"sh/onitorml","slide":7,"text":"RECOVERY","textPreview":"RECOVERY","textChars":8,"textLines":1,"bbox":[692,530,130,28]}
+{"kind":"textbox","id":"sh/porahcnq","slide":7,"text":"vendor receipt + distinct healthy outcome","textPreview":"vendor receipt + distinct healthy outcome","textChars":41,"textLines":1,"bbox":[842,528,354,48]}
+{"kind":"notes","id":"nt/e0qwn2","slide":7,"text":"[Sources]\n- Repository: .agents/skills/ship-agentic-commerce-finalist/references/payment-evidence-v2.md\n- https://docs.x402.org/extensions/offer-receipt"}
+{"kind":"slide","id":"sl/cg6wlt","slide":8,"title":"08","textShapes":19}
+{"kind":"textbox","id":"sh/98v2twbi","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[66,42,50,26]}
+{"kind":"textbox","id":"sh/m543ihcr","slide":8,"text":"FAIL CLOSED","textPreview":"FAIL CLOSED","textChars":11,"textLines":1,"bbox":[116,42,580,26]}
+{"kind":"shape","id":"sh/76dkrmtc","slide":8,"bbox":[66,684,1148,0]}
+{"kind":"textbox","id":"sh/kjmlg7ul","slide":8,"text":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textPreview":"UPTIME402  /  GOOGLE CLOUD × SOLANA AI AGENTIC HACKATHON","textChars":56,"textLines":1,"bbox":[66,690,740,18]}
+{"kind":"textbox","id":"sh/l4v2pcb6","slide":8,"text":"EVIDENCE-FIRST P0","textPreview":"EVIDENCE-FIRST P0","textChars":17,"textLines":1,"bbox":[1000,690,214,18]}
+{"kind":"textbox","id":"sh/yhk3excv","slide":8,"text":"거절은 signer보다 먼저 일어납니다.","textPreview":"거절은 signer보다 먼저 일어납니다.","textChars":22,"textLines":1,"bbox":[66,100,940,70]}
+{"kind":"textbox","id":"sh/zidkn2tg","slide":8,"text":"transactionCreated","textPreview":"transactionCreated","textChars":18,"textLines":1,"bbox":[72,236,360,46]}
+{"kind":"textbox","id":"sh/cf21c7up","slide":8,"text":"false","textPreview":"false","textChars":5,"textLines":1,"bbox":[68,278,360,120]}
+{"kind":"textbox","id":"sh/xgb2lsba","slide":8,"text":"txSignature  =  null","textPreview":"txSignature  =  null","textChars":20,"textLines":1,"bbox":[74,406,360,38]}
+{"kind":"shape","id":"sh/tg3yxcre","slide":8,"bbox":[500,216,0,360]}
+{"kind":"textbox","id":"sh/sfahorat","slide":8,"text":"OVER CAP","textPreview":"OVER CAP","textChars":8,"textLines":1,"bbox":[548,222,210,28]}
+{"kind":"textbox","id":"sh/re1gvm98","slide":8,"text":"deny before reserve / signer","textPreview":"deny before reserve / signer","textChars":28,"textLines":1,"bbox":[774,220,390,34]}
+{"kind":"shape","id":"sh/6dsfmhs3","slide":8,"bbox":[548,270,620,0]}
+{"kind":"textbox","id":"sh/5cjytcri","slide":8,"text":"NONCE REPLAY","textPreview":"NONCE REPLAY","textChars":12,"textLines":1,"bbox":[548,294,210,28]}
+{"kind":"textbox","id":"sh/4baxk7ax","slide":8,"text":"same ID bound to first fingerprint","textPreview":"same ID bound to first fingerprint","textChars":34,"textLines":1,"bbox":[774,292,390,34]}
+{"kind":"shape","id":"sh/ja1gr29c","slide":8,"bbox":[548,342,620,0]}
+{"kind":"textbox","id":"sh/i9sfixsr","slide":8,"text":"TWO INSTANCES","textPreview":"TWO INSTANCES","textChars":13,"textLines":1,"bbox":[548,366,210,28]}
+{"kind":"textbox","id":"sh/hozypsr6","slide":8,"text":"settle and fulfill once","textPreview":"settle and fulfill once","textChars":23,"textLines":1,"bbox":[774,364,390,34]}
+{"kind":"shape","id":"sh/wnqxgnal","slide":8,"bbox":[548,414,620,0]}
+{"kind":"textbox","id":"sh/8ruhw7ih","slide":8,"text":"AMBIGUOUS SUBMIT","textPreview":"AMBIGUOUS SUBMIT","textChars":16,"textLines":1,"bbox":[548,438,210,28]}
+{"kind":"textbox","id":"sh/9s3y5cz2","slide":8,"text":"unknown → reconciler only","textPreview":"unknown → reconciler only","textChars":25,"textLines":1,"bbox":[774,436,390,34]}
+{"kind":"shape","id":"sh/mpczux0r","slide":8,"bbox":[548,486,620,0]}
+{"kind":"textbox","id":"sh/nqlg32hw","slide":8,"text":"PROMPT / SSRF","textPreview":"PROMPT / SSRF","textChars":13,"textLines":1,"bbox":[548,510,210,28]}
+{"kind":"textbox","id":"sh/03uxsnil","slide":8,"text":"untrusted text + pinned public origin","textPreview":"untrusted text + pinned public origin","textChars":37,"textLines":1,"bbox":[774,508,390,34]}
+{"kind":"shape","id":"sh/l43y1sz6","slide":8,"bbox":[548,558,620,0]}
+{"kind":"textbox","id":"sh/y1sfqd0f","slide":8,"text":"Mainnet disabled  ·  no per-payment wallet popup  ·  no key in browser/model/logs","textPreview":"Mainnet disabled  ·  no per-payment wallet popup  ·  no key in browser/model/logs","textChars":81,"textLines":1,"bbox":[70,620,1100,30]}
+{"kind":"notes","id":"nt/cg6wlt","slide":8,"text":"[Sources]\n- Repository: AGENTS.md\n- Repository: tests/domain-policy.test.ts\n- Repository: tests/services-integration.test.ts"}
+{"kind":"slide","id":"sl/ffndml","slide":9,"title":"UPTIME402","textShapes":12}
+{"kind":"textbox","id":"sh/zmloj2pw","slide":9,"text":"UPTIME402","textPreview":"UPTIME402","textChars":9,"textLines":1,"bbox":[70,54,300,36]}
+{"kind":"textbox","id":"sh/0nupcnqh","slide":9,"text":"Detect","textPreview":"Detect","textChars":6,"textLines":1,"bbox":[80,214,190,54]}
+{"kind":"textbox","id":"sh/lo36ls7m","slide":9,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[250,214,60,54]}
+{"kind":"textbox","id":"sh/mpc7ex87","slide":9,"text":"decide","textPreview":"decide","textChars":6,"textLines":1,"bbox":[310,214,190,54]}
+{"kind":"textbox","id":"sh/nq5on2ps","slide":9,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[480,214,60,54]}
+{"kind":"textbox","id":"sh/8repg7qd","slide":9,"text":"pay","textPreview":"pay","textChars":3,"textLines":1,"bbox":[540,214,160,54]}
+{"kind":"textbox","id":"sh/9cn6pc7y","slide":9,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[680,214,60,54]}
+{"kind":"textbox","id":"sh/2tsn2d83","slide":9,"text":"recover","textPreview":"recover","textChars":7,"textLines":1,"bbox":[740,214,210,54]}
+{"kind":"textbox","id":"sh/3u1obipo","slide":9,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[944,214,60,54]}
+{"kind":"textbox","id":"sh/b29szetw","slide":9,"text":"prove","textPreview":"prove","textChars":5,"textLines":1,"bbox":[1010,214,180,54]}
+{"kind":"shape","id":"sh/q1gb69cb","slide":9,"bbox":[80,306,1110,0]}
+{"kind":"textbox","id":"sh/d4ru1ob2","slide":9,"text":"One mandate. Zero approval clicks after trigger.\nOne verifiable recovery timeline.","textPreview":"One mandate. Zero approval clicks after trigger. | One verifiable recovery timeline.","textChars":82,"textLines":2,"bbox":[110,368,1060,132]}
+{"kind":"textbox","id":"sh/c3it8juh","slide":9,"text":"An outage does not wait for procurement.","textPreview":"An outage does not wait for procurement.","textChars":40,"textLines":1,"bbox":[200,580,880,42]}
+{"kind":"notes","id":"nt/ffndml","slide":9,"text":"[Sources]\n- Repository: README.md\n- Repository: docs/BUILD_STATUS.md\n- Repository: docs/DEMO_SCRIPT.md"}

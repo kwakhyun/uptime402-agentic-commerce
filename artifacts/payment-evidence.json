@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "2.0",
+  "generatedAt": "2026-08-03T04:10:00+09:00",
+  "evidenceStatus": "not-generated",
+  "project": {
+    "name": "Uptime402",
+    "networkTarget": "Solana Devnet",
+    "assetTarget": "USDC",
+    "deployment": "local"
+  },
+  "attestations": {},
+  "offers": [],
+  "selection": null,
+  "payments": [],
+  "denials": [],
+  "blockers": [
+    "No real Devnet USDC settlement has been executed or independently verified.",
+    "No live Cloud Run, Firestore, IAM, Gemini, or final video evidence is recorded; the deck PDF exists only as a locally verified artifact.",
+    "This file intentionally contains no simulated transaction or placeholder signature."
+  ]
+}

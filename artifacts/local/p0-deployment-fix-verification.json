@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "verifiedAt": "2026-08-03T12:32:35+09:00",
+  "scope": [
+    "control-plane capture/final evidence deployment gate",
+    "vendor offer-catalog Secret Manager symlink boundary",
+    "live-path over-cap plus nonce-replay denial collection",
+    "Git candidate secret and generated-output boundary"
+  ],
+  "checks": {
+    "lint": { "status": "passed" },
+    "typecheck": { "status": "passed" },
+    "unit": { "status": "passed", "testsPassed": 15 },
+    "integration": { "status": "passed", "testsPassed": 44 },
+    "fullSuite": {
+      "status": "passed",
+      "testFilesPassed": 16,
+      "testFilesSkipped": 1,
+      "testsPassed": 140,
+      "testsSkipped": 8,
+      "skipReason": "Firestore-only cases run separately against the emulator"
+    },
+    "firestoreEmulator": {
+      "status": "passed",
+      "testFilesPassed": 2,
+      "testsPassed": 9,
+      "evidenceRef": "artifacts/local/firestore-emulator-verification.json"
+    },
+    "productionBuild": { "status": "passed" },
+    "deployTemplateValidation": { "status": "passed" },
+    "readinessCheckerTests": { "status": "passed", "testsPassed": 12 },
+    "structuralReadiness": {
+      "status": "expected-live-blockers",
+      "passed": 29,
+      "info": 2,
+      "failed": 2,
+      "failedCodes": ["evidence.payments", "evidence.denials"]
+    },
+    "gitBoundary": {
+      "status": "passed",
+      "candidateFilesScanned": 168,
+      "forbiddenFindings": 0
+    }
+  },
+  "externalActions": {
+    "gcpDeployment": false,
+    "devnetTransaction": false,
+    "githubPush": false
+  },
+  "limitations": [
+    "payment-evidence.json intentionally remains not-generated with empty payments and denials",
+    "No live Cloud Run, managed Firestore, IAM, Gemini, Devnet settlement, or final video evidence was created"
+  ]
+}

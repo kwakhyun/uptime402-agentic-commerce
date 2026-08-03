@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "artifact": "submission/Uptime402_Deck.pdf",
+  "generatedAt": "2026-08-03T04:35:00+09:00",
+  "evidenceLevel": "local",
+  "pageCount": 9,
+  "pageSizePoints": {
+    "width": 960,
+    "height": 540
+  },
+  "sourceRender": {
+    "directory": "submission/Uptime402_Deck",
+    "slideCount": 9,
+    "pixelWidth": 1600,
+    "pixelHeight": 900
+  },
+  "sha256": {
+    "pdf": "f8b2264e32bc1b948639c27c5e5c2d1880d744f26424c41cf74a035c0c98326f",
+    "pptx": "8232d92ecaf930cac7d5a66ad9c31ef64be3098b42cc8369d797a7040df905b8"
+  },
+  "checks": {
+    "pptxOverflow": "passed",
+    "sourceSlideVisualInspection": "passed",
+    "finalPdfRenderInspection": "passed",
+    "hangulGlyphsVisible": true,
+    "javascript": false,
+    "encrypted": false
+  },
+  "exportMethod": "Verified artifact-tool PNG renders placed full-bleed on PDF pages by scripts/export-deck-pdf.py",
+  "limitations": [
+    "The PDF is image-backed because the available headless LibreOffice build dropped Hangul glyphs during direct PPTX-to-PDF conversion.",
+    "The deck deliberately contains no claimed Devnet transaction, Explorer URL, or live Cloud Run evidence."
+  ]
+}

@@ -1,0 +1,122 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "{{CONTROL_PLANE_SERVICE_NAME}}"
+  labels:
+    cloud.googleapis.com/location: "{{GCP_REGION}}"
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/secrets: "control-outcome:projects/{{PROJECT_ID}}/secrets/{{CONTROL_PLANE_OUTCOME_SECRET_NAME}},demo-request:projects/{{PROJECT_ID}}/secrets/{{CONTROL_PLANE_DEMO_REQUEST_SECRET_NAME}}"
+    spec:
+      serviceAccountName: "{{CONTROL_PLANE_SERVICE_ACCOUNT}}"
+      containerConcurrency: 40
+      timeoutSeconds: 300
+      containers:
+        - image: "{{GCP_REGION}}-docker.pkg.dev/{{PROJECT_ID}}/{{ARTIFACT_REPOSITORY}}/control-plane:{{IMAGE_TAG}}"
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: FIRESTORE_PROJECT_ID
+              value: "{{FIRESTORE_PROJECT_ID}}"
+            - name: FIRESTORE_DATABASE_ID
+              value: "{{FIRESTORE_DATABASE_ID}}"
+            - name: FIRESTORE_COLLECTION_PREFIX
+              value: "{{FIRESTORE_COLLECTION_PREFIX}}"
+            - name: VENDOR_AGENT_ORIGIN
+              value: "{{VENDOR_AGENT_ORIGIN}}"
+            - name: CONTROL_PLANE_ORIGIN
+              value: "{{CONTROL_PLANE_ORIGIN}}"
+            - name: PAYMENT_EXECUTOR_ORIGIN
+              value: "{{PAYMENT_EXECUTOR_ORIGIN}}"
+            - name: VENDOR_AGENT_ID
+              value: "{{VENDOR_AGENT_ID}}"
+            - name: VENDOR_OFFER_SIGNER_PUBLIC_KEY
+              value: "{{VENDOR_OFFER_SIGNER_PUBLIC_KEY}}"
+            - name: VENDOR_OFFER_SIGNER_KEY_ID
+              value: "{{VENDOR_OFFER_SIGNER_KEY_ID}}"
+            - name: VENDOR_RECEIPT_PUBLIC_KEY
+              value: "{{VENDOR_RECEIPT_PUBLIC_KEY}}"
+            - name: VENDOR_RECEIPT_KEY_ID
+              value: "{{VENDOR_RECEIPT_KEY_ID}}"
+            - name: CONTROL_PLANE_OUTCOME_KEY_PATH
+              value: /var/run/secrets/uptime402/control-outcome/keypair.json
+            - name: CONTROL_PLANE_OUTCOME_SECRET_ROOT
+              value: /var/run/secrets/uptime402/control-outcome
+            - name: CONTROL_PLANE_OUTCOME_PUBLIC_KEY
+              value: "{{CONTROL_PLANE_OUTCOME_PUBLIC_KEY}}"
+            - name: CONTROL_PLANE_OUTCOME_KEY_ID
+              value: "{{CONTROL_PLANE_OUTCOME_KEY_ID}}"
+            - name: CONTROL_PLANE_OPERATOR_AUDIENCE
+              value: "{{CONTROL_PLANE_OPERATOR_AUDIENCE}}"
+            - name: CONTROL_PLANE_OPERATOR_PRINCIPALS
+              value: "{{CONTROL_PLANE_OPERATOR_PRINCIPALS}}"
+            - name: CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED
+              value: "true"
+            - name: CONTROL_PLANE_UI_GOOGLE_CLIENT_ID
+              value: "{{CONTROL_PLANE_UI_GOOGLE_CLIENT_ID}}"
+            - name: CONTROL_PLANE_UI_LIVE_REQUEST_PATH
+              value: /var/run/config/uptime402/demo-request/request.json
+            - name: CONTROL_PLANE_UI_LIVE_REQUEST_ROOT
+              value: /var/run/config/uptime402/demo-request
+            - name: CONTROL_PLANE_DEMO_RUN_SLOT
+              value: "{{CONTROL_PLANE_DEMO_RUN_SLOT}}"
+            - name: CONTROL_PLANE_DEMO_MANDATE_ID
+              value: "{{CONTROL_PLANE_DEMO_MANDATE_ID}}"
+            - name: RECOVERY_HEALTH_PROBE_URL
+              value: "{{RECOVERY_HEALTH_PROBE_URL}}"
+            - name: HTTP_TIMEOUT_MS
+              value: "{{HTTP_TIMEOUT_MS}}"
+            - name: HTTP_MAX_RESPONSE_BYTES
+              value: "{{HTTP_MAX_RESPONSE_BYTES}}"
+            - name: GEMINI_MODEL
+              value: "{{GEMINI_MODEL}}"
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "true"
+            - name: GOOGLE_CLOUD_PROJECT
+              value: "{{GOOGLE_CLOUD_PROJECT}}"
+            - name: GOOGLE_CLOUD_LOCATION
+              value: "{{GOOGLE_CLOUD_LOCATION}}"
+            - name: UPTIME402_UI_EVIDENCE_STAGE
+              value: "{{UPTIME402_UI_EVIDENCE_STAGE}}"
+            # UPTIME402_FINAL_EVIDENCE_ENV_BEGIN
+            - name: UPTIME402_UI_EVIDENCE_SHA256
+              value: "{{UPTIME402_UI_EVIDENCE_SHA256}}"
+            - name: UPTIME402_UI_VERIFICATION_REPORT_SHA256
+              value: "{{UPTIME402_UI_VERIFICATION_REPORT_SHA256}}"
+            # UPTIME402_FINAL_EVIDENCE_ENV_END
+          volumeMounts:
+            - name: control-outcome
+              mountPath: /var/run/secrets/uptime402/control-outcome
+              readOnly: true
+            - name: demo-request
+              mountPath: /var/run/config/uptime402/demo-request
+              readOnly: true
+      volumes:
+        - name: control-outcome
+          secret:
+            secretName: control-outcome
+            defaultMode: 292
+            items:
+              - key: "{{CONTROL_PLANE_OUTCOME_SECRET_VERSION}}"
+                path: keypair.json
+        - name: demo-request
+          secret:
+            secretName: demo-request
+            defaultMode: 292
+            items:
+              - key: "{{CONTROL_PLANE_DEMO_REQUEST_SECRET_VERSION}}"
+                path: request.json

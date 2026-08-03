@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0",
+  "mode": "localhost-production-browser",
+  "verifiedAt": "2026-08-03T07:08:28+09:00",
+  "url": "http://127.0.0.1:3000/",
+  "title": "Uptime402 · Autonomous Recovery Mission Control",
+  "build": "Next.js 16.2.12 production build",
+  "viewports": [
+    {
+      "width": 1600,
+      "height": 900,
+      "documentScrollWidth": 1600,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "documentScrollWidth": 390,
+      "horizontalOverflow": false
+    }
+  ],
+  "verifiedBehaviors": [
+    "initial screen is labelled LOCAL SIMULATION and Devnet evidence pending",
+    "local preview reaches 10/10 and changes only the local fixture health state",
+    "counterfactual toggle changes the displayed model selection to offer-rpc-economy-v1",
+    "evidence drawer remains fail-closed with zero Solana Explorer links",
+    "Google live trigger and LIVE UNVERIFIED panel are absent while the trigger is disabled",
+    "mobile active-mandate value wraps without document-level horizontal overflow",
+    "browser console reported zero log entries during the checked interactions"
+  ],
+  "limitations": [
+    "This is localhost visual and interaction QA, not a logged-out public Cloud Run URL check.",
+    "The local preview performs no network request, wallet signing, settlement, or Devnet transaction.",
+    "No live Google OIDC flow or hash-pinned Devnet evidence replay was available to exercise."
+  ]
+}

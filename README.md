@@ -1,50 +1,281 @@
-# Uptime402 Codex harness
+# Uptime402
 
-This folder is a portable starter harness for a new Codex project. Codex discovers repository skills under `.agents/skills`.
+> **An outage does not wait for procurement.**
 
-1. Copy the **contents** of this folder into the new project root, including the hidden `.agents/` directory and `AGENTS.md`.
-2. Open that project in Codex.
-3. Confirm that `$ship-agentic-commerce-finalist` appears in the skill selector. Codex detects skill changes automatically; restart it if the skill does not appear.
-4. Paste the contents of `FIRST_PROMPT.md` as the first task.
+Uptime402는 Gemini 기반 AI SRE가 정제된 장애 신호를 진단하고, 별도 A2A vendor agent의 서명된 복구 견적을 비교한 뒤, 운영자가 미리 설정한 정책과 예산 안에서 x402 + Solana Devnet USDC 결제 payload를 자동 서명하도록 설계한 B2B 복구 데모입니다. 현재 저장소는 이 경로의 로컬 구현과 테스트를 제공하며, 실제 Devnet 결제·Cloud Run 배포·Gemini 실호출 증거는 아직 승격되지 않았습니다. 결제 건별 사람 승인이나 브라우저 지갑 팝업이 없는 실행 계약은 로컬 테스트로만 검증됐습니다.
 
-On macOS or Linux, run this from the harness directory. `cp -R .` copies hidden files too; replace only the destination:
+현재 증거 수준은 [BUILD_STATUS.md](docs/BUILD_STATUS.md)가 유일한 기준입니다. 로컬 테스트 성공은 Devnet 결제, Cloud Run 배포, Gemini 실호출, 또는 제출 준비 완료를 뜻하지 않습니다. pay.sh는 실제 live path에 없으므로 이 저장소는 pay.sh 통합을 주장하지 않습니다.
+
+## 구현 경계
+
+- `apps/control-plane`: Next.js 한국어 mission-control UI, telemetry redaction, Gemini decision adapter, A2A buyer, incident orchestration. Executor/vendor key는 읽지 않고, server-only recovery-outcome key 하나만 별도 mount합니다.
+- `services/vendor-agent`: 별도 Express/A2A 서비스, 두 immutable signed offer, x402-gated recovery resource, shared payment claim, vendor-signed fulfillment receipt.
+- `services/payment-executor`: private IAM 배포를 전제로 한 별도 service, authoritative state reload, deterministic policy, atomic reserve, 기존 저잔액 executor wallet을 이용한 x402 payload 서명. 먼저 broadcast하지 않습니다. 실제 Cloud Run IAM 경계는 아직 배포·검증되지 않았습니다.
+- `packages/domain`: strict schemas, RFC 8785 canonicalization, SHA-256 binding, URL/SSRF rules.
+- `packages/policy`: 순수 결정론적 policy evaluation.
+- `packages/payments`: 공식 x402 SVM client/server adapters, pinned facilitator, receipt/outcome signatures, independent Solana RPC verifier.
+- `packages/persistence`: in-memory test adapter와 Firestore transactional adapter.
+
+## Fresh clone: 로컬 검증
+
+필수 도구는 Node.js 22+, pnpm 10.29.2, Python 3.11+입니다.
 
 ```bash
-cd "/absolute/path/to/uptime402-codex-harness"
-TARGET_PROJECT="/absolute/path/to/new-project"
-mkdir -p "$TARGET_PROJECT"
-cp -R . "$TARGET_PROJECT/"
-test -f "$TARGET_PROJECT/.agents/skills/ship-agentic-commerce-finalist/SKILL.md"
+git clone <repository-url> uptime402
+cd uptime402
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run build
+pnpm run audit:git
+python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py --root . --strict
+python3 deploy/render_cloudrun.py --check-templates
 ```
 
-This merges into an existing destination and can overwrite same-named harness files. Use an empty new project directory or review the destination first.
+핵심 local-simulated x402 경로만 재현하려면 다음을 실행합니다.
 
-## Preflight inputs
+```bash
+pnpm exec vitest run tests/services-integration.test.ts --reporter=verbose
+```
 
-Codex can scaffold adapters, tests, docs, and the local demo before these exist. A real payment or deployment needs the corresponding user-controlled input.
+이 테스트는 `request -> 402 -> reserve -> automatic payload signature -> paid retry -> verify/settle adapter -> confirmed 200 resource -> signed receipt` 순서, over-cap `transactionCreated:false`, 그리고 두 vendor instance의 settle-once/replay-conflict를 검증합니다. facilitator와 chain은 명시적인 local adapter이므로 결과를 Devnet 증거로 사용하면 안 됩니다.
 
-| Input | Needed for | Safe handoff |
+## 실행 모드
+
+| Mode | State | 허용되는 주장 |
 |---|---|---|
-| Node.js, package manager, Git, Python 3 | local build and checker | install locally; no secret |
-| Gemini API key or Vertex AI identity | live structured diagnosis | put it in an ignored local env file or Secret Manager; tell Codex only the variable name |
-| Existing low-balance Devnet executor wallet with fee SOL and Devnet USDC | real autonomous payment spike | place the key only in an ignored local file/secret store; never paste it into chat, source, fixtures, or evidence |
-| Distinct vendor USDC recipient plus receipt-signing identity | non-self payment and signed fulfillment evidence | external vendor supplies `payTo` in a verified signed offer; for the owned fallback, provide `VENDOR_USDC_RECIPIENT` and a separate receipt-key path in Secret Manager |
-| Solana Devnet RPC and verified x402 facilitator | settlement and independent RPC verification | use config/env variables; pin current official network/mint values after a live check |
-| Google Cloud project, billing permission, authenticated CLI, enabled APIs | Cloud Run, Firestore, Secret Manager | the user creates/selects the project and approves chargeable deployment; use distinct least-privilege service accounts |
-| Judge-accessible GitHub destination and final video publication | final submission | the user authorizes repository/video publication and supplies the final video if Codex cannot record or upload it |
+| `local-simulated` | in-memory repository + injected model/facilitator | 코드·정책·protocol state-machine의 로컬 검증 |
+| `firestore-emulator` | `FIRESTORE_EMULATOR_HOST` 필요 | emulator transaction/concurrency 검증 |
+| `devnet` | 기존 funded wallet, distinct recipient, real RPC/facilitator 필요 | 독립 RPC 검증을 통과한 실제 Devnet USDC만 |
+| `live` | 세 Cloud Run 서비스 + Firestore + IAM/Secret Manager 필요 | raw deployment/IAM artifacts와 로그아웃 검증을 통과한 URL만 |
 
-The organizer-provided Google Cloud path assumes an eligible personal account, billing verification, and the $300/90-day free program. Gemini API/AI Studio billing is separate from that welcome credit, so prefer its available free tier or an explicitly eligible Vertex/Gemini billing path.
+`pnpm dev`는 로컬 mission-control UI preview만 `http://localhost:3000`에
+실행합니다. 이 화면의 fixture/timeline은 `local-simulated`이고 vendor, executor,
+managed Firestore, Gemini live call, Devnet transaction을 시작하거나 증명하지 않습니다.
+`CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED` 기본값도 `false`이므로 Google 로그인이나
+mutation route를 활성화하지 않습니다.
 
-If the Devnet wallet or USDC is missing, the first task must stop only at the real-payment boundary and request the exact funding/credential action. It must not create a wallet, expose a key, substitute a fake transaction, or silently use Mainnet.
+```bash
+pnpm run dev
+```
 
-The skill freezes the finalist-oriented product brief, forces an evidence-first build order, guards wallet and protocol claims, validates required submission artifacts, and keeps the implementation focused on a real Devnet USDC payment rather than a broad mockup.
+Firestore emulator의 실제 transaction/concurrency test는 별도로 실행합니다.
 
-Key files:
+```bash
+NODE_BIN="$(command -v node)"
+firebase emulators:exec --only firestore \
+  "\"${NODE_BIN}\" node_modules/vitest/vitest.mjs run tests/persistence-firestore.test.ts tests/payment-authorization-firestore.test.ts --reporter=verbose"
+```
 
-- `FINALIST_BLUEPRINT.md`: product and submission strategy.
-- `FIRST_PROMPT.md`: the first prompt for the new Codex project.
-- `.agents/skills/ship-agentic-commerce-finalist/`: the reusable project skill.
-- `.agents/skills/ship-agentic-commerce-finalist/references/payment-evidence-v2.md`: the normative evidence contract.
-- `AGENTS.md`: repository-wide guardrails and priorities.
+Standalone Firebase 배포본은 child-process `PATH` 앞에 더 오래된 bundled Node를
+넣을 수 있습니다. 위처럼 현재 binary를 명시하면 emulator test도 이 저장소의 Node 22
+runtime으로 실행됩니다.
 
-The readiness checker has separate structural and submission gates. Run the structural gate early with `python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py --root . --strict`. The final gate adds `--submission --run-repo-scripts`, the explicit Devnet USDC mint, and a real RPC; it cannot be replaced by a base58-shaped fixture. See the skill for the exact public/private RPC commands and manually review every `manual.*` result.
+`.env.example`은 세 process의 superset reference라서 그대로 source하지 않습니다.
+Credentialed runtime을 실행할 때만 process별 ignored env를 만들고 secret 값 대신
+절대 key path를 구성합니다. Production vendor/executor/control live entrypoint는
+필수값, public HTTPS origins, managed Firestore, signer mounts, Devnet identity가
+없으면 fail closed하며 `FIRESTORE_EMULATOR_HOST`를 거부합니다.
+
+모든 live/devnet 입력이 실제로 준비된 경우에만 역할별 ignored env
+`.env.vendor.local`, `.env.executor.local`, `.env.control.local`을 만든 뒤 다음 명령을
+사용합니다. 각 파일에는 `.env.example` 중 해당 프로세스가 필요한 값만 넣습니다.
+Script가 vendor `PORT=4100`, executor `PORT=4200`, UI `3000`을 분리하지만 HTTPS
+origins, IAM/ADC, Firestore, keys, funds, facilitator를 만들거나 simulation으로
+대체하지 않습니다.
+
+```bash
+pnpm run dev:live
+```
+
+### Immutable offer와 최초 mandate 준비
+
+두 offer는 live vendor URL, Agent Card URL/hash, recipient, 금액, expiry가 확정된 뒤
+기존 vendor authority로 한 번 서명합니다. 다음 command는 기존 owner-only key만 읽고,
+새 key를 만들지 않으며 기존 output을 덮어쓰지 않습니다.
+
+```bash
+pnpm offers:sign -- \
+  --input /absolute/ignored/offers.unsigned.json \
+  --output /absolute/ignored/offers.signed.json \
+  --key-path /absolute/ignored/vendor/keypair.json \
+  --key-root /absolute/ignored/vendor \
+  --expected-public-key VENDOR_OFFER_SIGNER_PUBLIC_KEY \
+  --key-id VENDOR_OFFER_SIGNER_KEY_ID
+```
+
+최초 mandate도 unsigned JSON을 operator의 기존 Ed25519 key로 서명한 뒤, 짧은 수명의
+Google OIDC token 파일을 사용하는 인증 route로 한 번 arm합니다. 사람 token은
+control-plane에서 종료되고, private executor에는 control-plane service identity만
+전달됩니다. 이는 별도 admin service가 아닌 **application-role separation**입니다.
+
+```bash
+node --env-file=.env.operator.local --import tsx scripts/mandate-sign.ts
+node --env-file=.env.operator.local --import tsx scripts/mandate-arm.ts
+node --env-file=.env.operator.local --conditions=react-server --import tsx \
+  scripts/mandate-run-incident.ts
+node --env-file=.env.operator.local --conditions=react-server --import tsx \
+  scripts/collect-live-denials.ts
+node --env-file=.env.operator.local --import tsx scripts/mandate-revoke.ts
+```
+
+`mandate-run-incident`의 한 operator action은 primary recovery 뒤에 두 denial을 모두
+자동 실행합니다. Server-owned `denialRequests`는 P0 cap `20000` base units를 명시하고,
+counterfactual telemetry의 실제 선택·정책 결과가 `>20000` 및
+`amount.per_transaction_limit`인지 검증합니다. 이어서 fresh payment/idempotency key와
+primary nonce를 사용해 `identifier.nonce_fresh`를 요구합니다. Primary selected offer는
+`≤20000`이어야 합니다. 두 denial 모두 `transactionCreated:false`, `txSignature:null`이고
+paid retry를 보내지 않으며, 하나라도 다르면 one-shot slot을 fail-lock합니다. 따라서
+live signed two-offer catalog에는 primary용 `≤20000` offer와 counterfactual용 `>20000`
+offer가 실제로 있어야 하고 Gemini가 각 telemetry에서 그 offer를 선택해야 합니다.
+token/key bytes는 stdout에 출력하지 않고, fresh full run capture는 ignored owner-only
+파일에만 exclusive-create로 저장합니다.
+
+`evidence:collect-denials`는 그 owner-only request/capture와 독립 settlement fragment를
+bounded owner-only file로 다시 읽고 `createAutomaticDenialCaptures`로 두 result/binding,
+원 transaction/Explorer를 결합합니다. Raw telemetry는 request binding projection에서
+제거되며 output도 owner-only exclusive-create입니다. `.env.operator.local`에
+`DENIAL_SETTLEMENT_CAPTURE_PATH/ROOT`와
+`DENIAL_PROMOTION_FRAGMENT_PATH/ROOT`를 지정한 뒤 위 명령을 실행하고, 출력 JSON을
+promotion manifest의 `denials` 값으로 넣습니다. 기존 output을 덮어쓰지 않습니다.
+
+배포 시 선택적으로 활성화되는 mission-control의 one-click 경로도 같은 boundary를 사용합니다. Google
+Identity Services용 OAuth Web client ID를 `CONTROL_PLANE_UI_GOOGLE_CLIENT_ID`에 두고
+그 값을 exact `CONTROL_PLANE_OPERATOR_AUDIENCE`와 같게 설정합니다. 승인된 JavaScript
+origin은 exact `CONTROL_PLANE_ORIGIN`입니다. ID token은 callback 메모리에서 같은-origin
+Authorization header 한 번에만 사용되고 cookie/localStorage/sessionStorage/log에
+기록되지 않습니다.
+
+브라우저는 incident body나 execution policy를 보내지 않습니다. Control-plane이
+`CONTROL_PLANE_UI_LIVE_REQUEST_ROOT` 아래 version-pinned read-only
+`CONTROL_PLANE_UI_LIVE_REQUEST_PATH`를 strict JSON으로 읽어 실행합니다. UI route의
+응답은 reduced events, outcome, `transactionCreated`, `runBindingHash`만
+`LIVE UNVERIFIED`로 표시하며, promotion verifier 전에는 새 run의 Explorer, token
+delta, confirmed payment 또는 verified receipt를 표시하지 않습니다. 기존
+`DEVNET VERIFIED` 화면은 hash-pinned evidence trace replay이며 새 결제를 만들지 않는
+별도 동작입니다. `runBindingHash`는 incident, mandate, operation, payment, nonce,
+idempotency key, execution-policy hash를 canonical하게 묶습니다. Promotion 뒤에는 같은
+값을 payment evidence에 기록하고 verifier와 UI adapter가 독립 재계산하므로, 촬영 전후
+화면이 같은 server-owned primary request인지 비교할 수 있습니다. 이 값은 전체 실행
+transcript hash가 아니며 offer·transaction·result는 request fingerprint, signed receipt,
+outcome에서 별도로 검증합니다. 실제 evidence가 생기기 전에는 이 연결 역시 로컬
+schema·mutation test 증거일 뿐입니다.
+
+## Devnet 결제 재현과 검증
+
+Devnet 승격에는 사용자가 이미 보유한 다음 입력이 필요합니다. secret 내용 대신 ignored 파일 경로나 Secret Manager resource만 구성합니다.
+
+- `EXECUTOR_WALLET_KEYPAIR_PATH`: 수수료 SOL과 Devnet USDC가 있는 기존 저잔액 executor keypair 파일. owner-only permission 필요.
+- `VENDOR_USDC_RECIPIENT`: payer와 다른 vendor USDC owner.
+- `VENDOR_RECEIPT_KEY_PATH`: signed offer와 receipt가 함께 pin하는 vendor Agent Card Ed25519 authority의 existing key path. Offer catalog는 이 authority로 미리 서명되고 live runtime에는 catalog와 receipt-capable key만 전달됩니다.
+- `CONTROL_PLANE_OUTCOME_KEY_PATH`: receipt authority와 다른 recovery-outcome key path.
+- `VENDOR_OFFER_CATALOG_PATH`: live vendor origin, recipient, mint/network, expiry와 같은 vendor authority에 bind된 두 immutable signed offer JSON. P0 cap이 20,000 base units이므로 primary telemetry가 고르는 offer는 `≤20000`, over-cap counterfactual telemetry가 고르는 offer는 `>20000`이어야 합니다.
+- `MANDATE_SIGNER_KEYPAIR_PATH`/`MANDATE_SIGNER_KEYPAIR_ROOT`: 최초 mandate attestation에만 쓰는 기존 owner-only operator key path. executor runtime에는 public key/key ID만 전달합니다.
+- `MANDATE_SIGNER_PUBLIC_KEY`/`MANDATE_SIGNER_KEY_ID`와 operator-signed mandate attestation: executor가 authoritative activation 전에 검증할 public authority/evidence.
+- `SOLANA_RPC_URL`: Devnet RPC. private/nonstandard RPC이면 공식 `https://api.devnet.solana.com`으로 2차 확인.
+- `X402_FACILITATOR_URL`: pinned `@x402/core@2.20.0`과 공식 문서에서 확인한 기본 test facilitator는 `https://x402.org/facilitator`입니다. vendor startup은 `/supported`에서 Solana Devnet `exact`과 configured fee payer를 다시 확인합니다.
+- `X402_FACILITATOR_FEE_PAYER`: 2026-08-03 공식 `/supported`에서 확인한 Devnet signer `CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5`. 공개 식별자이며 startup preflight가 drift를 fail closed합니다.
+- `GEMINI_API_KEY` 또는 Vertex ADC identity: live Gemini structured decision.
+- `RECOVERY_HEALTH_PROBE_URL`: exact `CONTROL_PLANE_ORIGIN/api/dependency-health`; applied paid route를 Firestore에서 독립적으로 다시 읽어 hash/activation/state/TTL을 검사합니다.
+- `CONTROL_PLANE_UI_GOOGLE_CLIENT_ID`: Google Identity Services OAuth Web client ID. secret이 아니며 exact `CONTROL_PLANE_OPERATOR_AUDIENCE`와 같아야 합니다.
+- `CONTROL_PLANE_UI_LIVE_REQUEST_PATH`/`CONTROL_PLANE_UI_LIVE_REQUEST_ROOT`: 브라우저가 바꿀 수 없는 기존 incident-run JSON과 그 허용 root. Cloud Run에서는 숫자 버전으로 pin한 read-only config mount를 사용합니다.
+
+P0는 **application-enforced policy plus low-balance blast-radius isolation**입니다. Fixed Delegation의 x402 호환 end-to-end 증거가 없으므로 wallet을 `scoped` 또는 cryptographic cap이라고 부르지 않습니다.
+
+실제 실행 뒤 `artifacts/payment-evidence.json`에는 `runBindingHash`, 402/200 raw x402 headers, CAIP-2 network, full genesis hash, USDC mint, integer base units, 서로 다른 payer/payee owner, tx signature/Explorer, confirmation, 관련 token account의 정확한 음·양 delta, signed fulfillment receipt, healthy outcome만 기록합니다. 검증 명령은 다음과 같습니다.
+
+`promotion-manifest.json`은 증거 자체가 아니라 ignored local 수집 manifest입니다.
+`recovered`, independently verified `settlement`, 두 signed `offers`, 실제 baseline과
+counterfactual `selection`, no-payment dual `denials`, live `project`, runtime `attestations`의
+일곱 strict fragment가 모두 있어야 promotion됩니다. `project` fragment에는 세 service
+description/IAM 외에 `projectIamPolicyArtifact`와 그 exact
+`projectIamPolicyArtifactSha256`도 필요합니다. 일부 fragment만 전달하면
+`artifacts/live-capture/*.raw.json`만 기록되고 최종 evidence 파일은 바뀌지 않습니다.
+Paid run이 반환한 exact `geminiBaseline`은 재호출하지 않고, production
+`captureCounterfactual`/`collectGeminiSelectionForRecoveredResult`가 추가 Gemini 호출 한
+번만 수행해 selection pair를 만듭니다.
+
+```bash
+pnpm run evidence:capture -- /absolute/ignored/promotion-manifest.json
+UPTIME402_VERIFICATION_NONCE="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')" \
+  pnpm run evidence:verify
+python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py \
+  --root . --submission --run-repo-scripts \
+  --rpc-url-env SOLANA_RPC_URL \
+  --usdc-mint 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU \
+  --strict
+```
+
+Verification nonce는 매 실행에만 ephemeral로 만들고 artifact나 문서에 고정하지
+않습니다. Evidence가 비어 있거나 RPC/signature/delta/IAM/live URL 검증 하나라도
+실패하면 verifier는 fail closed하고 fresh report를 만들지 않습니다.
+private/nonstandard RPC를 썼다면 마지막 명령에
+`--secondary-rpc-url https://api.devnet.solana.com`을 추가합니다. `manual.*` INFO는
+사람이 영상·UX·Gemini materiality·서비스 분리를 확인해야 닫힙니다.
+
+## Security invariants
+
+- 금액은 float가 아닌 integer base units/decimal string만 사용합니다.
+- browser, Gemini, logs, fixtures, evidence는 private key/seed를 볼 수 없습니다. Executor wallet은 private payment-executor만, vendor receipt key는 vendor만, recovery-outcome key는 control-plane server runtime만 읽습니다.
+- executor는 signed payload를 반환할 뿐 먼저 broadcast하지 않습니다. vendor/facilitator가 paid retry를 verify/settle합니다.
+- mandate/offer/challenge/policy/operation은 signer 직전에 authoritative storage에서 다시 읽고 해시·서명·recipient·mint·network·amount·fee/program/account·budget을 재검사합니다.
+- reservation은 원자적 상태 전이를 사용하며 ambiguous submission은 `unknown`/reconcile로 남겨 재결제를 막습니다.
+- paymentId, nonce, idempotency key, request fingerprint가 replay를 차단합니다.
+- vendor description과 incident telemetry는 untrusted data입니다. allowlist/redaction 후 model과 logs에 전달하며 prompt-like text가 policy나 money fields를 바꾸지 못합니다.
+- vendor URL은 pinned origin만 허용하며 credentials, fragment, redirect, private/link-local/metadata IP를 거부합니다.
+- offer와 receipt는 같은 pinned vendor Agent Card authority입니다. 이 vendor authority, control-plane outcome authority, payer, payee는 서로 다른 identity입니다.
+- Cloud Run은 세 service account를 분리하고 executor만 version-pinned signer secret의 `secretAccessor`를 가집니다. executor는 unauthenticated 401/403이어야 합니다.
+- operator route는 Google-signed OIDC의 exact audience, verified email, allowlisted principal을 검사한 뒤에만 arm/revoke/run을 허용합니다. Firestore one-shot guard의 terminal failure는 자동 재시도하지 않습니다.
+- UI live trigger는 exact same-origin, bodyless POST만 받고 policy·recipient·amount·nonce를 server-owned version-pinned config에서만 읽습니다. Google ID token은 browser persistence나 로그에 남기지 않습니다.
+- Mainnet은 거부합니다.
+
+## Cloud Run / Firestore
+
+배포 계약과 승인 후 실행 순서는 [deploy/README.md](deploy/README.md), 세 독립
+manifest template과 [ARCHITECTURE.md](docs/ARCHITECTURE.md)에 있습니다. Cloud Build는
+세 이미지를 build/push만 하며 배포/IAM/Secret을 자동 변경하지 않습니다. 배포 전
+local production build와 template contract를 통과시키고, 사용자가 선택한 GCP
+project/auth/billing과 외부 변경 승인을 받아야 합니다. 필요한 API는 Cloud Run,
+Artifact Registry, Cloud Build, Firestore, Secret Manager, Vertex AI입니다.
+
+Control-plane은 두 단계로 배포합니다. `capture` stage는 evidence hash env 없이
+렌더링되고 화면 전체를 `LIVE UNVERIFIED`로 유지합니다. 실제 capture와 verifier가
+끝난 뒤 새 immutable image에 `payment-evidence.json`과 `verification-report.json`을
+포함하고, 두 파일의 exact SHA-256을 설정한 `final` stage로 재배포합니다. Final은
+evidence/report/hash binding 중 하나라도 없거나 다르면 verified 화면 대신 fail
+closed합니다. 구체적인 변수와 순서는 [deploy/README.md](deploy/README.md)에 있습니다.
+
+```bash
+python3 deploy/render_cloudrun.py --check-templates
+python3 deploy/render_cloudrun.py \
+  --env-file .env.deploy \
+  --output-dir /private/tmp/uptime402-cloudrun
+```
+
+배포 후 반드시 raw JSON을 보존합니다.
+
+```bash
+gcloud run services describe SERVICE --region REGION --format=json
+gcloud run services get-iam-policy SERVICE --region REGION --format=json
+gcloud projects get-iam-policy PROJECT_ID --format=json
+gcloud secrets get-iam-policy SECRET --format=json
+```
+
+control-plane과 vendor만 공개합니다. executor `run.invoker`는 control-plane service
+account만, signer secret `secretAccessor`는 executor service account만 허용합니다.
+Project IAM export도 hash-bind하며 project-level invoker/secretAccessor 또는 runtime
+identity의 primitive owner/editor grant가 있으면 live promotion을 거절합니다.
+
+## 알려진 한계와 submission gate
+
+- Firestore emulator concurrency/replay와 9장 deck PDF의 로컬 검증은 완료됐습니다. 이는 managed Firestore, live Cloud Run, 또는 실제 Devnet 결제 증거가 아닙니다.
+- Devnet payment, Gemini live call, managed Firestore, Cloud Run/IAM, 로그아웃 URL, final video는 각 evidence가 생기기 전까지 완료가 아닙니다.
+- Route-aware dependency-health endpoint와 mutation/missing/expired local tests는 구현됐지만 managed Firestore/Cloud Run에서는 미검증입니다. Existing-key-only offer/mandate provisioning command는 구현됐지만 실제 signed artifacts가 제공되기 전까지 live flow는 blocked입니다.
+- Executor Run IAM은 control-plane identity 하나로 유지합니다. Google OIDC operator route와 control-plane SA proxy는 로컬 검증됐지만 live OIDC/IAM evidence 전에는 operator-authenticated 경계를 배포 완료로 주장하지 않습니다. 구조 자체도 hard admin-service separation이 아니라 application-role separation입니다.
+- owned vendor P0이며 두 immutable offer를 제공합니다. 두 번째 vendor deployment, MPP, AP2 conformance, passkey, gasless, BigQuery, KMS, Fixed Delegation은 P1입니다.
+- P0는 AP2 conformance/compliance를 주장하지 않습니다. 설계 수준에서 AP2를 언급할 때만 `AP2-aligned`를 사용하고, official schema 검증 전에는 `AP2-validated` 또는 `AP2-compliant`라고 쓰지 않습니다.
+- 최종 외부 변경인 public GitHub push, paid Cloud deployment, video upload는 사용자 승인 후에만 수행합니다.
+
+상세 상태: [BUILD_STATUS.md](docs/BUILD_STATUS.md) · 실제/목표 구조: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · 촬영 순서: [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ from check_finalist_readiness import (
     canonical_json,
     canonical_resource_url,
     check_attestations,
+    check_denials,
     check_payment_shape,
     check_rpc_topology,
     check_secret_contents,
@@ -88,7 +90,13 @@ def evidence_payload() -> dict[str, object]:
                 "fulfillmentReceiptHash": HASH,
             }
         ],
-        "denials": [{"reasonCode": "PER_TRANSACTION_LIMIT_EXCEEDED"}],
+        "denials": [
+            {"reasonCode": "amount.per_transaction_limit"},
+            {
+                "reasonCode": "identifier.nonce_fresh",
+                "replayProof": {"identifierType": "nonce"},
+            },
+        ],
     }
 
 
@@ -123,6 +131,85 @@ Security and transaction verification use an Explorer signature.
 
 
 class ReadinessTests(unittest.TestCase):
+    def test_denial_gate_requires_over_cap_and_nonce_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            original = {
+                "incidentId": "incident-paid",
+                "mandateId": "mandate-1",
+                "paymentId": "payment-paid",
+                "nonce": "nonce-paid",
+                "idempotencyKey": "reservation-paid",
+                "amountBaseUnits": "18000",
+                "txSignature": SIGNATURE,
+                "explorerUrl": f"https://explorer.solana.com/tx/{SIGNATURE}?cluster=devnet",
+            }
+            over_cap = {
+                "incidentId": "incident-over-cap",
+                "mandateId": "mandate-1",
+                "reasonCode": "amount.per_transaction_limit",
+                "attemptedAt": "2026-08-03T00:00:10Z",
+                "attemptedAmountBaseUnits": "21000",
+                "perTransactionLimitBaseUnits": "20000",
+                "executionPolicyHash": HASH,
+                "transactionCreated": False,
+                "txSignature": None,
+                "artifactPath": "artifacts/over-cap.json",
+            }
+            replay = {
+                "incidentId": "incident-replay",
+                "mandateId": "mandate-1",
+                "reasonCode": "identifier.nonce_fresh",
+                "attemptedAt": "2026-08-03T00:00:11Z",
+                "attemptedAmountBaseUnits": "18000",
+                "perTransactionLimitBaseUnits": "20000",
+                "executionPolicyHash": HASH,
+                "transactionCreated": False,
+                "txSignature": None,
+                "replayProof": {
+                    "identifierType": "nonce",
+                    "identifierValue": "nonce-paid",
+                    "originalPaymentId": "payment-paid",
+                    "deniedPaymentId": "payment-replay",
+                    "originalIncidentId": "incident-paid",
+                    "deniedIncidentId": "incident-replay",
+                    "originalNonce": "nonce-paid",
+                    "deniedNonce": "nonce-paid",
+                    "originalIdempotencyKey": "reservation-paid",
+                    "deniedIdempotencyKey": "reservation-replay",
+                    "originalTxSignature": SIGNATURE,
+                    "originalExplorerUrl": original["explorerUrl"],
+                },
+                "artifactPath": "artifacts/replay.json",
+            }
+            for denial in (over_cap, replay):
+                artifact = {
+                    key: denial.get(key)
+                    for key in (
+                        "incidentId",
+                        "reasonCode",
+                        "transactionCreated",
+                        "executionPolicyHash",
+                        "replayProof",
+                    )
+                }
+                path = root / str(denial["artifactPath"])
+                write(path, json.dumps(artifact, sort_keys=True, separators=(",", ":")))
+                denial["artifactSha256"] = file_digest(path)
+            payload = {"payments": [original], "denials": [over_cap, replay]}
+            results = check_denials(root, payload)
+            self.assertIn(
+                "evidence.denial",
+                {item.code for item in results if item.level == "PASS"},
+            )
+
+            payload["denials"] = [over_cap]
+            results = check_denials(root, payload)
+            self.assertIn(
+                "evidence.denial.count",
+                {item.code for item in results if item.level == "FAIL"},
+            )
+
     def test_ed25519_verifier_matches_rfc8032_vector(self) -> None:
         public_key = bytes.fromhex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
         signature = bytes.fromhex(
@@ -208,6 +295,39 @@ class ReadinessTests(unittest.TestCase):
             content_results = check_secret_contents(root, submission=True)
             self.assertIn("security.secret_files", {item.code for item in filename_results if item.level == "FAIL"})
             self.assertIn("security.secret_content", {item.code for item in content_results if item.level == "FAIL"})
+
+    def test_pem_parser_markers_are_safe_but_real_and_escaped_bodies_fail(self) -> None:
+        begin = "-----BEGIN " + "PRIVATE KEY-----"
+        end = "-----END " + "PRIVATE KEY-----"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parser_chunk = root / ".next/server/chunks/parser.js"
+            write(
+                parser_chunk,
+                f"const keyPattern = /(?<key>{begin}.*?{end})/s;\n",
+            )
+            safe_results = check_secret_contents(root, submission=True)
+            self.assertIn(
+                "security.secret_content",
+                {item.code for item in safe_results if item.level == "PASS"},
+            )
+
+            # RFC 8410-shaped Ed25519 PKCS#8 DER with a deterministic throwaway
+            # seed; it exists only in this temporary directory during the test.
+            private_key_der = bytes.fromhex("302e020100300506032b657004220420") + bytes(range(32))
+            payload = base64.b64encode(private_key_der).decode("ascii")
+            for filename, newline in (("raw.js", "\n"), ("escaped.js", r"\n")):
+                with self.subTest(filename=filename):
+                    write(
+                        root / ".next/server/chunks" / filename,
+                        f'const leaked = "{begin}{newline}{payload}{newline}{end}";\n',
+                    )
+                    failure_results = check_secret_contents(root, submission=True)
+                    self.assertIn(
+                        "security.secret_content",
+                        {item.code for item in failure_results if item.level == "FAIL"},
+                    )
+                    (root / ".next/server/chunks" / filename).unlink()
 
     def test_submission_requires_explicit_repo_script_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
