@@ -2060,7 +2060,10 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .topbar--replay .topbar-actions,
+  .topbar--replay .topbar-actions {
+    grid-template-columns: 1fr;
+  }
+
   .outcome-metrics,
   .recovery-path {
     grid-template-columns: repeat(2, minmax(0, 1fr));
