@@ -1,6 +1,6 @@
 # Uptime402 build status
 
-Last updated: `2026-08-03T22:50:21+09:00`
+Last updated: `2026-08-03T23:15:26+09:00`
 
 Submission deadline: **2026-08-03 23:59 KST**. 각 행의 다섯 축은 독립적이다. `implementation`은 코드 존재, `evidence`는 증거 환경, `deployment`는 endpoint 배포 상태, `verification`은 해당 행의 검증 완료 여부, `priority`는 범위를 뜻한다. `local` test나 `live` deployment만으로 Devnet settlement 또는 submission readiness를 의미하지 않는다.
 
@@ -36,6 +36,7 @@ Submission deadline: **2026-08-03 23:59 KST**. 각 행의 다섯 축은 독립�
 | Firestore transactional state | implemented | devnet | live | verified | 2026-08-03T21:25:44+09:00 | `artifacts/payment-evidence.json`; `artifacts/local/firestore-emulator-verification.json`; owner-only managed-state audit | P0 | demo5 mandate/action/reservation/authorization/vendor claim/resource/receipt/outcome were audited. Latest local emulator suite is 10/10 |
 | Local repository gates | implemented | local | local | verified | 2026-08-03T22:50:21+09:00 | `package.json`; `artifacts/local/firestore-emulator-verification.json` | P0 | lint/typecheck/build/template/diff/boundary passed; full Vitest `178 passed / 9 skipped`; Firestore emulator `10/10`. Submission-only gate remains blocked by absent final video |
 | Payment evidence promotion + fresh report | implemented | devnet | live | verified | 2026-08-03T22:50:21+09:00 | `artifacts/payment-evidence.json`; `artifacts/verification-report.json`; control revision `00015-sqw` | P0 | demo5-only evidence and nonce-bound report passed repository verifier and independent public RPC gate; exact hashes are configured on the final UI |
+| Public GitHub source release | implemented | local | live | verified | 2026-08-03T23:15:26+09:00 | `https://github.com/kwakhyun/uptime402-agentic-commerce` | P0 | public `main`; fresh clone passed install, lint, typecheck, 178-test suite, Firestore emulator 10/10, production build, deployment templates, Git boundary audit and structural readiness; ignored env/private/key/video/build outputs are absent |
 | Deck PDF | implemented | local | local | verified | 2026-08-03T22:20:00+09:00 | `artifacts/local/deck-verification.json`; `submission/Uptime402_Deck.pdf` | P0 | 9 pages; demo5 values matched; PPTX/PDF render, overflow and template-fidelity QA passed. PDF SHA-256 `983ac835…6a263`; PPTX `cc5eefbb…68264` |
 | Demo video <=180 seconds | blocked | none | local | unverified | — | — | P0 | QA-failed provisional MP4 was removed from the Git candidate set. A <=180-second secret-free full-screen final replay file or accessible URL is still required |
 | Pub/Sub → Eventarc → Workflows → BigQuery audit pipeline | planned | none | local | unverified | — | `docs/ARCHITECTURE.md` | P1 | hackathon recommendation mapped as the production async extension for settlement events, reconciliation, receipt dispatch, and analytics; P0 intentionally proves the shorter synchronous safety path first |
