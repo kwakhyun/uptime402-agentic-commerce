@@ -230,7 +230,7 @@ Paid run이 반환한 exact `geminiBaseline`은 재호출하지 않고, producti
 `captureCounterfactual`/`collectGeminiSelectionForRecoveredResult`가 추가 Gemini 호출 한
 번만 수행해 selection pair를 만듭니다.
 
-`evidence:capture`는 owner-only promotion manifest와 live credentials가 있는 수집자용이며 fresh-clone public 검증 단계가 아닙니다. 기존 public evidence를 결제·settlement·배포 없이 다시 검증하려면 공식 Devnet RPC를 명시합니다. `evidence:verify`는 transaction을 만들지 않지만 fresh nonce/timestamp 때문에 tracked `verification-report.json`을 다시 씁니다.
+`evidence:capture`는 owner-only promotion manifest와 live credentials가 있는 수집자용이며 fresh-clone public 검증 단계가 아닙니다. 기존 public evidence를 결제·settlement·배포 없이 다시 검증하려면 공식 Devnet RPC를 명시합니다. 다만 `evidence:verify`는 evidence가 선언한 exact `submission/Uptime402_Demo.mp4`도 요구하므로, 현재처럼 accepted final video가 없는 clone에서는 의도적으로 fail closed합니다. 영상 handoff 전에는 tracked report/evidence hash, Explorer, repo tests와 structural gate를 검사하고 이 명령을 실행하지 않습니다. 영상이 생긴 뒤에는 disposable clone에서 실행하세요. 이 명령은 transaction을 만들지 않지만 fresh nonce/timestamp 때문에 그 clone의 `verification-report.json`을 다시 씁니다. 새 report를 canonical artifact로 채택하려면 report hash pin과 final deployment를 다시 맞춰야 합니다.
 
 ```bash
 SOLANA_RPC_URL=https://api.devnet.solana.com \
