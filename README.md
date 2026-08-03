@@ -4,6 +4,8 @@
 
 Uptime402는 Gemini 기반 AI SRE가 정제된 장애 신호를 진단하고, 별도 A2A vendor agent의 서명된 복구 견적을 비교한 뒤, 운영자가 미리 설정한 정책과 예산 안에서 x402 + Solana Devnet USDC 결제 payload를 자동 서명하는 B2B 복구 데모입니다. 주요 사용자는 on-call SRE와 platform engineer이고, 경제적 구매자는 infrastructure/FinOps lead입니다. 제품은 payment rail을 대체하지 않고 x402 위에서 구매 정책과 recovery outcome을 증명합니다. `finalist-demo-5`에서 세 Cloud Run 서비스와 Firestore를 거쳐 `0.015 USDC`가 실제로 결제됐고, paid resource가 health를 `healthy`로 전환했습니다. 같은 operator action에서 per-transaction 초과와 nonce replay도 자동 거절됐습니다. 결제 건별 사람 승인이나 브라우저 지갑 팝업은 없었습니다.
 
+Primary hackathon track은 **B. Autonomous On-chain Settlement**이며, 실제 A2A buyer/vendor 경계 때문에 **C. Multi-Agent Commerce**가 secondary theme입니다. 제출폼의 copy-ready 문구는 [SUBMISSION_FORM.md](docs/SUBMISSION_FORM.md)에 있습니다.
+
 검증된 `payment-evidence.json`과 독립 `verification-report.json`의 exact SHA-256을 고정한 `final` revision이 현재 배포돼 있습니다. 공개 control-plane은 로그인 없는 read-only evidence replay가 기본이며 새 incident나 결제를 만들지 않습니다. 로그아웃 desktop/mobile, evidence drawer, Cloud Run/IAM/Secret 경계는 최종 revision에서 다시 확인했습니다. 다만 3분 이하 최종 데모 영상의 촬영·재생 QA·업로드가 남아 있으므로 아직 submission-ready를 주장하지 않습니다. 현재 증거 수준은 [BUILD_STATUS.md](docs/BUILD_STATUS.md)가 기준입니다. pay.sh는 live path에 없으므로 통합을 주장하지 않습니다.
 
 ## Live final endpoints
@@ -270,12 +272,12 @@ private/nonstandard RPC를 썼다면 마지막 명령에
 배포 계약과 실행 순서는 [deploy/README.md](deploy/README.md), 세 독립 manifest
 template과 [ARCHITECTURE.md](docs/ARCHITECTURE.md)에 있습니다. 현재 project는
 `uptime402-hack-260803`, region은 `asia-northeast3`입니다. Final revision은 control
-`uptime402-control-plane-00014-9p7`, executor `uptime402-payment-executor-00011-hmq`,
-vendor `uptime402-vendor-agent-00010-xrj`이며 모두 Git SHA
-`91eae38291b6e353052bffbcc6f60aa586234c0e` 이미지에 100% traffic을 받습니다. Cloud Build
-`9edd3b87-fbb0-4b16-89b2-6bae6b27d5a1`은 취소 없이 `SUCCESS`로 끝났고 image digest는
-각각 control `sha256:76fb47c7…cc90`, executor `sha256:e9e14606…4757`, vendor
-`sha256:b6543f80…e55f`입니다. Cloud Build는 세 이미지를 build/push만 하며
+`uptime402-control-plane-00015-sqw`, executor `uptime402-payment-executor-00012-2dg`,
+vendor `uptime402-vendor-agent-00011-88p`이며 모두 Git SHA
+`10ca5f2ccaf2af45e2d80f6065de9c623b24e559` 이미지에 100% traffic을 받습니다. Cloud Build
+`793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`은 취소 없이 `SUCCESS`로 끝났고 image digest는
+각각 control `sha256:1f9313ae…53db`, executor `sha256:766bed6a…50ad`, vendor
+`sha256:cc249b8f…f694`입니다. Cloud Build는 세 이미지를 build/push만 하며
 배포/IAM/Secret을 자동 변경하지 않습니다.
 
 Control-plane은 두 단계로 배포합니다. `capture` stage는 evidence hash env 없이
@@ -313,7 +315,7 @@ identity의 primitive owner/editor grant가 있으면 live promotion을 거절�
 - Executor Run IAM은 control-plane identity 하나로 유지하고 unauthenticated request는 `403`입니다. 구조 자체는 hard admin-service separation이 아니라 **application-role separation**입니다.
 - QA에 실패한 `164.966667`초 provisional MP4는 Git 후보와 `submission/`에서 제거했습니다. Final evidence-stage walkthrough 파일 또는 접근 가능한 URL은 아직 없으며, 180초 이하·audio/playback·secret 미노출·full-screen read-only demo5 replay QA를 통과한 뒤에만 README에 링크합니다.
 - [Uptime402_Deck.pdf](submission/Uptime402_Deck.pdf)는 demo5 실측값을 반영한 9페이지 export이며 overflow, template fidelity, source/final render QA를 통과했습니다. 이미지 기반 PDF라 태그/텍스트 검색은 지원하지 않고 editable PPTX를 함께 제공합니다.
-- owned vendor P0이며 두 immutable offer를 제공합니다. 두 번째 vendor deployment, MPP, AP2 conformance, passkey, gasless, BigQuery, KMS, Fixed Delegation은 P1입니다.
+- owned vendor P0이며 두 immutable offer를 제공합니다. 권장 production 확장인 Pub/Sub → Eventarc → Workflows → BigQuery audit pipeline과 두 번째 vendor deployment, MPP, AP2 conformance, passkey, gasless, KMS, Fixed Delegation은 P1입니다. P0는 Cloud Run + Firestore의 짧은 synchronous safety path를 먼저 증명합니다.
 - P0는 AP2 conformance/compliance를 주장하지 않습니다. 설계 수준에서 AP2를 언급할 때만 `AP2-aligned`를 사용하고, official schema 검증 전에는 `AP2-validated` 또는 `AP2-compliant`라고 쓰지 않습니다.
 - 마지막 `75 passed / 0 warned / 0 failed` submission checker 결과는 QA-failed provisional video가 존재하던 시점의 기록이므로 현재 tree에 재적용하지 않습니다. Payment evidence는 영상 bytes/hash를 포함하지 않지만 `submission/Uptime402_Demo.mp4`와 `165`초 계약을 선언합니다. 새 영상이 exact path와 duration 계약을 지키면 playback/manual claim QA와 submission checker만 다시 실행하면 되고, 경로나 선언 길이를 바꾸면 evidence→report→final hash pin을 다시 수행해야 합니다. 어느 경우에도 결제를 재실행하지 않습니다.
 

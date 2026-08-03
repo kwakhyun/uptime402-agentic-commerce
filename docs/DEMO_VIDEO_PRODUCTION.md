@@ -42,7 +42,7 @@ cp assets/demo-video/finalist-demo-5.replay.json private/demo-video-work/finalis
 ```
 
 The fresh verifier and final deployment QA have passed. Set `stage: "final"`,
-the exact evidence/report hashes, deployed source Git SHA `91eae38291b6e353052bffbcc6f60aa586234c0e`, and each screenshot's
+the exact evidence/report hashes, deployed source Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`, and each screenshot's
 `sha256:<lowercase hex>` in the private manifest. Validate without creating a
 video:
 

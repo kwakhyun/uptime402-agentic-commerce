@@ -7,10 +7,10 @@
 ```mermaid
 flowchart LR
     J["Judge / reviewer\nlogged-out read-only replay"] --> C
-    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\n00014-9p7 · final replay"]
+    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\n00015-sqw · final replay"]
     C -->|"allowlisted / redacted telemetry"| G["Gemini 2.5 Flash\nstrict supplied offerId 선택"]
-    C -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run 00010-xrj\n2 immutable signed offers"]
-    C -->|"IAM decision envelope"| E["Private executor Cloud Run 00011-hmq\nauthoritative reload + policy + reserve + sign"]
+    C -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run 00011-88p\n2 immutable signed offers"]
+    C -->|"IAM decision envelope"| E["Private executor Cloud Run 00012-2dg\nauthoritative reload + policy + reserve + sign"]
     E -->|"PAYMENT-SIGNATURE\nno broadcast"| C
     C -->|"paid retry"| V
     V -->|"verify → settle → 200 resource\n+ signed receipt"| C
@@ -23,7 +23,7 @@ flowchart LR
     K ~~~ G
 ```
 
-세 Cloud Run final revision은 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이며 동일 Git SHA `91eae38291b6e353052bffbcc6f60aa586234c0e` 이미지로 배포돼 100% traffic을 받는다. Raw final service/IAM exports는 `artifacts/final-deployment/`에 있고 `artifacts/final-release.json`이 exact SHA-256을 인덱스한다. 이 deployment QA summary는 payment evidence 자체와 구분된다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
+세 Cloud Run final revision은 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이며 동일 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559` 이미지로 배포돼 100% traffic을 받는다. Raw final service/IAM exports는 `artifacts/final-deployment/`에 있고 `artifacts/final-release.json`이 exact SHA-256을 인덱스한다. 이 deployment QA summary는 payment evidence 자체와 구분된다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
 
 ## Demo5 실제 runtime flow
 
@@ -80,7 +80,7 @@ flowchart LR
     E --> F["final revision\nread-only DEVNET VERIFIED replay"]
 ```
 
-Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Independent report SHA-256은 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`이고 all 13 checks가 true다. Cloud Build `9edd3b87-fbb0-4b16-89b2-6bae6b27d5a1`의 immutable images에 이 exact pair를 포함해 `final`에 pin했다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
+Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Independent report SHA-256은 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`이고 all 13 checks가 true다. Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`의 immutable images에 이 exact pair를 포함해 `final`에 pin했다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
 
 ## Trust and identity boundaries
 
@@ -177,6 +177,19 @@ For the SVM exact flow, the executor signs the payer slot and returns the x402 p
 
 The Explorer URL is `https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet`. These values passed the independent verifier and are now the exact final UI claim. Logged-out desktop/mobile, evidence drawer, IAM/private executor denial, and public endpoints were rechecked; only final video capture/playback/upload remains outside this architecture gate.
 
-## P1, not P0 claims
+## Hackathon recommendation mapping and P1
 
-MPP, AP2 conformance, passkey, gasless, BigQuery, KMS, native Fixed Delegation, second vendor deployment, and pay.sh participation stay P1 until their actual protocol/live paths are verified.
+P0는 해커톤 권장 방향의 Cloud Run + Firestore backbone을 그대로 사용한다. 결제 중 안전성에
+필요한 `402 → reserve/sign → paid retry → verify/settle → 200 → receipt/outcome`은 짧고
+동기적인 request path와 Firestore state machine으로 먼저 증명했다. GKE는 기간 대비 운영
+비용이 크므로 사용하지 않았다.
+
+권장 production 확장인 `Pub/Sub → Eventarc → Workflows → BigQuery` 비동기 audit pipeline은
+P1이다. 향후 x402 settlement webhook/event를 비동기로 수신해 reconciliation, Firestore
+projection, receipt dispatch, analytics를 분리하되 P0의 signer/IAM/policy boundary는 유지한다.
+pay.sh webhook은 live integration이 생긴 경우에만 이 pipeline에 연결하고, AP2 event는
+official schema conformance를 통과한 뒤에만 추가한다.
+
+MPP, AP2 conformance, passkey, gasless, BigQuery, Pub/Sub/Eventarc/Workflows, KMS, native
+Fixed Delegation, second vendor deployment, and pay.sh participation stay P1 until their actual
+protocol/live paths are verified.

@@ -38,10 +38,11 @@ Owner-only raw recordings은 감사용으로만 보존하고 영상에 사용하
 hash-pinned read-only final replay만 full-screen으로 새로 녹화한다. UI의 `runBindingHash`와
 verifier 값이 다르면 녹화만 다시 하고 결제는
 재실행하지 않는다. 현재 QA-failed provisional 파일은 새 영상을 대체하지 않는다. 최종 결과를
-`submission/Uptime402_Demo.mp4`에 두거나 접근 가능한 final URL을 사용한 뒤 다음을 확인한다.
+evidence가 선언한 정확한 `submission/Uptime402_Demo.mp4` 경로와 `165`초 계약으로 저장한 뒤
+다음을 확인한다. 경로나 선언 길이를 바꾸려면 evidence → report → final hash pin을 다시 수행한다.
 
 ```bash
 ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 submission/Uptime402_Demo.mp4
 ```
 
-영상 파일/URL, 길이, 실제 전체 흐름, secret 미노출, README/deck/evidence claim 일치를 확인하기 전에는 완료로 표시하지 않는다.
+로컬 영상 파일, 길이, 실제 전체 흐름, secret 미노출, README/deck/evidence claim 일치를 확인하기 전에는 완료로 표시하지 않는다. 외부 업로드 URL은 이 로컬 검증이 끝난 뒤 별도 배포 링크로만 추가한다.
