@@ -23,7 +23,7 @@ flowchart LR
     K ~~~ G
 ```
 
-세 Cloud Run final revision은 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이며 동일 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559` 이미지로 배포돼 100% traffic을 받는다. Owner-only 원본 service/project-IAM exports는 evidence capture 시 SHA-256으로 고정했지만 public repository에서는 operator identity와 runtime configuration 노출을 피하기 위해 제외했다. 공개 가능한 leaf IAM proof와 derived `artifacts/final-release.json` summary만 제공하며, 이는 payment evidence 자체와 구분된다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
+세 Cloud Run final revision은 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이며 동일 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559` 이미지로 배포돼 100% traffic을 받는다. Raw final service/IAM exports는 `artifacts/final-deployment/`에 있고 `artifacts/final-release.json`이 exact SHA-256을 인덱스한다. 이 deployment QA summary는 payment evidence 자체와 구분된다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
 
 ## Demo5 실제 runtime flow
 

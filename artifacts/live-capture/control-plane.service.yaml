@@ -1,0 +1,132 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "uptime402-control-plane"
+  labels:
+    cloud.googleapis.com/location: "asia-northeast3"
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/secrets: "control-outcome:projects/uptime402-hack-260803/secrets/uptime402-control-outcome,demo-request:projects/uptime402-hack-260803/secrets/uptime402-demo-request,demo-mandate:projects/uptime402-hack-260803/secrets/uptime402-demo-mandate"
+    spec:
+      serviceAccountName: "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com"
+      containerConcurrency: 40
+      timeoutSeconds: 300
+      containers:
+        - image: "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane:c938a866b74c9f2682b0d1c1fe27391e562b7caa"
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: FIRESTORE_PROJECT_ID
+              value: "uptime402-hack-260803"
+            - name: FIRESTORE_DATABASE_ID
+              value: "(default)"
+            - name: FIRESTORE_COLLECTION_PREFIX
+              value: "uptime402"
+            - name: VENDOR_AGENT_ORIGIN
+              value: "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app"
+            - name: CONTROL_PLANE_ORIGIN
+              value: "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app"
+            - name: PAYMENT_EXECUTOR_ORIGIN
+              value: "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app"
+            - name: VENDOR_AGENT_ID
+              value: "uptime402-owned-vendor"
+            - name: VENDOR_OFFER_SIGNER_PUBLIC_KEY
+              value: "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+            - name: VENDOR_OFFER_SIGNER_KEY_ID
+              value: "uptime402-vendor-v1"
+            - name: VENDOR_RECEIPT_PUBLIC_KEY
+              value: "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+            - name: VENDOR_RECEIPT_KEY_ID
+              value: "uptime402-vendor-v1"
+            - name: CONTROL_PLANE_OUTCOME_KEY_PATH
+              value: /var/run/secrets/uptime402/control-outcome/keypair.json
+            - name: CONTROL_PLANE_OUTCOME_SECRET_ROOT
+              value: /var/run/secrets/uptime402/control-outcome
+            - name: CONTROL_PLANE_OUTCOME_PUBLIC_KEY
+              value: "FrgE93V2ZzZPN45zZLB252Eb4hnQLLtoutMfTcXdrHzC"
+            - name: CONTROL_PLANE_OUTCOME_KEY_ID
+              value: "uptime402-outcome-v1"
+            - name: CONTROL_PLANE_OPERATOR_AUDIENCE
+              value: "1065649463621-1bjlpjt4h4lmbvfbg0fasq0e36hgbi0a.apps.googleusercontent.com"
+            - name: CONTROL_PLANE_OPERATOR_PRINCIPALS
+              value: "khyun2348@gmail.com"
+            - name: CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED
+              value: "true"
+            - name: CONTROL_PLANE_UI_GOOGLE_CLIENT_ID
+              value: "1065649463621-1bjlpjt4h4lmbvfbg0fasq0e36hgbi0a.apps.googleusercontent.com"
+            - name: CONTROL_PLANE_UI_LIVE_REQUEST_PATH
+              value: /var/run/config/uptime402/demo-request/request.json
+            - name: CONTROL_PLANE_UI_LIVE_REQUEST_ROOT
+              value: /var/run/config/uptime402/demo-request
+            - name: CONTROL_PLANE_DEMO_RUN_SLOT
+              value: "finalist-demo-5"
+            - name: CONTROL_PLANE_DEMO_MANDATE_ID
+              value: "mandate-finalist-demo-5"
+            - name: CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED
+              value: "true"
+            - name: CONTROL_PLANE_DEMO_SIGNED_MANDATE_PATH
+              value: /var/run/config/uptime402/demo-mandate/mandate.json
+            - name: CONTROL_PLANE_DEMO_SIGNED_MANDATE_ROOT
+              value: /var/run/config/uptime402/demo-mandate
+            - name: RECOVERY_HEALTH_PROBE_URL
+              value: "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/api/dependency-health"
+            - name: HTTP_TIMEOUT_MS
+              value: "5000"
+            - name: HTTP_MAX_RESPONSE_BYTES
+              value: "1048576"
+            - name: GEMINI_MODEL
+              value: "gemini-2.5-flash"
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "true"
+            - name: GOOGLE_CLOUD_PROJECT
+              value: "uptime402-hack-260803"
+            - name: GOOGLE_CLOUD_LOCATION
+              value: "global"
+            - name: UPTIME402_UI_EVIDENCE_STAGE
+              value: "capture"
+          volumeMounts:
+            - name: control-outcome
+              mountPath: /var/run/secrets/uptime402/control-outcome
+              readOnly: true
+            - name: demo-request
+              mountPath: /var/run/config/uptime402/demo-request
+              readOnly: true
+            - name: demo-mandate
+              mountPath: /var/run/config/uptime402/demo-mandate
+              readOnly: true
+      volumes:
+        - name: control-outcome
+          secret:
+            secretName: control-outcome
+            defaultMode: 292
+            items:
+              - key: "1"
+                path: keypair.json
+        - name: demo-request
+          secret:
+            secretName: demo-request
+            defaultMode: 292
+            items:
+              - key: "5"
+                path: request.json
+        - name: demo-mandate
+          secret:
+            secretName: demo-mandate
+            defaultMode: 292
+            items:
+              - key: "1"
+                path: mandate.json

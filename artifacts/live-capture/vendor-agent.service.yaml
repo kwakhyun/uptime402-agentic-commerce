@@ -1,0 +1,118 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "uptime402-vendor-agent"
+  labels:
+    cloud.googleapis.com/location: "asia-northeast3"
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/secrets: "vendor-receipt:projects/uptime402-hack-260803/secrets/uptime402-vendor-receipt,vendor-offers:projects/uptime402-hack-260803/secrets/uptime402-vendor-offers"
+    spec:
+      serviceAccountName: "uptime402-vendor@uptime402-hack-260803.iam.gserviceaccount.com"
+      containerConcurrency: 20
+      timeoutSeconds: 300
+      containers:
+        - image: "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/vendor-agent:c938a866b74c9f2682b0d1c1fe27391e562b7caa"
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: FIRESTORE_PROJECT_ID
+              value: "uptime402-hack-260803"
+            - name: FIRESTORE_DATABASE_ID
+              value: "(default)"
+            - name: FIRESTORE_COLLECTION_PREFIX
+              value: "uptime402"
+            - name: PUBLIC_VENDOR_ORIGIN
+              value: "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app"
+            - name: VENDOR_AGENT_ID
+              value: "uptime402-owned-vendor"
+            - name: VENDOR_AGENT_NAME
+              value: "Uptime402 Recovery Vendor"
+            - name: VENDOR_AGENT_DESCRIPTION
+              value: "Owned vendor agent for paid incident recovery resources."
+            - name: VENDOR_TENANT
+              value: "uptime402-owned-vendor"
+            - name: VENDOR_OFFER_CATALOG_PATH
+              value: /var/run/config/uptime402/vendor-offers/offers.json
+            - name: VENDOR_OFFER_CATALOG_ROOT
+              value: /var/run/config/uptime402/vendor-offers
+            - name: VENDOR_OFFER_SIGNER_PUBLIC_KEY
+              value: "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+            - name: VENDOR_OFFER_SIGNER_KEY_ID
+              value: "uptime402-vendor-v1"
+            - name: VENDOR_RECEIPT_KEY_PATH
+              value: /var/run/secrets/uptime402/vendor-receipt/keypair.json
+            - name: VENDOR_RECEIPT_SECRET_ROOT
+              value: /var/run/secrets/uptime402/vendor-receipt
+            - name: VENDOR_RECEIPT_PUBLIC_KEY
+              value: "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+            - name: VENDOR_RECEIPT_KEY_ID
+              value: "uptime402-vendor-v1"
+            - name: VENDOR_USDC_RECIPIENT
+              value: "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk"
+            - name: VENDOR_EXPECTED_PAYER_PUBLIC_KEY
+              value: "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu"
+            - name: VENDOR_RECONCILE_EXPECTED_AUDIENCE
+              value: "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app"
+            - name: VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL
+              value: "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com"
+            - name: SOLANA_RPC_URL
+              value: "https://api.devnet.solana.com"
+            - name: X402_FACILITATOR_URL
+              value: "https://x402.org/facilitator"
+            - name: X402_FACILITATOR_FEE_PAYER
+              value: "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5"
+            - name: X402_MAX_TIMEOUT_SECONDS
+              value: "300"
+            - name: SETTLEMENT_CONFIRMATION_ATTEMPTS
+              value: "5"
+            - name: SETTLEMENT_CONFIRMATION_DELAY_MS
+              value: "1000"
+            - name: SOLANA_CLUSTER_LABEL
+              value: devnet
+            - name: SOLANA_GENESIS_HASH
+              value: EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG
+            - name: X402_NETWORK_ID
+              value: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1
+            - name: X402_SDK_NETWORK_ID
+              value: solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1
+            - name: USDC_MINT
+              value: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+            - name: USDC_DECIMALS
+              value: "6"
+          volumeMounts:
+            - name: vendor-receipt
+              mountPath: /var/run/secrets/uptime402/vendor-receipt
+              readOnly: true
+            - name: vendor-offers
+              mountPath: /var/run/config/uptime402/vendor-offers
+              readOnly: true
+      volumes:
+        - name: vendor-receipt
+          secret:
+            secretName: vendor-receipt
+            defaultMode: 292
+            items:
+              - key: "1"
+                path: keypair.json
+        - name: vendor-offers
+          secret:
+            secretName: vendor-offers
+            defaultMode: 292
+            items:
+              - key: "1"
+                path: offers.json

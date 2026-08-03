@@ -2,7 +2,6 @@
   "schemaVersion": "1.0",
   "artifactKind": "human-readable-deployment-qa-summary",
   "notPaymentEvidence": true,
-  "publicSnapshotNote": "Operator-identifying raw Cloud Run service/revision exports and project-wide IAM exports are intentionally omitted from the public repository. Their original SHA-256 commitments remain in the canonical hash-pinned payment evidence; public leaf IAM proofs below contain no personal identity or secret value.",
   "capturedAt": "2026-08-03T13:50:21.000Z",
   "projectId": "uptime402-hack-260803",
   "projectNumber": "1065649463621",
@@ -74,13 +73,25 @@
     "vendorAgent": 0
   },
   "rawArtifacts": {
+    "controlPlaneService": {
+      "path": "artifacts/final-deployment/control-plane.service.json",
+      "sha256": "sha256:27d50389a7b35e049456112f28c1ef934dd035543a589533030622651595cc64"
+    },
     "controlPlaneIam": {
       "path": "artifacts/final-deployment/control-plane.iam.json",
       "sha256": "sha256:37529abb4c0cce34d60ccf60d2ed02a71ad70ea38af8fe0bc799a40f97ff0414"
     },
+    "paymentExecutorService": {
+      "path": "artifacts/final-deployment/payment-executor.service.json",
+      "sha256": "sha256:ffdafd4960827e8cfd0c81c53eb5d105eee9dc4d74bbdac30da6d8374844f2c0"
+    },
     "paymentExecutorIam": {
       "path": "artifacts/final-deployment/payment-executor.iam.json",
       "sha256": "sha256:4dc3c3676fd309dfb608c5234774332455ad2d96144938a465074769f8c5f0ab"
+    },
+    "vendorAgentService": {
+      "path": "artifacts/final-deployment/vendor-agent.service.json",
+      "sha256": "sha256:b6e96d04c8e766f86f813d956b7d35c83281986deeff9f6b10a0c69765495ef4"
     },
     "vendorAgentIam": {
       "path": "artifacts/final-deployment/vendor-agent.iam.json",
@@ -97,6 +108,10 @@
     "vendorReceiptIam": {
       "path": "artifacts/final-deployment/vendor-receipt.iam.json",
       "sha256": "sha256:957244cf26a645ea2056b971880df27a075913ec59e7cba25586ce5f712a2bce"
+    },
+    "projectIam": {
+      "path": "artifacts/final-deployment/project.iam.json",
+      "sha256": "sha256:ea9c47505546dda7c9de66e85deb38eccae2c06ee69edf41bd425dbc639486a5"
     }
   },
   "remainingSubmissionBlocker": "Final demo video capture, playback QA, and upload are not complete."

@@ -1,0 +1,233 @@
+{
+  "apiVersion": "serving.knative.dev/v1",
+  "kind": "Revision",
+  "metadata": {
+    "annotations": {
+      "autoscaling.knative.dev/maxScale": "2",
+      "run.googleapis.com/execution-environment": "gen2",
+      "run.googleapis.com/operation-id": "cb546827-e545-4d83-84b6-08c7a77924c5",
+      "run.googleapis.com/secrets": "executor-signer:projects/uptime402-hack-260803/secrets/uptime402-executor-signer",
+      "run.googleapis.com/startup-cpu-boost": "true",
+      "serving.knative.dev/creator": "khyun2348@gmail.com"
+    },
+    "creationTimestamp": "2026-08-03T11:09:23.111425Z",
+    "generation": 1,
+    "labels": {
+      "cloud.googleapis.com/location": "asia-northeast3",
+      "run.googleapis.com/satisfiesPzs": "true",
+      "run.googleapis.com/startupProbeType": "Default",
+      "serving.knative.dev/configuration": "uptime402-payment-executor",
+      "serving.knative.dev/configurationGeneration": "9",
+      "serving.knative.dev/route": "uptime402-payment-executor",
+      "serving.knative.dev/service": "uptime402-payment-executor",
+      "serving.knative.dev/serviceUid": "3831185e-286a-4963-bbb1-ef0b519aac49"
+    },
+    "name": "uptime402-payment-executor-00009-wgq",
+    "namespace": "1065649463621",
+    "ownerReferences": [
+      {
+        "apiVersion": "serving.knative.dev/v1",
+        "blockOwnerDeletion": true,
+        "controller": true,
+        "kind": "Configuration",
+        "name": "uptime402-payment-executor",
+        "uid": "d7ab13fd-73ab-4a5f-84b0-c5a80af01627"
+      }
+    ],
+    "resourceVersion": "AAZYIpNDW4E",
+    "selfLink": "/apis/serving.knative.dev/v1/namespaces/1065649463621/revisions/uptime402-payment-executor-00009-wgq",
+    "uid": "5a34e795-7af8-4974-8c50-ff5dcf199bcc"
+  },
+  "spec": {
+    "containerConcurrency": 8,
+    "containers": [
+      {
+        "env": [
+          {
+            "name": "NODE_ENV",
+            "value": "production"
+          },
+          {
+            "name": "FIRESTORE_PROJECT_ID",
+            "value": "uptime402-hack-260803"
+          },
+          {
+            "name": "FIRESTORE_DATABASE_ID",
+            "value": "(default)"
+          },
+          {
+            "name": "FIRESTORE_COLLECTION_PREFIX",
+            "value": "uptime402"
+          },
+          {
+            "name": "EXECUTOR_EXPECTED_AUDIENCE",
+            "value": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app"
+          },
+          {
+            "name": "CONTROL_PLANE_SERVICE_ACCOUNT",
+            "value": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com"
+          },
+          {
+            "name": "OPERATOR_PRINCIPAL",
+            "value": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com"
+          },
+          {
+            "name": "MANDATE_ISSUER_PRINCIPAL",
+            "value": "operator:khyun2348@gmail.com"
+          },
+          {
+            "name": "MANDATE_SIGNER_PUBLIC_KEY",
+            "value": "7CqTyiu94soP6BUhUx2Gd7AsTaocy1J18pu5KdSFd7aY"
+          },
+          {
+            "name": "MANDATE_SIGNER_KEY_ID",
+            "value": "uptime402-mandate-v1"
+          },
+          {
+            "name": "VENDOR_OFFER_SIGNER_PUBLIC_KEY",
+            "value": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+          },
+          {
+            "name": "VENDOR_OFFER_SIGNER_KEY_ID",
+            "value": "uptime402-vendor-v1"
+          },
+          {
+            "name": "EXECUTOR_WALLET_KEYPAIR_PATH",
+            "value": "/var/run/secrets/uptime402/executor-signer/keypair.json"
+          },
+          {
+            "name": "EXECUTOR_WALLET_SECRET_ROOT",
+            "value": "/var/run/secrets/uptime402/executor-signer"
+          },
+          {
+            "name": "EXECUTOR_WALLET_PUBLIC_KEY",
+            "value": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu"
+          },
+          {
+            "name": "SOLANA_RPC_URL",
+            "value": "https://api.devnet.solana.com"
+          },
+          {
+            "name": "X402_FACILITATOR_URL",
+            "value": "https://x402.org/facilitator"
+          },
+          {
+            "name": "ALLOWED_VENDOR_ORIGINS",
+            "value": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app"
+          },
+          {
+            "name": "ESTIMATED_NETWORK_FEE_LAMPORTS",
+            "value": "100000"
+          },
+          {
+            "name": "SOLANA_CLUSTER_LABEL",
+            "value": "devnet"
+          },
+          {
+            "name": "SOLANA_GENESIS_HASH",
+            "value": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"
+          },
+          {
+            "name": "X402_NETWORK_ID",
+            "value": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          {
+            "name": "X402_SDK_NETWORK_ID",
+            "value": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          {
+            "name": "USDC_MINT",
+            "value": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+          },
+          {
+            "name": "USDC_DECIMALS",
+            "value": "6"
+          }
+        ],
+        "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/payment-executor@sha256:a02b6167ac2f56a352a9e77946e9966f140e846d967bbdae717254b05bb07025",
+        "name": "payment-executor-1",
+        "ports": [
+          {
+            "containerPort": 8080,
+            "name": "http1"
+          }
+        ],
+        "resources": {
+          "limits": {
+            "cpu": "1",
+            "memory": "512Mi"
+          }
+        },
+        "startupProbe": {
+          "failureThreshold": 1,
+          "periodSeconds": 240,
+          "tcpSocket": {
+            "port": 8080
+          },
+          "timeoutSeconds": 240
+        },
+        "volumeMounts": [
+          {
+            "mountPath": "/var/run/secrets/uptime402/executor-signer",
+            "name": "executor-signer",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "serviceAccountName": "uptime402-executor@uptime402-hack-260803.iam.gserviceaccount.com",
+    "timeoutSeconds": 300,
+    "volumes": [
+      {
+        "name": "executor-signer",
+        "secret": {
+          "defaultMode": 292,
+          "items": [
+            {
+              "key": "1",
+              "path": "keypair.json"
+            }
+          ],
+          "secretName": "executor-signer"
+        }
+      }
+    ]
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-08-03T11:09:41.824968Z",
+        "message": "Deploying revision succeeded in 18.71s.",
+        "status": "True",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:09:41.895845Z",
+        "severity": "Info",
+        "status": "True",
+        "type": "Active"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:09:41.781011Z",
+        "message": "Containers became healthy in 3.84s.",
+        "status": "True",
+        "type": "ContainerHealthy"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:09:36.239981Z",
+        "message": "Container image import completed in 12.68s.",
+        "status": "True",
+        "type": "ContainerReady"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:09:37.790225Z",
+        "message": "Provisioning imported containers completed in 1.55s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+        "status": "True",
+        "type": "ResourcesAvailable"
+      }
+    ],
+    "imageDigest": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/payment-executor@sha256:a02b6167ac2f56a352a9e77946e9966f140e846d967bbdae717254b05bb07025",
+    "logUrl": "https://console.cloud.google.com/logs/viewer?project=uptime402-hack-260803&resource=cloud_run_revision/service_name/uptime402-payment-executor/revision_name/uptime402-payment-executor-00009-wgq&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22uptime402-payment-executor%22%0Aresource.labels.revision_name%3D%22uptime402-payment-executor-00009-wgq%22",
+    "observedGeneration": 1
+  }
+}

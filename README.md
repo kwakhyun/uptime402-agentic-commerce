@@ -20,8 +20,6 @@ Primary hackathon track은 **B. Autonomous On-chain Settlement**이며, 실제 A
 
 Judge quick links: [transaction Explorer](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet) · [payment evidence](artifacts/payment-evidence.json) · [verification report](artifacts/verification-report.json) · [final deployment QA summary](artifacts/final-release.json) · [architecture](docs/ARCHITECTURE.md) · [deck PDF](submission/Uptime402_Deck.pdf) · [editable deck](submission/Uptime402_Deck.pptx) · [video production checklist](docs/DEMO_VIDEO_PRODUCTION.md). Final demo video는 아직 없다.
 
-Public-repository boundary: operator-identifying raw Cloud Run service/revision exports, project-wide IAM exports, runtime env snapshots, credentials, key material, and private capture files are intentionally excluded. Canonical payment evidence와 원본 deployment commitment는 변경하지 않았고, 공개 가능한 leaf IAM proof와 derived release summary만 포함합니다. 자세한 범위는 [PUBLIC_RELEASE_BOUNDARY.md](docs/PUBLIC_RELEASE_BOUNDARY.md)를 참고하세요.
-
 ## 구현 경계
 
 - `apps/control-plane`: Next.js 한국어 mission-control UI, telemetry redaction, Gemini decision adapter, A2A buyer, incident orchestration. Executor/vendor key는 읽지 않고, server-only recovery-outcome key 하나만 별도 mount합니다.

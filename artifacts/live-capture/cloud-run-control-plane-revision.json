@@ -1,0 +1,309 @@
+{
+  "apiVersion": "serving.knative.dev/v1",
+  "kind": "Revision",
+  "metadata": {
+    "annotations": {
+      "autoscaling.knative.dev/maxScale": "3",
+      "run.googleapis.com/execution-environment": "gen2",
+      "run.googleapis.com/operation-id": "d6eb5224-21b4-4e84-b156-77b38db3d57d",
+      "run.googleapis.com/secrets": "control-outcome:projects/uptime402-hack-260803/secrets/uptime402-control-outcome,demo-request:projects/uptime402-hack-260803/secrets/uptime402-demo-request,demo-mandate:projects/uptime402-hack-260803/secrets/uptime402-demo-mandate",
+      "run.googleapis.com/startup-cpu-boost": "true",
+      "serving.knative.dev/creator": "khyun2348@gmail.com"
+    },
+    "creationTimestamp": "2026-08-03T11:10:13.383646Z",
+    "generation": 1,
+    "labels": {
+      "cloud.googleapis.com/location": "asia-northeast3",
+      "run.googleapis.com/satisfiesPzs": "true",
+      "run.googleapis.com/startupProbeType": "Default",
+      "serving.knative.dev/configuration": "uptime402-control-plane",
+      "serving.knative.dev/configurationGeneration": "12",
+      "serving.knative.dev/route": "uptime402-control-plane",
+      "serving.knative.dev/service": "uptime402-control-plane",
+      "serving.knative.dev/serviceUid": "df80cfe5-b2a6-476e-85ce-9adcc2946ac3"
+    },
+    "name": "uptime402-control-plane-00012-h7q",
+    "namespace": "1065649463621",
+    "ownerReferences": [
+      {
+        "apiVersion": "serving.knative.dev/v1",
+        "blockOwnerDeletion": true,
+        "controller": true,
+        "kind": "Configuration",
+        "name": "uptime402-control-plane",
+        "uid": "f2d612f3-ac1d-485d-8da8-2b4d22d23a7a"
+      }
+    ],
+    "resourceVersion": "AAZYIpVr+6w",
+    "selfLink": "/apis/serving.knative.dev/v1/namespaces/1065649463621/revisions/uptime402-control-plane-00012-h7q",
+    "uid": "53499395-00c3-4acc-addb-d37eb6c0e4fe"
+  },
+  "spec": {
+    "containerConcurrency": 40,
+    "containers": [
+      {
+        "env": [
+          {
+            "name": "NODE_ENV",
+            "value": "production"
+          },
+          {
+            "name": "FIRESTORE_PROJECT_ID",
+            "value": "uptime402-hack-260803"
+          },
+          {
+            "name": "FIRESTORE_DATABASE_ID",
+            "value": "(default)"
+          },
+          {
+            "name": "FIRESTORE_COLLECTION_PREFIX",
+            "value": "uptime402"
+          },
+          {
+            "name": "VENDOR_AGENT_ORIGIN",
+            "value": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app"
+          },
+          {
+            "name": "CONTROL_PLANE_ORIGIN",
+            "value": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app"
+          },
+          {
+            "name": "PAYMENT_EXECUTOR_ORIGIN",
+            "value": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app"
+          },
+          {
+            "name": "VENDOR_AGENT_ID",
+            "value": "uptime402-owned-vendor"
+          },
+          {
+            "name": "VENDOR_OFFER_SIGNER_PUBLIC_KEY",
+            "value": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+          },
+          {
+            "name": "VENDOR_OFFER_SIGNER_KEY_ID",
+            "value": "uptime402-vendor-v1"
+          },
+          {
+            "name": "VENDOR_RECEIPT_PUBLIC_KEY",
+            "value": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1"
+          },
+          {
+            "name": "VENDOR_RECEIPT_KEY_ID",
+            "value": "uptime402-vendor-v1"
+          },
+          {
+            "name": "CONTROL_PLANE_OUTCOME_KEY_PATH",
+            "value": "/var/run/secrets/uptime402/control-outcome/keypair.json"
+          },
+          {
+            "name": "CONTROL_PLANE_OUTCOME_SECRET_ROOT",
+            "value": "/var/run/secrets/uptime402/control-outcome"
+          },
+          {
+            "name": "CONTROL_PLANE_OUTCOME_PUBLIC_KEY",
+            "value": "FrgE93V2ZzZPN45zZLB252Eb4hnQLLtoutMfTcXdrHzC"
+          },
+          {
+            "name": "CONTROL_PLANE_OUTCOME_KEY_ID",
+            "value": "uptime402-outcome-v1"
+          },
+          {
+            "name": "CONTROL_PLANE_OPERATOR_AUDIENCE",
+            "value": "1065649463621-1bjlpjt4h4lmbvfbg0fasq0e36hgbi0a.apps.googleusercontent.com"
+          },
+          {
+            "name": "CONTROL_PLANE_OPERATOR_PRINCIPALS",
+            "value": "khyun2348@gmail.com"
+          },
+          {
+            "name": "CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED",
+            "value": "true"
+          },
+          {
+            "name": "CONTROL_PLANE_UI_GOOGLE_CLIENT_ID",
+            "value": "1065649463621-1bjlpjt4h4lmbvfbg0fasq0e36hgbi0a.apps.googleusercontent.com"
+          },
+          {
+            "name": "CONTROL_PLANE_UI_LIVE_REQUEST_PATH",
+            "value": "/var/run/config/uptime402/demo-request/request.json"
+          },
+          {
+            "name": "CONTROL_PLANE_UI_LIVE_REQUEST_ROOT",
+            "value": "/var/run/config/uptime402/demo-request"
+          },
+          {
+            "name": "CONTROL_PLANE_DEMO_RUN_SLOT",
+            "value": "finalist-demo-5"
+          },
+          {
+            "name": "CONTROL_PLANE_DEMO_MANDATE_ID",
+            "value": "mandate-finalist-demo-5"
+          },
+          {
+            "name": "CONTROL_PLANE_DEMO_AUTO_ARM_ENABLED",
+            "value": "true"
+          },
+          {
+            "name": "CONTROL_PLANE_DEMO_SIGNED_MANDATE_PATH",
+            "value": "/var/run/config/uptime402/demo-mandate/mandate.json"
+          },
+          {
+            "name": "CONTROL_PLANE_DEMO_SIGNED_MANDATE_ROOT",
+            "value": "/var/run/config/uptime402/demo-mandate"
+          },
+          {
+            "name": "RECOVERY_HEALTH_PROBE_URL",
+            "value": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/api/dependency-health"
+          },
+          {
+            "name": "HTTP_TIMEOUT_MS",
+            "value": "5000"
+          },
+          {
+            "name": "HTTP_MAX_RESPONSE_BYTES",
+            "value": "1048576"
+          },
+          {
+            "name": "GEMINI_MODEL",
+            "value": "gemini-2.5-flash"
+          },
+          {
+            "name": "GOOGLE_GENAI_USE_VERTEXAI",
+            "value": "true"
+          },
+          {
+            "name": "GOOGLE_CLOUD_PROJECT",
+            "value": "uptime402-hack-260803"
+          },
+          {
+            "name": "GOOGLE_CLOUD_LOCATION",
+            "value": "global"
+          },
+          {
+            "name": "UPTIME402_UI_EVIDENCE_STAGE",
+            "value": "capture"
+          }
+        ],
+        "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane@sha256:ed5e2497032264187357e3f150aa2a584b40be9683ee9a51cd9c8ac69a956cf4",
+        "name": "control-plane-1",
+        "ports": [
+          {
+            "containerPort": 8080,
+            "name": "http1"
+          }
+        ],
+        "resources": {
+          "limits": {
+            "cpu": "1",
+            "memory": "1Gi"
+          }
+        },
+        "startupProbe": {
+          "failureThreshold": 1,
+          "periodSeconds": 240,
+          "tcpSocket": {
+            "port": 8080
+          },
+          "timeoutSeconds": 240
+        },
+        "volumeMounts": [
+          {
+            "mountPath": "/var/run/secrets/uptime402/control-outcome",
+            "name": "control-outcome",
+            "readOnly": true
+          },
+          {
+            "mountPath": "/var/run/config/uptime402/demo-request",
+            "name": "demo-request",
+            "readOnly": true
+          },
+          {
+            "mountPath": "/var/run/config/uptime402/demo-mandate",
+            "name": "demo-mandate",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "serviceAccountName": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com",
+    "timeoutSeconds": 300,
+    "volumes": [
+      {
+        "name": "control-outcome",
+        "secret": {
+          "defaultMode": 292,
+          "items": [
+            {
+              "key": "1",
+              "path": "keypair.json"
+            }
+          ],
+          "secretName": "control-outcome"
+        }
+      },
+      {
+        "name": "demo-request",
+        "secret": {
+          "defaultMode": 292,
+          "items": [
+            {
+              "key": "5",
+              "path": "request.json"
+            }
+          ],
+          "secretName": "demo-request"
+        }
+      },
+      {
+        "name": "demo-mandate",
+        "secret": {
+          "defaultMode": 292,
+          "items": [
+            {
+              "key": "1",
+              "path": "mandate.json"
+            }
+          ],
+          "secretName": "demo-mandate"
+        }
+      }
+    ]
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastTransitionTime": "2026-08-03T11:10:18.138434Z",
+        "message": "Deploying revision succeeded in 4.75s.",
+        "status": "True",
+        "type": "Ready"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:10:18.197008Z",
+        "severity": "Info",
+        "status": "True",
+        "type": "Active"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:10:18.111060Z",
+        "message": "Containers became healthy.",
+        "status": "True",
+        "type": "ContainerHealthy"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:10:15.078482Z",
+        "message": "Container image import completed in 1.23s.",
+        "status": "True",
+        "type": "ContainerReady"
+      },
+      {
+        "lastTransitionTime": "2026-08-03T11:10:17.043228Z",
+        "message": "Provisioning imported containers completed in 1.96s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+        "status": "True",
+        "type": "ResourcesAvailable"
+      }
+    ],
+    "imageDigest": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane@sha256:ed5e2497032264187357e3f150aa2a584b40be9683ee9a51cd9c8ac69a956cf4",
+    "logUrl": "https://console.cloud.google.com/logs/viewer?project=uptime402-hack-260803&resource=cloud_run_revision/service_name/uptime402-control-plane/revision_name/uptime402-control-plane-00012-h7q&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22uptime402-control-plane%22%0Aresource.labels.revision_name%3D%22uptime402-control-plane-00012-h7q%22",
+    "observedGeneration": 1
+  }
+}
