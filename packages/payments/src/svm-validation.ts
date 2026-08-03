@@ -71,6 +71,22 @@ export type ExactSvmSignerTimeExpectation = Readonly<{
   rpc: JsonRpcOptions;
 }>;
 
+export type ExactSvmTokenAccountExpectation = Readonly<{
+  assetMint: string;
+  assetDecimals: number;
+  amountBaseUnits: string;
+  payer: string;
+  payee: string;
+  rpc: JsonRpcOptions;
+}>;
+
+export type ValidatedExactSvmTokenAccounts = Readonly<{
+  sourceTokenAccount: string;
+  destinationTokenAccount: string;
+  sourceAmountBaseUnits: string;
+  destinationAmountBaseUnits: string;
+}>;
+
 export type ValidatedExactSvmTransaction = ExactSvmTransactionInspection &
   Readonly<{
     sourceTokenAccount: string;
@@ -99,6 +115,47 @@ const feeForMessageResultSchema = z
   })
   .passthrough();
 
+const tokenAccountInfoResultSchema = z
+  .object({
+    context: z
+      .object({
+        slot: z.number().int().nonnegative(),
+        apiVersion: z.string().optional(),
+      })
+      .passthrough(),
+    value: z
+      .object({
+        data: z
+          .object({
+            program: z.string(),
+            parsed: z
+              .object({
+                type: z.string(),
+                info: z
+                  .object({
+                    mint: z.string(),
+                    owner: z.string(),
+                    state: z.string(),
+                    tokenAmount: z
+                      .object({
+                        amount: z.string().regex(/^(0|[1-9][0-9]*)$/u),
+                        decimals: z.number().int().nonnegative().max(255),
+                      })
+                      .passthrough(),
+                  })
+                  .passthrough(),
+              })
+              .passthrough(),
+          })
+          .passthrough(),
+        executable: z.boolean(),
+        owner: z.string(),
+      })
+      .passthrough()
+      .nullable(),
+  })
+  .passthrough();
+
 function uniqueSorted(values: readonly string[]): readonly string[] {
   return Object.freeze([...new Set(values)].sort());
 }
@@ -123,6 +180,93 @@ function parsePositiveBaseUnits(value: string, label: string): bigint {
     throw new TypeError(`${label} must be a positive integer string`);
   }
   return BigInt(value);
+}
+
+async function loadStandardTokenAccount(input: {
+  rpc: JsonRpcOptions;
+  tokenAccount: string;
+  expectedOwner: string;
+  expectedMint: string;
+  expectedDecimals: number;
+  label: "source" | "destination";
+}): Promise<bigint> {
+  const result = await callSolanaRpc(
+    input.rpc,
+    "getAccountInfo",
+    [input.tokenAccount, { encoding: "jsonParsed", commitment: "confirmed" }],
+    tokenAccountInfoResultSchema,
+  );
+  if (result.value === null) {
+    throw new Error(`Exact SVM ${input.label} standard-token ATA does not exist`);
+  }
+  const account = result.value;
+  const info = account.data.parsed.info;
+  if (
+    account.executable ||
+    account.owner !== TOKEN_PROGRAM_ADDRESS ||
+    account.data.program !== "spl-token" ||
+    account.data.parsed.type !== "account" ||
+    info.state !== "initialized" ||
+    info.owner !== input.expectedOwner ||
+    info.mint !== input.expectedMint ||
+    info.tokenAmount.decimals !== input.expectedDecimals
+  ) {
+    throw new Error(
+      `Exact SVM ${input.label} standard-token ATA owner, mint, decimals, state, or program is invalid`,
+    );
+  }
+  return BigInt(info.tokenAmount.amount);
+}
+
+/**
+ * Checks the current standard SPL Token accounts before or after x402 signing.
+ * This is an RPC state check, not a substitute for validating the signed bytes
+ * or for the facilitator's authoritative pre-settlement simulation.
+ */
+export async function validateExactSvmTokenAccountState(
+  expected: ExactSvmTokenAccountExpectation,
+): Promise<ValidatedExactSvmTokenAccounts> {
+  const amount = parsePositiveBaseUnits(expected.amountBaseUnits, "Authorized payment amount");
+  if (!Number.isSafeInteger(expected.assetDecimals) || expected.assetDecimals < 0 || expected.assetDecimals > 255) {
+    throw new TypeError("Authorized asset decimals must be an integer between 0 and 255");
+  }
+  const [sourceTokenAccount] = await findAssociatedTokenPda({
+    mint: address(expected.assetMint),
+    owner: address(expected.payer),
+    tokenProgram: address(TOKEN_PROGRAM_ADDRESS),
+  });
+  const [destinationTokenAccount] = await findAssociatedTokenPda({
+    mint: address(expected.assetMint),
+    owner: address(expected.payee),
+    tokenProgram: address(TOKEN_PROGRAM_ADDRESS),
+  });
+  const [sourceAmount, destinationAmount] = await Promise.all([
+    loadStandardTokenAccount({
+      rpc: expected.rpc,
+      tokenAccount: sourceTokenAccount,
+      expectedOwner: expected.payer,
+      expectedMint: expected.assetMint,
+      expectedDecimals: expected.assetDecimals,
+      label: "source",
+    }),
+    loadStandardTokenAccount({
+      rpc: expected.rpc,
+      tokenAccount: destinationTokenAccount,
+      expectedOwner: expected.payee,
+      expectedMint: expected.assetMint,
+      expectedDecimals: expected.assetDecimals,
+      label: "destination",
+    }),
+  ]);
+  if (sourceAmount < amount) {
+    throw new Error("Exact SVM source standard-token ATA has insufficient base-unit balance");
+  }
+  return Object.freeze({
+    sourceTokenAccount,
+    destinationTokenAccount,
+    sourceAmountBaseUnits: sourceAmount.toString(),
+    destinationAmountBaseUnits: destinationAmount.toString(),
+  });
 }
 
 function assertNoAccounts(accounts: readonly unknown[] | undefined, label: string): void {
@@ -366,6 +510,21 @@ export async function validateExactSvmTransactionBeforeRelease(
     }
   }
   await validateExactSvmPayerSignature(paymentPayload);
+
+  const tokenAccounts = await validateExactSvmTokenAccountState({
+    assetMint: expected.assetMint,
+    assetDecimals: expected.assetDecimals,
+    amountBaseUnits: expected.amountBaseUnits,
+    payer: expected.payer,
+    payee: expected.payee,
+    rpc: expected.rpc,
+  });
+  if (
+    tokenAccounts.sourceTokenAccount !== expectedSourceTokenAccount ||
+    tokenAccounts.destinationTokenAccount !== expectedDestinationTokenAccount
+  ) {
+    throw new Error("Exact SVM signer-time token-account derivation changed before release");
+  }
 
   const observedGenesisHash = await callSolanaRpc(
     expected.rpc,

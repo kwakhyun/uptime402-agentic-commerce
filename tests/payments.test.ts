@@ -6,6 +6,7 @@ import {
   FulfillmentReceiptPayloadSchema,
   RecoveryOutcomePayloadSchema,
   canonicalHash,
+  sha256Bytes,
 } from "@uptime402/domain";
 import {
   createKeyPairSignerFromPrivateKeyBytes,
@@ -51,7 +52,10 @@ import {
   inspectExactSvmPaymentTransaction,
   loadCloudRunSecretKeypairSigner,
   loadExistingKeypairSigner,
+  sanitizeFacilitatorVerificationFailure,
   signEnvelope,
+  runVerifyOnlyFacilitatorDiagnostic,
+  safeSolanaSimulationErrorCategory,
   validateExactSvmTransactionBeforeRelease,
   verifyEnvelope,
   verifySolanaSettlement,
@@ -131,6 +135,37 @@ function paymentPayload(paymentId = createPaymentIdentifier()): PaymentPayload {
     accepted: required.accepts[0]!,
     payload: { transaction: Buffer.from("signed transaction bytes").toString("base64") },
     ...(required.extensions ? { extensions: required.extensions } : {}),
+  };
+}
+
+function parsedStandardTokenAccount(owner: string, amountBaseUnits: string) {
+  return {
+    context: { apiVersion: "2.0.0", slot: 1 },
+    value: {
+      data: {
+        program: "spl-token",
+        parsed: {
+          type: "account",
+          info: {
+            mint: DEVNET_USDC_MINT,
+            owner,
+            state: "initialized",
+            tokenAmount: {
+              amount: amountBaseUnits,
+              decimals: 6,
+              uiAmount: null,
+              uiAmountString: "redacted-from-authoritative-math",
+            },
+          },
+        },
+        space: 165,
+      },
+      executable: false,
+      lamports: 2_039_280,
+      owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      rentEpoch: 0,
+      space: 165,
+    },
   };
 }
 
@@ -231,6 +266,8 @@ describe("private executor exact SVM payload", () => {
     let feeQuote: number | null = 5_001;
     const rpcMethods: string[] = [];
     const feeMessageParams: unknown[] = [];
+    let tokenAccountReadCount = 0;
+    let simulationError: unknown = null;
     let observedGenesisHash: string = DEVNET_GENESIS_HASH;
     const rpcFetch = vi.fn(async (_input: URL | RequestInfo, init?: RequestInit) => {
       const request = JSON.parse(String(init?.body)) as {
@@ -243,20 +280,44 @@ describe("private executor exact SVM payload", () => {
       if (request.method === "getGenesisHash") {
         result = observedGenesisHash;
       } else if (request.method === "getAccountInfo") {
-        result = {
-          context: { apiVersion: "2.0.0", slot: 1 },
-          value: {
-            data: [mintData.toString("base64"), "base64"],
-            executable: false,
-            lamports: 1,
-            owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-            rentEpoch: 0,
-            space: 82,
-          },
-        };
+        const config = request.params?.[1] as { encoding?: string } | undefined;
+        if (config?.encoding === "jsonParsed") {
+          const sourceRead = tokenAccountReadCount % 2 === 0;
+          tokenAccountReadCount += 1;
+          result = parsedStandardTokenAccount(
+            sourceRead ? payerSigner.address : payeeSigner.address,
+            sourceRead ? "20000000" : "0",
+          );
+        } else {
+          result = {
+            context: { apiVersion: "2.0.0", slot: 1 },
+            value: {
+              data: [mintData.toString("base64"), "base64"],
+              executable: false,
+              lamports: 1,
+              owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+              rentEpoch: 0,
+              space: 82,
+            },
+          };
+        }
       } else if (request.method === "getFeeForMessage") {
         feeMessageParams.push(request.params?.[0]);
         result = { context: { apiVersion: "2.0.0", slot: 1 }, value: feeQuote };
+      } else if (request.method === "getSlot") {
+        result = 123_450;
+      } else if (request.method === "getBlockHeight") {
+        result = 123_451;
+      } else if (request.method === "isBlockhashValid") {
+        result = {
+          context: { apiVersion: "2.0.0", slot: 123_450 },
+          value: true,
+        };
+      } else if (request.method === "simulateTransaction") {
+        result = {
+          context: { apiVersion: "2.0.0", slot: 123_450 },
+          value: { err: simulationError },
+        };
       } else {
         throw new Error(`Unexpected RPC method ${request.method}`);
       }
@@ -348,6 +409,79 @@ describe("private executor exact SVM payload", () => {
     const exactMessageBase64 = Buffer.from(Uint8Array.from(decoded.messageBytes)).toString("base64");
     expect(feeMessageParams).toEqual([exactMessageBase64]);
 
+    const verifyOnlyInput = {
+      rpc: { rpcUrl: "https://rpc.example" },
+      paymentPayload: result.paymentPayload,
+      paymentRequirements: required.accepts[0]!,
+      expectedPayer: payerSigner.address,
+      signedTransactionSha256: result.signedTransactionSha256,
+      transactionMessageHash: sha256Bytes(
+        Uint8Array.from(decoded.messageBytes),
+      ),
+      signedAt: "2026-08-03T00:00:00.000Z",
+      now: () => new Date("2026-08-03T00:00:01.000Z"),
+    } as const;
+    const verifiedOnly = await runVerifyOnlyFacilitatorDiagnostic({
+      ...verifyOnlyInput,
+      facilitator: {
+        verify: async () => ({ isValid: true, payer: payerSigner.address }),
+      },
+    });
+    expect(verifiedOnly).toMatchObject({
+      mode: "verify-only",
+      settlementCalled: false,
+      classification: "verified",
+      facilitator: {
+        expectedPayer: payerSigner.address,
+        payer: payerSigner.address,
+        diagnostic: null,
+      },
+      sourceSimulation: {
+        succeeded: true,
+        errorCategory: null,
+        diagnosticHash: null,
+      },
+    });
+    const mismatchedPayer = await runVerifyOnlyFacilitatorDiagnostic({
+      ...verifyOnlyInput,
+      facilitator: {
+        verify: async () => ({ isValid: true, payer: payeeSigner.address }),
+      },
+    });
+    simulationError = { InstructionError: [2, { Custom: 1 }] };
+    const sourceSimulationFailed = await runVerifyOnlyFacilitatorDiagnostic({
+      ...verifyOnlyInput,
+      facilitator: {
+        verify: async () => ({
+          isValid: false,
+          payer: payerSigner.address,
+          invalidReason: "transaction_simulation_failed",
+          invalidMessage: 'Simulation failed: {"InstructionError":[2,{"Custom":1}]}',
+        }),
+      },
+    });
+    expect(sourceSimulationFailed).toMatchObject({
+      settlementCalled: false,
+      classification: "source_simulation_failed",
+      sourceSimulation: {
+        succeeded: false,
+        errorCategory: "InstructionError_2_Custom_1",
+      },
+      facilitator: {
+        diagnostic: { invalidMessage: "InstructionError_2_Custom_1" },
+      },
+    });
+    simulationError = null;
+    expect(mismatchedPayer).toMatchObject({
+      settlementCalled: false,
+      classification: "facilitator_payer_mismatch",
+      facilitator: {
+        expectedPayer: payerSigner.address,
+        payer: payeeSigner.address,
+        diagnostic: { invalidReason: "facilitator_payer_mismatch" },
+      },
+    });
+
     const semanticMutations = [
       [computeLimit?.data, /compute-unit limit/i],
       [computePrice?.data, /compute-unit price/i],
@@ -403,9 +537,164 @@ describe("private executor exact SVM payload", () => {
       validateExactSvmTransactionBeforeRelease(result.paymentPayload, validationOptions),
     ).rejects.toThrow(/genesis.*mapping/i);
     expect(rpcMethods.filter((method) => method === "getGenesisHash").length).toBeGreaterThanOrEqual(4);
+    expect(tokenAccountReadCount).toBeGreaterThanOrEqual(6);
     expect(rpcMethods).toContain("getAccountInfo");
     expect(rpcMethods).toContain("getFeeForMessage");
     expect(rpcMethods).not.toContain("sendTransaction");
+  });
+
+  it.each([
+    {
+      name: "missing destination ATA",
+      sourceAmountBaseUnits: "20000000",
+      destinationExists: false,
+      error: /destination standard-token ATA does not exist/i,
+    },
+    {
+      name: "insufficient source balance",
+      sourceAmountBaseUnits: "9999",
+      destinationExists: true,
+      error: /source standard-token ATA has insufficient/i,
+    },
+  ])("rejects $name before invoking the signing SDK", async ({
+    sourceAmountBaseUnits,
+    destinationExists,
+    error,
+  }) => {
+    const signer = await generateKeyPairSigner();
+    const mintData = Buffer.alloc(82);
+    mintData[44] = 6;
+    mintData[45] = 1;
+    let tokenAccountReadCount = 0;
+    let sdkMintReads = 0;
+    const rpcFetch = vi.fn(async (_input: URL | RequestInfo, init?: RequestInit) => {
+      const request = JSON.parse(String(init?.body)) as {
+        id: number;
+        method: string;
+        params?: unknown[];
+      };
+      let result: unknown;
+      if (request.method === "getGenesisHash") {
+        result = DEVNET_GENESIS_HASH;
+      } else if (request.method === "getAccountInfo") {
+        const config = request.params?.[1] as { encoding?: string } | undefined;
+        if (config?.encoding === "jsonParsed") {
+          const sourceRead = tokenAccountReadCount % 2 === 0;
+          tokenAccountReadCount += 1;
+          result = sourceRead
+            ? parsedStandardTokenAccount(signer.address, sourceAmountBaseUnits)
+            : destinationExists
+              ? parsedStandardTokenAccount(PAYEE, "0")
+              : { context: { apiVersion: "2.0.0", slot: 1 }, value: null };
+        } else {
+          sdkMintReads += 1;
+          result = {
+            context: { apiVersion: "2.0.0", slot: 1 },
+            value: {
+              data: [mintData.toString("base64"), "base64"],
+              executable: false,
+              lamports: 1,
+              owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+              rentEpoch: 0,
+              space: 82,
+            },
+          };
+        }
+      } else {
+        throw new Error(`Unexpected RPC method ${request.method}`);
+      }
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, result }), {
+        headers: { "content-type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", rpcFetch);
+
+    await expect(
+      buildExactSvmPaymentPayload({
+        paymentRequired: paymentRequired(),
+        paymentId: "uptime402_account_preflight_0001",
+        signer,
+        rpc: { rpcUrl: "https://rpc.example" },
+        expected: {
+          amountBaseUnits: "10000",
+          payee: PAYEE,
+          resourceUrl: RESOURCE_URL,
+        },
+      }),
+    ).rejects.toThrow(error);
+    expect(tokenAccountReadCount).toBe(2);
+    expect(sdkMintReads).toBe(0);
+  });
+
+  it("rechecks the destination ATA after signing and before returning the payload", async () => {
+    const signer = await generateKeyPairSigner();
+    const mintData = Buffer.alloc(82);
+    mintData[44] = 6;
+    mintData[45] = 1;
+    let tokenAccountReadCount = 0;
+    let destinationReadCount = 0;
+    let sdkMintReads = 0;
+    const rpcFetch = vi.fn(async (_input: URL | RequestInfo, init?: RequestInit) => {
+      const request = JSON.parse(String(init?.body)) as {
+        id: number;
+        method: string;
+        params?: unknown[];
+      };
+      let result: unknown;
+      if (request.method === "getGenesisHash") {
+        result = DEVNET_GENESIS_HASH;
+      } else if (request.method === "getAccountInfo") {
+        const config = request.params?.[1] as { encoding?: string } | undefined;
+        if (config?.encoding === "jsonParsed") {
+          const sourceRead = tokenAccountReadCount % 2 === 0;
+          tokenAccountReadCount += 1;
+          if (sourceRead) {
+            result = parsedStandardTokenAccount(signer.address, "20000000");
+          } else {
+            destinationReadCount += 1;
+            result = destinationReadCount === 1
+              ? parsedStandardTokenAccount(PAYEE, "0")
+              : { context: { apiVersion: "2.0.0", slot: 1 }, value: null };
+          }
+        } else {
+          sdkMintReads += 1;
+          result = {
+            context: { apiVersion: "2.0.0", slot: 1 },
+            value: {
+              data: [mintData.toString("base64"), "base64"],
+              executable: false,
+              lamports: 1,
+              owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+              rentEpoch: 0,
+              space: 82,
+            },
+          };
+        }
+      } else {
+        throw new Error(`Unexpected RPC method ${request.method}`);
+      }
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, result }), {
+        headers: { "content-type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", rpcFetch);
+
+    await expect(
+      buildExactSvmPaymentPayload({
+        paymentRequired: paymentRequired(),
+        paymentId: "uptime402_account_postflight_0001",
+        signer,
+        rpc: { rpcUrl: "https://rpc.example" },
+        expected: {
+          amountBaseUnits: "10000",
+          payee: PAYEE,
+          resourceUrl: RESOURCE_URL,
+        },
+      }),
+    ).rejects.toThrow(/destination standard-token ATA does not exist/i);
+    expect(tokenAccountReadCount).toBe(4);
+    expect(destinationReadCount).toBe(2);
+    expect(sdkMintReads).toBe(1);
   });
 
   it("rejects a challenge that changes the authorized amount before signing", async () => {
@@ -616,6 +905,56 @@ describe("RFC 8785 Ed25519 signed envelopes", () => {
 });
 
 describe("pinned facilitator client", () => {
+  it("emits only allowlisted verification diagnostics and never reflects raw messages", () => {
+    const blockhashFailure = sanitizeFacilitatorVerificationFailure({
+      isValid: false,
+      invalidReason: "transaction_simulation_failed",
+      invalidMessage:
+        'Simulation failed: "BlockhashNotFound" PAYMENT-SIGNATURE=secret-payload-token',
+    });
+    expect(blockhashFailure).toMatchObject({
+      invalidReason: "transaction_simulation_failed",
+      invalidMessage: "BlockhashNotFound",
+    });
+    expect(blockhashFailure.diagnosticHash).toMatch(/^sha256:[0-9a-f]{64}$/u);
+    expect(JSON.stringify(blockhashFailure)).not.toContain("secret-payload-token");
+
+    const customInstructionFailure = sanitizeFacilitatorVerificationFailure({
+      isValid: false,
+      invalidReason: "transaction_simulation_failed",
+      invalidMessage:
+        'Simulation failed: {"InstructionError":[2,{"Custom":1}]}',
+    });
+    expect(customInstructionFailure.invalidMessage).toBe(
+      "InstructionError_2_Custom_1",
+    );
+    expect(
+      safeSolanaSimulationErrorCategory({
+        InstructionError: [3, "InvalidAccountData"],
+      }),
+    ).toBe("InstructionError_3_InvalidAccountData");
+    expect(
+      safeSolanaSimulationErrorCategory({
+        InstructionError: ["3", "ProgramFailedToComplete"],
+      }),
+    ).toBe("InstructionError_3_ProgramFailedToComplete");
+    expect(
+      safeSolanaSimulationErrorCategory({ attacker: "Bearer raw-secret" }),
+    ).toBe("redacted_unrecognized_simulation_error");
+
+    const unknown = sanitizeFacilitatorVerificationFailure({
+      isValid: false,
+      invalidReason: "private-key-is-this-value",
+      invalidMessage: "Bearer credential-value",
+    });
+    expect(unknown).toMatchObject({
+      invalidReason: "unrecognized_facilitator_reason",
+      invalidMessage: "redacted_unrecognized_facilitator_message",
+    });
+    expect(JSON.stringify(unknown)).not.toContain("credential-value");
+    expect(() => sanitizeFacilitatorVerificationFailure({ isValid: true })).toThrow(/not a verification failure/u);
+  });
+
   it("uses fixed HTTPS endpoints, no redirects, timeouts, and strict response schemas", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchImpl = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {

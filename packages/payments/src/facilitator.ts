@@ -6,7 +6,11 @@ import type {
   SupportedResponse,
   VerifyResponse,
 } from "@x402/core/types";
-import { parseBoundedStrictJsonBytes } from "@uptime402/domain";
+import {
+  canonicalHash,
+  parseBoundedStrictJsonBytes,
+  parseStrictJson,
+} from "@uptime402/domain";
 import { z } from "zod";
 
 import {
@@ -22,13 +26,234 @@ const optionalRecord = z.record(z.string(), z.unknown()).optional();
 const verifyResponseSchema = z
   .object({
     isValid: z.boolean(),
-    invalidReason: z.string().optional(),
-    invalidMessage: z.string().optional(),
+    invalidReason: z.string().min(1).max(256).optional(),
+    invalidMessage: z.string().min(1).max(2_048).optional(),
     payer: z.string().optional(),
     extensions: optionalRecord,
     extra: optionalRecord,
   })
   .strict();
+
+const SAFE_VERIFY_REASONS = new Set<string>([
+  "unsupported_scheme",
+  "network_mismatch",
+  "invalid_exact_svm_payload_missing_fee_payer",
+  "fee_payer_not_managed_by_facilitator",
+  "invalid_exact_svm_payload_transaction_could_not_be_decoded",
+  "invalid_exact_svm_payload_transaction_instructions_length",
+  "invalid_exact_svm_payload_transaction_instructions_compute_limit_instruction",
+  "invalid_exact_svm_payload_transaction_instructions_compute_price_instruction",
+  "invalid_exact_svm_payload_transaction_instructions_compute_price_instruction_too_high",
+  "invalid_exact_svm_payload_no_transfer_instruction",
+  "invalid_exact_svm_payload_transaction_fee_payer_transferring_funds",
+  "invalid_exact_svm_payload_mint_mismatch",
+  "invalid_exact_svm_payload_recipient_mismatch",
+  "invalid_exact_svm_payload_amount_mismatch",
+  "invalid_exact_svm_payload_unknown_fourth_instruction",
+  "invalid_exact_svm_payload_unknown_fifth_instruction",
+  "invalid_exact_svm_payload_unknown_sixth_instruction",
+  "invalid_exact_svm_payload_unknown_seventh_instruction",
+  "invalid_exact_svm_payload_unknown_optional_instruction",
+  "invalid_exact_svm_payload_memo_count",
+  "invalid_exact_svm_payload_memo_mismatch",
+  "transaction_simulation_failed",
+  "facilitator_payer_mismatch",
+  "facilitator_payer_missing",
+] as const);
+
+const SAFE_SIMULATION_MESSAGE_MARKERS = [
+  "BlockhashNotFound",
+  "AccountNotFound",
+  "InsufficientFundsForFee",
+  "InsufficientFunds",
+  "InvalidAccountForFee",
+  "AlreadyProcessed",
+  "SignatureFailure",
+  "InstructionError",
+  "ProgramAccountNotFound",
+  "TransactionExpiredBlockheightExceededError",
+  "ComputationalBudgetExceeded",
+  "WouldExceedMaxBlockCostLimit",
+  "WouldExceedMaxAccountCostLimit",
+  "WouldExceedAccountDataBlockLimit",
+  "WouldExceedAccountDataTotalLimit",
+  "TooManyAccountLocks",
+  "SanitizeFailure",
+  "ClusterMaintenance",
+  "UnsupportedVersion",
+  "MaxLoadedAccountsDataSizeExceeded",
+  "InvalidLoadedAccountsDataSizeLimit",
+  "ResanitizationNeeded",
+  "ProgramExecutionTemporarilyRestricted",
+] as const;
+
+const SAFE_INSTRUCTION_ERROR_VARIANTS = new Set<string>([
+  "GenericError",
+  "InvalidArgument",
+  "InvalidInstructionData",
+  "InvalidAccountData",
+  "AccountDataTooSmall",
+  "InsufficientFunds",
+  "IncorrectProgramId",
+  "MissingRequiredSignature",
+  "AccountAlreadyInitialized",
+  "UninitializedAccount",
+  "UnbalancedInstruction",
+  "ModifiedProgramId",
+  "ExternalAccountLamportSpend",
+  "ExternalAccountDataModified",
+  "ReadonlyLamportChange",
+  "ReadonlyDataModified",
+  "DuplicateAccountIndex",
+  "ExecutableModified",
+  "RentEpochModified",
+  "NotEnoughAccountKeys",
+  "AccountDataSizeChanged",
+  "AccountNotExecutable",
+  "AccountBorrowFailed",
+  "AccountBorrowOutstanding",
+  "DuplicateAccountOutOfSync",
+  "InvalidError",
+  "ExecutableDataModified",
+  "ExecutableLamportChange",
+  "ExecutableAccountNotRentExempt",
+  "UnsupportedProgramId",
+  "CallDepth",
+  "MissingAccount",
+  "ReentrancyNotAllowed",
+  "MaxSeedLengthExceeded",
+  "InvalidSeeds",
+  "InvalidRealloc",
+  "ComputationalBudgetExceeded",
+  "PrivilegeEscalation",
+  "ProgramEnvironmentSetupFailure",
+  "ProgramFailedToComplete",
+  "ProgramFailedToCompile",
+  "Immutable",
+  "IncorrectAuthority",
+  "AccountNotRentExempt",
+  "InvalidAccountOwner",
+  "ArithmeticOverflow",
+  "UnsupportedSysvar",
+  "IllegalOwner",
+  "MaxAccountsDataAllocationsExceeded",
+  "MaxAccountsExceeded",
+  "MaxInstructionTraceLengthExceeded",
+  "BuiltinProgramsMustConsumeComputeUnits",
+] as const);
+
+function ownKeys(value: object): readonly string[] {
+  return Object.keys(value);
+}
+
+/** Extracts only Solana enum names, instruction indexes, and numeric custom codes. */
+export function safeSolanaSimulationErrorCategory(value: unknown): string {
+  if (
+    typeof value === "string" &&
+    SAFE_SIMULATION_MESSAGE_MARKERS.includes(
+      value as (typeof SAFE_SIMULATION_MESSAGE_MARKERS)[number],
+    )
+  ) {
+    return value;
+  }
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    ownKeys(value).length !== 1 ||
+    !("InstructionError" in value) ||
+    !Array.isArray(value.InstructionError) ||
+    value.InstructionError.length !== 2
+  ) {
+    return "redacted_unrecognized_simulation_error";
+  }
+  const [rawIndex, detail] = value.InstructionError;
+  const parsedIndex = typeof rawIndex === "number"
+    ? rawIndex
+    : typeof rawIndex === "string" && /^(?:0|[1-9][0-9]{0,2})$/u.test(rawIndex)
+      ? Number(rawIndex)
+      : Number.NaN;
+  if (!Number.isSafeInteger(parsedIndex) || parsedIndex < 0 || parsedIndex > 255) {
+    return "InstructionError_UnknownIndex";
+  }
+  const index = parsedIndex;
+  if (typeof detail === "string" && SAFE_INSTRUCTION_ERROR_VARIANTS.has(detail)) {
+    return `InstructionError_${index}_${detail}`;
+  }
+  if (typeof detail === "object" && detail !== null && ownKeys(detail).length === 1) {
+    if (
+      "Custom" in detail &&
+      Number.isSafeInteger(detail.Custom) &&
+      Number(detail.Custom) >= 0 &&
+      Number(detail.Custom) <= 0xffff_ffff
+    ) {
+      return `InstructionError_${index}_Custom_${Number(detail.Custom)}`;
+    }
+    if ("BorshIoError" in detail && typeof detail.BorshIoError === "string") {
+      return `InstructionError_${index}_BorshIoError`;
+    }
+  }
+  return `InstructionError_${index}_Unknown`;
+}
+
+function safeSimulationCategoryFromMessage(rawMessage: string): string | null {
+  const prefix = "Simulation failed: ";
+  if (rawMessage.startsWith(prefix) && rawMessage.length <= 2_048) {
+    try {
+      return safeSolanaSimulationErrorCategory(
+        parseStrictJson(rawMessage.slice(prefix.length)),
+      );
+    } catch {
+      // Fall through to fixed marker matching; raw text is never returned.
+    }
+  }
+  return SAFE_SIMULATION_MESSAGE_MARKERS.find((marker) => rawMessage.includes(marker)) ?? null;
+}
+
+export const FacilitatorVerificationDiagnosticSchema = z
+  .object({
+    invalidReason: z.string().regex(/^[a-z][a-z0-9_]{0,127}$/u),
+    invalidMessage: z
+      .union([
+        z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,95}$/u),
+        z.null(),
+      ]),
+    diagnosticHash: z.string().regex(/^sha256:[0-9a-f]{64}$/u),
+  })
+  .strict();
+
+export type FacilitatorVerificationDiagnostic = z.infer<
+  typeof FacilitatorVerificationDiagnosticSchema
+>;
+
+/**
+ * Reduces an untrusted facilitator failure to an allowlisted diagnostic. Raw
+ * strings can contain transaction bytes, credentials, or arbitrary text, so
+ * only known x402 reason codes and Solana simulation categories are emitted.
+ * A canonical hash retains correlation value without reflecting the raw data.
+ */
+export function sanitizeFacilitatorVerificationFailure(
+  response: Pick<VerifyResponse, "isValid" | "invalidReason" | "invalidMessage">,
+): FacilitatorVerificationDiagnostic {
+  if (response.isValid) {
+    throw new TypeError("A valid facilitator response is not a verification failure");
+  }
+  const rawReason = response.invalidReason ?? null;
+  const rawMessage = response.invalidMessage ?? null;
+  const invalidReason = rawReason === null
+    ? "facilitator_reason_missing"
+    : SAFE_VERIFY_REASONS.has(rawReason)
+      ? rawReason
+      : "unrecognized_facilitator_reason";
+  const invalidMessage = rawMessage === null
+    ? null
+    : safeSimulationCategoryFromMessage(rawMessage) ??
+      "redacted_unrecognized_facilitator_message";
+  return FacilitatorVerificationDiagnosticSchema.parse({
+    invalidReason,
+    invalidMessage,
+    diagnosticHash: canonicalHash({ rawReason, rawMessage }),
+  });
+}
 const settleResponseSchema = z
   .object({
     success: z.boolean(),

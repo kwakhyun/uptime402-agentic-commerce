@@ -439,7 +439,7 @@ async function buildFixture() {
     paidCalls: 0,
     executorCalls: 0,
   };
-  let paidBehavior: "success" | "throw" = "success";
+  let paidBehavior: "success" | "throw" | "verify-reject" = "success";
   let executorBehavior: "allow" | "deny" = "allow";
 
   const fetchFactory: OriginBoundFetchFactory = {
@@ -550,6 +550,17 @@ async function buildFixture() {
         recorded.paidBodies.push(bytes);
         expect(paymentSignature).toBe(PAYMENT_SIGNATURE);
         if (paidBehavior === "throw") throw new TypeError("simulated ambiguous socket close");
+        if (paidBehavior === "verify-reject") {
+          return jsonResponse(402, {
+            error: "payment_verification_failed",
+            settlementAttempted: false,
+            facilitatorDiagnostic: {
+              invalidReason: "transaction_simulation_failed",
+              invalidMessage: "AccountNotFound",
+              diagnosticHash: `sha256:${"e".repeat(64)}`,
+            },
+          });
+        }
         const recoveredResource: FirestoreRecoveryRoute = {
           version: "1",
           kind: "firestore_recovery_route",
@@ -684,7 +695,7 @@ async function buildFixture() {
     get paidBehavior() {
       return paidBehavior;
     },
-    set paidBehavior(value: "success" | "throw") {
+    set paidBehavior(value: "success" | "throw" | "verify-reject") {
       paidBehavior = value;
     },
     set executorBehavior(value: "allow" | "deny") {
@@ -861,6 +872,34 @@ describe("control-plane live incident flow", () => {
     });
     expect(fixture.recorded.paidCalls).toBe(1);
     expect(fixture.store.transitions).toEqual(["submitted", "unknown"]);
+  });
+
+  it("persists only the safe facilitator diagnostic and keeps the paid retry unknown", async () => {
+    fixture.paidBehavior = "verify-reject";
+    const result = await runLiveIncident(fixture.request, fixture.dependencies);
+
+    expect(result).toMatchObject({
+      outcome: "reconciliation_required",
+      reasonCode: "paid_retry_ambiguous",
+      transactionCreated: true,
+      txSignature: null,
+    });
+    expect(fixture.recorded.paidCalls).toBe(1);
+    expect(fixture.store.transitions).toEqual(["submitted", "unknown"]);
+    const diagnosticAudit = fixture.store.audits.find(
+      (event) => event.type === "control.facilitator_verify_rejected",
+    );
+    expect(diagnosticAudit?.payload).toEqual({
+      httpStatus: 402,
+      settlementAttempted: false,
+      facilitatorDiagnostic: {
+        invalidReason: "transaction_simulation_failed",
+        invalidMessage: "AccountNotFound",
+        diagnosticHash: `sha256:${"e".repeat(64)}`,
+      },
+    });
+    expect(JSON.stringify(fixture.store.audits)).not.toContain("PAYMENT-SIGNATURE");
+    expect(JSON.stringify(fixture.store.audits)).not.toContain(PAYMENT_SIGNATURE);
   });
 
   it("returns a strict no-transaction denial and never sends the paid retry", async () => {

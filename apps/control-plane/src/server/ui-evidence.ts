@@ -430,6 +430,9 @@ export function missionControlStateFromVerifiedEvidence(
   if (!firstOffer || !secondOffer || !selectedOffer) {
     throw new Error("Verified UI requires exactly two offers and one payment-bound selection");
   }
+  const paymentRequiredHeaderHash = `sha256:${createHash("sha256").update(payment.x402.challenge.headerValue).digest("hex")}`;
+  const paymentSignatureHeaderHash = `sha256:${createHash("sha256").update(payment.x402.payment.headerValue).digest("hex")}`;
+  const paymentResponseHeaderHash = `sha256:${createHash("sha256").update(payment.x402.settlement.headerValue).digest("hex")}`;
 
   return {
     schemaVersion: "1.0",
@@ -514,7 +517,9 @@ export function missionControlStateFromVerifiedEvidence(
         {
           name: "PAYMENT-SIGNATURE",
           status: "PAID RETRY",
-          value: payment.x402.payment.headerValue,
+          // Keep the signed transaction in the verifier-only artifact boundary.
+          // Browser state receives only a one-way binding, never payload bytes.
+          value: `REDACTED · ${paymentSignatureHeaderHash}`,
           capturedAt: payment.x402.payment.capturedAt,
         },
         {
@@ -524,9 +529,9 @@ export function missionControlStateFromVerifiedEvidence(
           capturedAt: payment.x402.settlement.capturedAt,
         },
       ],
-      paymentRequiredHeaderHash: `sha256:${createHash("sha256").update(payment.x402.challenge.headerValue).digest("hex")}`,
-      paymentSignatureHeaderHash: `sha256:${createHash("sha256").update(payment.x402.payment.headerValue).digest("hex")}`,
-      paymentResponseHeaderHash: `sha256:${createHash("sha256").update(payment.x402.settlement.headerValue).digest("hex")}`,
+      paymentRequiredHeaderHash,
+      paymentSignatureHeaderHash,
+      paymentResponseHeaderHash,
       reservationId: payment.policyEvidence.reservationId,
       reservationStateHistory: payment.policyEvidence.reservationStateHistory,
       policyRules: payment.policyEvidence.rules,

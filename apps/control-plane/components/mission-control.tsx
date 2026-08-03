@@ -225,7 +225,7 @@ function VerifiedEvidence({ evidence }: { evidence: VerifiedPaymentEvidenceView 
         </dl>
       </details>
       <details className="x402-header-evidence">
-        <summary>Raw x402 headers (public transaction evidence)</summary>
+        <summary>x402 header trace · signed payload redacted</summary>
         {evidence.x402Headers.map((header) => (
           <article key={header.name}>
             <strong>{header.status} · {header.name}</strong>

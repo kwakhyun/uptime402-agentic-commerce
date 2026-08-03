@@ -318,6 +318,13 @@ describe("verified mission-control evidence adapter", () => {
         "PAYMENT-SIGNATURE",
         "PAYMENT-RESPONSE",
       ]);
+      const paymentSignatureHeader = state.paymentEvidence.x402Headers.find(
+        (header) => header.name === "PAYMENT-SIGNATURE",
+      );
+      expect(paymentSignatureHeader?.value).toBe(
+        `REDACTED · ${state.paymentEvidence.paymentSignatureHeaderHash}`,
+      );
+      expect(JSON.stringify(state)).not.toContain("signature-value");
     }
     expect(state.denials[0]?.transactionCreated).toBe(false);
     expect(state.denials).toHaveLength(2);

@@ -55,7 +55,11 @@ import {
 } from "@x402/extensions/payment-identifier";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
-import { decodeStrictPaymentSignatureHeader } from "@uptime402/payments";
+import {
+  decodeStrictPaymentSignatureHeader,
+  sanitizeFacilitatorVerificationFailure,
+  type FacilitatorVerificationDiagnostic,
+} from "@uptime402/payments";
 
 export const PAYMENT_REQUIRED_HEADER = "PAYMENT-REQUIRED";
 export const PAYMENT_SIGNATURE_HEADER = "PAYMENT-SIGNATURE";
@@ -208,8 +212,16 @@ export type VendorAgentDependencies = {
   x402: VendorX402Gateway;
   recoveryResource: RecoveryResourceProvider;
   receiptSigner: VendorFulfillmentReceiptSigner;
+  onSafeDiagnostic?: (event: VendorSafeDiagnosticEvent) => void;
   now?: () => string;
 };
+
+export type VendorSafeDiagnosticEvent = Readonly<{
+  event: "facilitator.verify_rejected";
+  paymentId: string;
+  settlementAttempted: false;
+  facilitatorDiagnostic: FacilitatorVerificationDiagnostic;
+}>;
 
 export type VendorAgentVerificationMethod = Readonly<{
   id: string;
@@ -593,7 +605,28 @@ async function processPaidRecovery(
       input.paymentId,
       claim.record.version,
     );
-    response.status(402).json({ error: "payment_verification_failed", settlementAttempted: false });
+    const facilitatorDiagnostic = sanitizeFacilitatorVerificationFailure(
+      verification.isValid
+        ? {
+            isValid: false,
+            invalidReason: "facilitator_payer_missing",
+            ...(verification.invalidMessage === undefined
+              ? {}
+              : { invalidMessage: verification.invalidMessage }),
+          }
+        : verification,
+    );
+    deps.onSafeDiagnostic?.({
+      event: "facilitator.verify_rejected",
+      paymentId: input.paymentId,
+      settlementAttempted: false,
+      facilitatorDiagnostic,
+    });
+    response.status(402).json({
+      error: "payment_verification_failed",
+      settlementAttempted: false,
+      facilitatorDiagnostic,
+    });
     return;
   }
 

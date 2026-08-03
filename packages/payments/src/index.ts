@@ -9,6 +9,7 @@ export * from "./rpc.js";
 export * from "./settlement.js";
 export * from "./signer.js";
 export * from "./svm-validation.js";
+export * from "./verify-only.js";
 
 export type {
   PaymentPayload,

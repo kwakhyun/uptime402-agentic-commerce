@@ -34,7 +34,7 @@ import type {
   StoredPaymentChallenge,
 } from "@uptime402/payment-executor";
 import { createPaymentExecutorApp } from "@uptime402/payment-executor";
-import type { PaymentPayload, PaymentRequired } from "@x402/core/types";
+import type { PaymentPayload, PaymentRequired, VerifyResponse } from "@x402/core/types";
 import { generateKeyPairSigner } from "@solana/kit";
 import {
   decodePaymentRequiredHeader,
@@ -47,6 +47,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createVendorAgentApp,
   type VendorAgentDependencies,
+  type VendorSafeDiagnosticEvent,
   type VendorX402Gateway,
 } from "../services/vendor-agent/src/index.js";
 
@@ -293,6 +294,7 @@ class FixtureSigner implements PrivateX402PayloadSigner {
 class FixtureGateway implements VendorX402Gateway {
   readonly mode = "local-simulated" as const;
   settleCalls = 0;
+  verifyResponse: VerifyResponse = { isValid: true, payer: EXECUTOR };
 
   async validateStateless({ paymentPayload }: { paymentPayload: PaymentPayload }) {
     return typeof paymentPayload.payload.transaction === "string"
@@ -300,7 +302,7 @@ class FixtureGateway implements VendorX402Gateway {
       : ({ valid: false, reason: "missing_transaction" } as const);
   }
   async verify() {
-    return { isValid: true, payer: EXECUTOR };
+    return structuredClone(this.verifyResponse);
   }
   async settle(_payload: PaymentPayload, requirements: PaymentRequired["accepts"][number]) {
     this.settleCalls += 1;
@@ -425,6 +427,7 @@ async function createFixture(perTransactionLimit = "20000") {
   const vendorRepositoryB = new InMemoryTransactionalRepository(backend);
   const signer = new FixtureSigner();
   const gateway = new FixtureGateway();
+  const safeDiagnostics: VendorSafeDiagnosticEvent[] = [];
   let health = "down";
   const vendorBase: Omit<VendorAgentDependencies, "claims"> = {
     config: {
@@ -472,6 +475,7 @@ async function createFixture(perTransactionLimit = "20000") {
       keyId: "vendor-offer-key-v1",
       sign: async () => "J".repeat(88),
     },
+    onSafeDiagnostic: (event) => safeDiagnostics.push(structuredClone(event)),
     now: () => NOW,
   };
   const vendorAApp = createVendorAgentApp({ ...vendorBase, claims: vendorRepositoryA });
@@ -522,6 +526,7 @@ async function createFixture(perTransactionLimit = "20000") {
     getHealth: () => health,
     policy,
     repositories: { executorRepository, vendorRepositoryA, vendorRepositoryB },
+    safeDiagnostics,
     signer,
     vendorA: vendorAApp,
     vendorB: vendorBApp,
@@ -827,6 +832,58 @@ describe("local-simulated x402 service integration", () => {
     expect(fixture.gateway.settleCalls).toBe(0);
   });
 
+  it("reports a redacted facilitator verify category and never attempts settlement", async () => {
+    const fixture = await createFixture();
+    const challenge = await getChallenge(fixture);
+    const created = await fixture.signer.createPaymentPayload({
+      paymentRequired: challenge.decoded,
+      requirements: challenge.decoded.accepts[0]!,
+      paymentId: challenge.body.paymentId,
+    });
+    fixture.gateway.verifyResponse = {
+      isValid: false,
+      invalidReason: "transaction_simulation_failed",
+      invalidMessage:
+        'Simulation failed: "AccountNotFound" PAYMENT-SIGNATURE=never-log-this',
+      payer: EXECUTOR,
+    };
+
+    const rejected = await request(fixture.vendorA)
+      .post("/v1/recovery")
+      .set("PAYMENT-SIGNATURE", encodePaymentSignatureHeader(created.paymentPayload))
+      .send(challenge.body)
+      .expect(402);
+
+    expect(rejected.body).toMatchObject({
+      error: "payment_verification_failed",
+      settlementAttempted: false,
+      facilitatorDiagnostic: {
+        invalidReason: "transaction_simulation_failed",
+        invalidMessage: "AccountNotFound",
+      },
+    });
+    expect(rejected.body.facilitatorDiagnostic.diagnosticHash).toMatch(
+      /^sha256:[0-9a-f]{64}$/u,
+    );
+    expect(fixture.safeDiagnostics).toEqual([
+      {
+        event: "facilitator.verify_rejected",
+        paymentId: challenge.body.paymentId,
+        settlementAttempted: false,
+        facilitatorDiagnostic: rejected.body.facilitatorDiagnostic,
+      },
+    ]);
+    expect(JSON.stringify(rejected.body)).not.toContain("never-log-this");
+    expect(JSON.stringify(fixture.safeDiagnostics)).not.toContain("never-log-this");
+    expect(fixture.gateway.settleCalls).toBe(0);
+    await expect(
+      fixture.repositories.vendorRepositoryA.getVendorPaymentClaim(
+        "vendor-tenant-1",
+        challenge.body.paymentId,
+      ),
+    ).resolves.toBeNull();
+  });
+
   it("feeds the vendor's real 402 shape into the official exact SVM client without broadcasting", async () => {
     const fixture = await createFixture();
     const challenge = await getChallenge(fixture);
@@ -835,23 +892,56 @@ describe("local-simulated x402 service integration", () => {
     mintData[44] = 6;
     mintData[45] = 1;
     const methods: string[] = [];
+    let tokenAccountReadCount = 0;
     const rpcFetch = vi.fn(async (_input: URL | RequestInfo, init?: RequestInit) => {
-      const request = JSON.parse(String(init?.body)) as { id: number; method: string };
+      const request = JSON.parse(String(init?.body)) as {
+        id: number;
+        method: string;
+        params?: unknown[];
+      };
       methods.push(request.method);
       const result = request.method === "getGenesisHash"
         ? DEVNET_GENESIS_HASH
         : request.method === "getAccountInfo"
-          ? {
-              context: { apiVersion: "2.0.0", slot: 1 },
-              value: {
-                data: [mintData.toString("base64"), "base64"],
-                executable: false,
-                lamports: 1,
-                owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-                rentEpoch: 0,
-                space: 82,
-              },
-            }
+          ? (request.params?.[1] as { encoding?: string } | undefined)?.encoding === "jsonParsed"
+            ? (() => {
+                const sourceRead = tokenAccountReadCount % 2 === 0;
+                tokenAccountReadCount += 1;
+                return {
+                  context: { apiVersion: "2.0.0", slot: 1 },
+                  value: {
+                    data: {
+                      program: "spl-token",
+                      parsed: {
+                        type: "account",
+                        info: {
+                          mint: DEVNET_USDC_MINT,
+                          owner: sourceRead ? payer.address : PAYEE,
+                          state: "initialized",
+                          tokenAmount: {
+                            amount: sourceRead ? "20000000" : "0",
+                            decimals: 6,
+                          },
+                        },
+                      },
+                    },
+                    executable: false,
+                    lamports: 2_039_280,
+                    owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                  },
+                };
+              })()
+            : {
+                context: { apiVersion: "2.0.0", slot: 1 },
+                value: {
+                  data: [mintData.toString("base64"), "base64"],
+                  executable: false,
+                  lamports: 1,
+                  owner: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+                  rentEpoch: 0,
+                  space: 82,
+                },
+              }
           : request.method === "getLatestBlockhash"
             ? {
                 context: { apiVersion: "2.0.0", slot: 1 },

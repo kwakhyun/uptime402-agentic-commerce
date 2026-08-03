@@ -9,6 +9,7 @@ import {
   DEVNET_GENESIS_HASH,
   DEVNET_USDC_MINT,
   DEVNET_X402_NETWORK_ID,
+  USDC_DECIMALS,
 } from "./constants.js";
 import { encodeStrictPaymentSignatureHeader } from "./headers.js";
 import {
@@ -16,6 +17,7 @@ import {
   extractRequiredPaymentIdentifier,
 } from "./identifiers.js";
 import { callSolanaRpc, type JsonRpcOptions } from "./rpc.js";
+import { validateExactSvmTokenAccountState } from "./svm-validation.js";
 
 export type ExactSvmExpectedPayment = Readonly<{
   amountBaseUnits: string;
@@ -84,6 +86,18 @@ export async function buildExactSvmPaymentPayload(
   }
 
   await assertOfficialDevnetGenesis(options.rpc);
+  const tokenAccountExpectation = {
+    assetMint: DEVNET_USDC_MINT,
+    assetDecimals: USDC_DECIMALS,
+    amountBaseUnits: options.expected.amountBaseUnits,
+    payer: options.signer.address,
+    payee: options.expected.payee,
+    rpc: options.rpc,
+  } as const;
+  // The current exact SVM SDK derives standard-token ATAs but does not create
+  // a missing recipient ATA. Fail before invoking the signing SDK rather than
+  // returning a payload that the facilitator can only reject in simulation.
+  await validateExactSvmTokenAccountState(tokenAccountExpectation);
   const boundRequired = attachRequiredPaymentIdentifier(
     { ...structuredClone(options.paymentRequired), accepts: [matches[0]!] },
     options.paymentId,
@@ -120,6 +134,10 @@ export async function buildExactSvmPaymentPayload(
   if (transactionBytes.length === 0 || transactionBytes.toString("base64") !== transaction) {
     throw new Error("Exact SVM payload transaction is not canonical Base64");
   }
+  // Re-read mutable token-account state after signing and before exposing the
+  // PAYMENT-SIGNATURE payload. The full signed-byte validator repeats this at
+  // the private executor release boundary.
+  await validateExactSvmTokenAccountState(tokenAccountExpectation);
   return {
     paymentPayload,
     headerName: "PAYMENT-SIGNATURE",

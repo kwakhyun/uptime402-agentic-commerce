@@ -692,6 +692,11 @@ export async function buildProductionVendorAgentApp(
     ),
     recoveryResource: new FirestoreRecoveryResourceProvider(repository, offers),
     receiptSigner: new CanonicalReceiptSigner(receiptSigner, config.receiptKeyId),
+    onSafeDiagnostic: (event) => {
+      // The event shape contains only allowlisted reason categories and a hash;
+      // raw facilitator messages and payment payloads never reach Cloud Logging.
+      console.warn(JSON.stringify(event));
+    },
   });
 }
 

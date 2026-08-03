@@ -36,6 +36,7 @@ import {
   type VendorOffer,
 } from "@uptime402/domain";
 import {
+  FacilitatorVerificationDiagnosticSchema,
   assertSeparateSigningAuthorities,
   decodeStrictPaymentRequiredHeader,
   decodeStrictPaymentResponseHeader,
@@ -156,6 +157,14 @@ const ChallengeResponseBodySchema = z
     canonicalBodyHash: Sha256Schema,
     facilitatorOrigin: z.string().url(),
     paymentCreated: z.literal(false),
+  })
+  .strict();
+
+const PaidRetryVerificationFailureSchema = z
+  .object({
+    error: z.literal("payment_verification_failed"),
+    settlementAttempted: z.literal(false),
+    facilitatorDiagnostic: FacilitatorVerificationDiagnosticSchema,
   })
   .strict();
 
@@ -1326,6 +1335,34 @@ export async function runLiveIncident(
     }),
   });
   if (paidResponse.status !== 200) {
+    if (paidResponse.status === 402) {
+      try {
+        const rejectedBody = await readBoundedJson(
+          paidResponse,
+          Math.min(maxResponseBytes, 16_384),
+        );
+        const rejected = PaidRetryVerificationFailureSchema.parse(
+          rejectedBody.value,
+        );
+        await audit(deps.store, {
+          type: "control.facilitator_verify_rejected",
+          occurredAt: paidRetryAt,
+          correlationId,
+          incidentId: incident.id,
+          mandateId: request.mandateId,
+          paymentId: request.paymentId,
+          idempotencyKey: request.idempotencyKey,
+          payload: jsonValue({
+            httpStatus: paidResponse.status,
+            settlementAttempted: rejected.settlementAttempted,
+            facilitatorDiagnostic: rejected.facilitatorDiagnostic,
+          }),
+        });
+      } catch {
+        // The paid result remains ambiguous. Never reflect or persist an
+        // unrecognized vendor body while transitioning it to reconciliation.
+      }
+    }
     return markUnknown({
       deps,
       correlationId,

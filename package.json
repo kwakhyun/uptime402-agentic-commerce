@@ -23,6 +23,8 @@
     "mandate:arm": "node --import tsx scripts/mandate-arm.ts",
     "mandate:revoke": "node --import tsx scripts/mandate-revoke.ts",
     "incident:run": "node --conditions=react-server --import tsx scripts/mandate-run-incident.ts",
+    "diagnose:facilitator-verify": "node --env-file=.env.deploy.local --env-file=.env.handoff.local --conditions=react-server --import tsx scripts/diagnose-facilitator-verify.ts --verify-only",
+    "ata:ensure-vendor-usdc": "node --env-file=.env.deploy.local --env-file=.env.handoff.local --import tsx scripts/ensure-devnet-vendor-usdc-ata.ts",
     "evidence:collect-denials": "node --conditions=react-server --import tsx scripts/collect-live-denials.ts",
     "audit:git": "python3 scripts/audit_git_boundary.py",
     "ready:structural": "python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py --root . --strict"
@@ -31,6 +33,7 @@
     "@a2a-js/sdk": "1.0.1",
     "@google-cloud/firestore": "8.7.0",
     "@google/genai": "2.15.0",
+    "@solana-program/token": "0.9.0",
     "@solana/kit": "5.1.0",
     "@solana/sysvars": "5.1.0",
     "@x402/core": "2.20.0",
