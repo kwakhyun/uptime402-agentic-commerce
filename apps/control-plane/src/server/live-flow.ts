@@ -306,6 +306,18 @@ const VendorPaidResponseSchema = z
   })
   .strict();
 
+const VendorReconciledResponseSchema = z
+  .object({
+    resource: FirestoreRecoveryRouteSchema,
+    fulfillmentReceipt: FulfillmentReceiptSchema,
+    protocol: z.literal("x402"),
+    replayedFulfillment: z.boolean(),
+    reconciledFulfillment: z.literal(true),
+    settlementRetried: z.literal(false),
+    transactionCreated: z.literal(false),
+  })
+  .strict();
+
 const SettleResponseSchema = z
   .object({
     success: z.literal(true),
@@ -891,18 +903,21 @@ async function markUnknown(input: {
   reservationId: string;
   drafts: EventDraft[];
   reasonCode: ReconciliationRequiredResult["reasonCode"];
+  reservationState?: "submitted" | "unknown";
 }): Promise<ReconciliationRequiredResult> {
   const occurredAt = (input.deps.now ?? (() => new Date().toISOString()))();
-  await input.deps.store.transitionReservation(
-    input.reservationId,
-    ["submitted"],
-    "unknown",
-    occurredAt,
-    {
-      failureReason: input.reasonCode,
-      note: "Paid retry outcome is ambiguous; payment retry is forbidden pending reconciliation",
-    },
-  );
+  if ((input.reservationState ?? "submitted") === "submitted") {
+    await input.deps.store.transitionReservation(
+      input.reservationId,
+      ["submitted"],
+      "unknown",
+      occurredAt,
+      {
+        failureReason: input.reasonCode,
+        note: "Paid retry outcome is ambiguous; payment retry is forbidden pending reconciliation",
+      },
+    );
+  }
   input.drafts.push({
     kind: "reconciliation_required",
     occurredAt,
@@ -913,6 +928,7 @@ async function markUnknown(input: {
       reasonCode: input.reasonCode,
       reservationId: input.reservationId,
       paymentRetried: false,
+      settlementRetried: false,
     }),
   });
   await audit(input.deps.store, {
@@ -927,6 +943,7 @@ async function markUnknown(input: {
       reservationId: input.reservationId,
       reasonCode: input.reasonCode,
       paymentRetried: false,
+      settlementRetried: false,
     }),
   });
   const result: ReconciliationRequiredResult = {
@@ -952,6 +969,419 @@ async function markUnknown(input: {
   };
   canonicalize(result);
   return result;
+}
+
+type ExecutorAuthorization = z.infer<typeof ExecutorAllowResponseSchema>;
+type BoundChallenge = ReturnType<typeof decodeAndBindChallenge>;
+
+type FinalizeVendorFulfillmentInput = Readonly<{
+  deps: RunLiveIncidentDependencies;
+  correlationId: string;
+  request: LiveIncidentRequest;
+  incident: Incident;
+  decision: RecoveryOrchestrationResult["decision"];
+  geminiBaseline: GeminiDecisionRunCapture;
+  offers: readonly [VendorOffer, VendorOffer];
+  selectedOffer: VendorOffer;
+  challengeBinding: BoundChallenge;
+  selectedResourceUrl: string;
+  paymentRequiredHeader: string;
+  authorization: ExecutorAuthorization;
+  response: Response;
+  responseMode: "paid" | "reconciled";
+  startingReservationState: "submitted" | "unknown";
+  canonicalBodyHash: `sha256:${string}`;
+  drafts: EventDraft[];
+  maxResponseBytes: number;
+}>;
+
+/**
+ * One verifier/finalizer for both the original paid response and a
+ * post-settlement fulfillment reconciliation response. Reconciliation never
+ * relaxes a binding: the same PAYMENT-RESPONSE, resource, receipt, route,
+ * health, and outcome checks run before budget commit.
+ */
+async function finalizeVendorFulfillment(
+  input: FinalizeVendorFulfillmentInput,
+): Promise<RecoveredIncidentResult | ReconciliationRequiredResult> {
+  const now = input.deps.now ?? (() => new Date().toISOString());
+  let reservationStage:
+    | "submitted"
+    | "unknown"
+    | "confirmed"
+    | "fulfilled"
+    | "committed" = input.startingReservationState;
+  try {
+    if (input.response.status !== 200) {
+      throw new TypeError("Vendor fulfillment response must be HTTP 200");
+    }
+    const paymentResponseHeader = input.response.headers.get("payment-response");
+    if (
+      !paymentResponseHeader ||
+      Buffer.byteLength(paymentResponseHeader, "utf8") > MAX_HEADER_BYTES
+    ) {
+      throw new TypeError("Vendor fulfillment response omitted a bounded PAYMENT-RESPONSE");
+    }
+    const settlement = SettleResponseSchema.parse(
+      decodeStrictPaymentResponseHeader(paymentResponseHeader),
+    );
+    assertBase58ByteLength(settlement.transaction, 64, "Settlement transaction signature");
+    assertBase58ByteLength(settlement.payer, 32, "Settlement payer");
+    if (
+      settlement.network !== input.challengeBinding.requirement.network ||
+      settlement.payer !== input.request.executionPolicy.executorPublicKey ||
+      settlement.payer === input.challengeBinding.requirement.payTo ||
+      settlement.amount !== input.challengeBinding.requirement.amount
+    ) {
+      throw new TypeError("PAYMENT-RESPONSE settlement binding mismatch");
+    }
+    const responseBody = await readBoundedJson(input.response, input.maxResponseBytes);
+    const fulfilled = input.responseMode === "paid"
+      ? VendorPaidResponseSchema.parse(responseBody.value)
+      : VendorReconciledResponseSchema.parse(responseBody.value);
+    if (
+      fulfilled.resource.incidentId !== input.incident.id ||
+      fulfilled.resource.offerId !== input.selectedOffer.payload.offerId ||
+      fulfilled.resource.operationId !== input.request.operationId ||
+      fulfilled.resource.paymentId !== input.request.paymentId ||
+      fulfilled.resource.txSignature !== settlement.transaction ||
+      fulfilled.resource.resourceUrl !== input.selectedResourceUrl
+    ) {
+      throw new TypeError("Recovery resource does not bind the paid request and settlement");
+    }
+    const resourceResponseHash = canonicalHash(fulfilled.resource);
+    const receipt = await verifyFulfillmentReceiptForFlow({
+      candidate: fulfilled.fulfillmentReceipt,
+      expectedSignerPublicKey: input.deps.vendorIdentity.receiptSignerPublicKey,
+      expectedSignerKeyId: input.deps.vendorIdentity.receiptSignerKeyId,
+      expectedAgentId: input.deps.vendorIdentity.agentId,
+      incident: input.incident,
+      selectedOffer: input.selectedOffer,
+      proposal: input.challengeBinding.proposal,
+      txSignature: settlement.transaction,
+      payer: settlement.payer,
+      resourceResponseHash,
+      challengeCapturedAt: input.challengeBinding.challenge.capturedAt,
+    });
+    if (
+      fulfilled.resource.expiresAt !== input.selectedOffer.payload.expiresAt ||
+      Date.parse(fulfilled.resource.activatedAt) <
+        Date.parse(input.challengeBinding.challenge.capturedAt) ||
+      Date.parse(fulfilled.resource.activatedAt) > Date.parse(receipt.payload.fulfilledAt)
+    ) {
+      throw new Error("Recovery resource chronology does not bind the challenge and receipt");
+    }
+    const fulfillmentReceiptHash = computeSignedEnvelopeHash(receipt);
+    const confirmedAt = now();
+    await input.deps.store.transitionReservation(
+      input.authorization.reservation.reservationId,
+      [input.startingReservationState],
+      "confirmed",
+      confirmedAt,
+      {
+        txSignature: settlement.transaction,
+        note: input.responseMode === "reconciled"
+          ? "Existing settlement independently reverified; fulfillment reconciled without payment or settlement retry"
+          : "Confirmed settlement returned by paid resource",
+      },
+    );
+    reservationStage = "confirmed";
+    if (input.responseMode === "reconciled") {
+      await audit(input.deps.store, {
+        type: "control.fulfillment_reconciled",
+        occurredAt: confirmedAt,
+        correlationId: input.correlationId,
+        incidentId: input.incident.id,
+        mandateId: input.request.mandateId,
+        paymentId: input.request.paymentId,
+        idempotencyKey: input.request.idempotencyKey,
+        txSignature: settlement.transaction,
+        payload: jsonValue({
+          reservationId: input.authorization.reservation.reservationId,
+          requestFingerprint: input.challengeBinding.requestFingerprint,
+          canonicalBodyHash: input.canonicalBodyHash,
+          paymentResponseHash: sha256Bytes(Buffer.from(paymentResponseHeader, "utf8")),
+          resourceResponseHash,
+          fulfillmentReceiptHash,
+          paymentRetried: false,
+          settlementRetried: false,
+        }),
+      });
+    }
+    input.drafts.push({
+      kind: "settlement_confirmed",
+      occurredAt: confirmedAt,
+      protocolLabel: input.responseMode === "reconciled"
+        ? "PAYMENT-RESPONSE · reconciled 200"
+        : "PAYMENT-RESPONSE · confirmed 200",
+      transactionCreated: true,
+      txSignature: settlement.transaction,
+      details: eventDetails({
+        network: settlement.network,
+        amountBaseUnits: input.challengeBinding.requirement.amount,
+        payer: settlement.payer,
+        payee: input.challengeBinding.requirement.payTo,
+        ...(input.responseMode === "reconciled"
+          ? {
+              reconciledFulfillment: true,
+              paymentRetried: false,
+              settlementRetried: false,
+            }
+          : {}),
+      }),
+    });
+    const fulfilledAt = now();
+    await input.deps.store.transitionReservation(
+      input.authorization.reservation.reservationId,
+      ["confirmed"],
+      "fulfilled",
+      fulfilledAt,
+      {
+        txSignature: settlement.transaction,
+        fulfillmentReceiptHash,
+        note: "Vendor receipt signature and all request/settlement bindings verified",
+      },
+    );
+    reservationStage = "fulfilled";
+    input.drafts.push({
+      kind: "fulfillment_receipt_verified",
+      occurredAt: fulfilledAt,
+      protocolLabel: "Ed25519 fulfillment receipt",
+      transactionCreated: true,
+      txSignature: settlement.transaction,
+      details: eventDetails({
+        fulfillmentReceiptHash,
+        keyId: receipt.keyId,
+        signer: receipt.signer,
+        resourceResponseHash,
+      }),
+    });
+
+    const applied = await input.deps.dependencyRouter.apply(fulfilled.resource);
+    if (!applied.applied || applied.activationId !== fulfilled.resource.activationId) {
+      throw new Error("Dependency router did not apply the purchased recovery route");
+    }
+    const appliedAt = now();
+    input.drafts.push({
+      kind: "recovery_resource_applied",
+      occurredAt: appliedAt,
+      protocolLabel: "firestore_recovery_route",
+      transactionCreated: true,
+      txSignature: settlement.transaction,
+      details: eventDetails({ activationId: applied.activationId, applied: true }),
+    });
+    const healthProbe = HealthProbeEvidenceSchema.parse(
+      await input.deps.healthProbe.probe({
+        incident: input.incident,
+        resource: fulfilled.resource,
+      }),
+    );
+    if (healthProbe.routeActivationId !== fulfilled.resource.activationId) {
+      throw new Error("Independent health probe did not use the purchased recovery route");
+    }
+    if (Date.parse(healthProbe.observedAt) < Date.parse(receipt.payload.fulfilledAt)) {
+      throw new Error("Healthy recovery proof predates the verified fulfillment receipt");
+    }
+    const healthProbeHash = canonicalHash(healthProbe);
+    input.drafts.push({
+      kind: "health_probe_healthy",
+      occurredAt: healthProbe.observedAt,
+      protocolLabel: "Independent health probe",
+      transactionCreated: true,
+      txSignature: settlement.transaction,
+      details: eventDetails({
+        healthProbeHash,
+        routeActivationId: healthProbe.routeActivationId,
+        statusAfter: "healthy",
+      }),
+    });
+    const recoveredAt = now();
+    if (Date.parse(recoveredAt) < Date.parse(healthProbe.observedAt)) {
+      throw new Error("Recovery outcome predates the independent healthy probe");
+    }
+    const outcomePayload = RecoveryOutcomePayloadSchema.parse({
+      incidentId: input.incident.id,
+      paymentId: input.request.paymentId,
+      fulfillmentReceiptHash,
+      resourceResponseHash,
+      statusBefore: input.incident.healthBefore,
+      statusAfter: "healthy",
+      healthProbeHash,
+      recoveredAt,
+    });
+    const recoveryOutcome = RecoveryOutcomeEnvelopeSchema.parse({
+      payload: outcomePayload,
+      signer: input.deps.outcomeSigner.publicKey,
+      keyId: input.deps.outcomeSigner.keyId,
+      signature: await input.deps.outcomeSigner.sign(outcomePayload),
+    });
+    assertSeparateSigningAuthorities(receipt, recoveryOutcome, input.selectedOffer.payload.payee);
+    await verifyRecoveryOutcomeForFlow({
+      candidate: recoveryOutcome,
+      expectedSignerPublicKey: input.deps.outcomeSigner.publicKey,
+      expectedSignerKeyId: input.deps.outcomeSigner.keyId,
+      expectedPayload: outcomePayload,
+      forbiddenVendorSigner: receipt.signer,
+      forbiddenPayee: input.selectedOffer.payload.payee,
+    });
+    input.drafts.push({
+      kind: "recovery_outcome_signed",
+      occurredAt: recoveredAt,
+      protocolLabel: "Control-plane RecoveryOutcome",
+      transactionCreated: true,
+      txSignature: settlement.transaction,
+      details: eventDetails({
+        outcomeHash: canonicalHash(recoveryOutcome),
+        keyId: recoveryOutcome.keyId,
+        healthProbeHash,
+      }),
+    });
+    const committedAt = now();
+    const committedReservation = await input.deps.store.transitionReservation(
+      input.authorization.reservation.reservationId,
+      ["fulfilled"],
+      "committed",
+      committedAt,
+      {
+        txSignature: settlement.transaction,
+        fulfillmentReceiptHash,
+        note: "Purchased resource applied and independent health probe is healthy",
+      },
+    );
+    reservationStage = "committed";
+    input.drafts.push({
+      kind: "budget_committed",
+      occurredAt: committedAt,
+      protocolLabel: "Budget commit",
+      transactionCreated: true,
+      txSignature: settlement.transaction,
+      details: eventDetails({
+        reservationId: input.authorization.reservation.reservationId,
+        state: "committed",
+      }),
+    });
+    await audit(input.deps.store, {
+      type: "control.recovery_committed",
+      occurredAt: committedAt,
+      correlationId: input.correlationId,
+      incidentId: input.incident.id,
+      mandateId: input.request.mandateId,
+      paymentId: input.request.paymentId,
+      idempotencyKey: input.request.idempotencyKey,
+      txSignature: settlement.transaction,
+      payload: jsonValue({
+        reservationId: input.authorization.reservation.reservationId,
+        fulfillmentReceiptHash,
+        recoveryOutcomeHash: canonicalHash(recoveryOutcome),
+        healthProbeHash,
+      }),
+    });
+    const result: RecoveredIncidentResult = {
+      outcome: "recovered",
+      correlationId: input.correlationId,
+      transactionCreated: true,
+      txSignature: settlement.transaction,
+      reservationId: input.authorization.reservation.reservationId,
+      incident: input.incident,
+      decision: input.decision,
+      geminiBaseline: input.geminiBaseline,
+      offers: input.offers,
+      selectedOffer: input.selectedOffer,
+      challengeHash: input.challengeBinding.challenge.challengeHash,
+      requestFingerprint: input.challengeBinding.requestFingerprint,
+      paymentRequiredHeader: input.paymentRequiredHeader,
+      paymentSignatureHeader: input.authorization.paymentSignature,
+      paymentResponseHeader,
+      signedTransactionSha256: Sha256Schema.parse(
+        input.authorization.signedTransactionSha256,
+      ) as `sha256:${string}`,
+      resource: fulfilled.resource,
+      resourceResponseHash,
+      fulfillmentReceipt: receipt,
+      fulfillmentReceiptHash,
+      healthProbe,
+      healthProbeHash,
+      recoveryOutcome,
+      policyEvidence: {
+        reservation: committedReservation,
+        remainingBeforeBaseUnits:
+          input.authorization.budgetEvidence.remainingBeforeBaseUnits,
+        remainingAfterReserveBaseUnits:
+          input.authorization.budgetEvidence.remainingAfterReserveBaseUnits,
+        remainingAfterCommitBaseUnits:
+          input.authorization.budgetEvidence.remainingAfterReserveBaseUnits,
+        rules: input.authorization.checks,
+      },
+      events: materializeEvents(
+        input.drafts,
+        input.deps.evidenceLevel,
+        input.correlationId,
+      ),
+      evidence: {
+        level: input.deps.evidenceLevel,
+        explorerUrl: null,
+        tokenDeltas: [],
+      },
+    };
+    canonicalize(result);
+    return result;
+  } catch (error) {
+    if (reservationStage === input.startingReservationState) {
+      return markUnknown({
+        deps: input.deps,
+        correlationId: input.correlationId,
+        request: input.request,
+        incident: input.incident,
+        geminiBaseline: input.geminiBaseline,
+        selectedOffer: input.selectedOffer,
+        reservationId: input.authorization.reservation.reservationId,
+        drafts: input.drafts,
+        reasonCode: input.responseMode === "paid"
+          ? "paid_response_invalid"
+          : "paid_retry_ambiguous",
+        reservationState: input.startingReservationState,
+      });
+    }
+    throw error;
+  }
+}
+
+async function transitionToUnknownBeforeReconciliation(input: {
+  deps: RunLiveIncidentDependencies;
+  correlationId: string;
+  request: LiveIncidentRequest;
+  incident: Incident;
+  reservationId: string;
+  requestFingerprint: `sha256:${string}`;
+  canonicalBodyHash: `sha256:${string}`;
+}): Promise<void> {
+  const occurredAt = (input.deps.now ?? (() => new Date().toISOString()))();
+  await input.deps.store.transitionReservation(
+    input.reservationId,
+    ["submitted"],
+    "unknown",
+    occurredAt,
+    {
+      failureReason: "paid_retry_ambiguous",
+      note: "Paid retry did not return a confirmed fulfillment; payment retry is forbidden and one no-settle reconciliation is required",
+    },
+  );
+  await audit(input.deps.store, {
+    type: "control.fulfillment_reconciliation_started",
+    occurredAt,
+    correlationId: input.correlationId,
+    incidentId: input.incident.id,
+    mandateId: input.request.mandateId,
+    paymentId: input.request.paymentId,
+    idempotencyKey: input.request.idempotencyKey,
+    payload: jsonValue({
+      reservationId: input.reservationId,
+      requestFingerprint: input.requestFingerprint,
+      canonicalBodyHash: input.canonicalBodyHash,
+      paymentRetried: false,
+      settlementRetried: false,
+    }),
+  });
 }
 
 /**
@@ -1296,7 +1726,46 @@ export async function runLiveIncident(
     { note: "PAYMENT-SIGNATURE sent on the one paid retry; executor did not broadcast" },
   );
 
-  let paidResponse: Response;
+  const paidRetryAt = now();
+  drafts.push({
+    kind: "paid_retry_sent",
+    occurredAt: paidRetryAt,
+    protocolLabel: "Paid retry · byte-identical body",
+    transactionCreated: true,
+    txSignature: null,
+    details: eventDetails({
+      canonicalBodyHash,
+      requestFingerprint: challengeBinding.requestFingerprint,
+      retryCount: 1,
+    }),
+  });
+
+  const finalize = (
+    response: Response,
+    responseMode: "paid" | "reconciled",
+    startingReservationState: "submitted" | "unknown",
+  ) => finalizeVendorFulfillment({
+    deps,
+    correlationId,
+    request,
+    incident,
+    decision: orchestration.decision,
+    geminiBaseline: orchestration.geminiRun,
+    offers,
+    selectedOffer,
+    challengeBinding,
+    selectedResourceUrl,
+    paymentRequiredHeader,
+    authorization,
+    response,
+    responseMode,
+    startingReservationState,
+    canonicalBodyHash,
+    drafts,
+    maxResponseBytes,
+  });
+
+  let paidResponse: Response | null = null;
   try {
     paidResponse = await vendorFetch(selectedResourceUrl, {
       method: "POST",
@@ -1305,6 +1774,78 @@ export async function runLiveIncident(
         accept: "application/json",
         "content-type": "application/json",
         "payment-signature": authorization.paymentSignature,
+      },
+      body: recoveryBodyBytes,
+    });
+  } catch {
+    // A socket close/timeout after sending the paid request is ambiguous. The
+    // state is moved to unknown before any post-settlement reconciliation.
+  }
+
+  if (paidResponse?.status === 200) {
+    return finalize(paidResponse, "paid", "submitted");
+  }
+
+  if (paidResponse?.status === 402) {
+    try {
+      const rejectedBody = await readBoundedJson(
+        paidResponse,
+        Math.min(maxResponseBytes, 16_384),
+      );
+      const rejected = PaidRetryVerificationFailureSchema.parse(
+        rejectedBody.value,
+      );
+      await audit(deps.store, {
+        type: "control.facilitator_verify_rejected",
+        occurredAt: paidRetryAt,
+        correlationId,
+        incidentId: incident.id,
+        mandateId: request.mandateId,
+        paymentId: request.paymentId,
+        idempotencyKey: request.idempotencyKey,
+        payload: jsonValue({
+          httpStatus: paidResponse.status,
+          settlementAttempted: rejected.settlementAttempted,
+          facilitatorDiagnostic: rejected.facilitatorDiagnostic,
+        }),
+      });
+    } catch {
+      // Never reflect or persist an unrecognized vendor body.
+    }
+  }
+
+  await transitionToUnknownBeforeReconciliation({
+    deps,
+    correlationId,
+    request,
+    incident,
+    reservationId: authorization.reservation.reservationId,
+    requestFingerprint: challengeBinding.requestFingerprint,
+    canonicalBodyHash,
+  });
+
+  let reconciliationResponse: Response;
+  try {
+    const vendorToken = await deps.identityTokenProvider.getIdToken(vendorOrigin);
+    if (
+      !vendorToken ||
+      vendorToken.length > 8_192 ||
+      !/^[A-Za-z0-9._~-]+$/u.test(vendorToken)
+    ) {
+      throw new Error("Vendor identity provider returned an invalid ID token");
+    }
+    const reconciliationUrl = exactUrl(
+      new URL("/v1/recovery/reconcile", vendorOrigin).toString(),
+      vendorOrigin,
+      allowHttpLocalTest,
+    );
+    reconciliationResponse = await vendorFetch(reconciliationUrl, {
+      method: "POST",
+      redirect: "error",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${vendorToken}`,
+        "content-type": "application/json",
       },
       body: recoveryBodyBytes,
     });
@@ -1319,50 +1860,10 @@ export async function runLiveIncident(
       reservationId: authorization.reservation.reservationId,
       drafts,
       reasonCode: "paid_retry_ambiguous",
+      reservationState: "unknown",
     });
   }
-  const paidRetryAt = now();
-  drafts.push({
-    kind: "paid_retry_sent",
-    occurredAt: paidRetryAt,
-    protocolLabel: "Paid retry · byte-identical body",
-    transactionCreated: true,
-    txSignature: null,
-    details: eventDetails({
-      canonicalBodyHash,
-      requestFingerprint: challengeBinding.requestFingerprint,
-      retryCount: 1,
-    }),
-  });
-  if (paidResponse.status !== 200) {
-    if (paidResponse.status === 402) {
-      try {
-        const rejectedBody = await readBoundedJson(
-          paidResponse,
-          Math.min(maxResponseBytes, 16_384),
-        );
-        const rejected = PaidRetryVerificationFailureSchema.parse(
-          rejectedBody.value,
-        );
-        await audit(deps.store, {
-          type: "control.facilitator_verify_rejected",
-          occurredAt: paidRetryAt,
-          correlationId,
-          incidentId: incident.id,
-          mandateId: request.mandateId,
-          paymentId: request.paymentId,
-          idempotencyKey: request.idempotencyKey,
-          payload: jsonValue({
-            httpStatus: paidResponse.status,
-            settlementAttempted: rejected.settlementAttempted,
-            facilitatorDiagnostic: rejected.facilitatorDiagnostic,
-          }),
-        });
-      } catch {
-        // The paid result remains ambiguous. Never reflect or persist an
-        // unrecognized vendor body while transitioning it to reconciliation.
-      }
-    }
+  if (reconciliationResponse.status !== 200) {
     return markUnknown({
       deps,
       correlationId,
@@ -1373,297 +1874,8 @@ export async function runLiveIncident(
       reservationId: authorization.reservation.reservationId,
       drafts,
       reasonCode: "paid_retry_ambiguous",
+      reservationState: "unknown",
     });
   }
-  const paymentResponseHeader = paidResponse.headers.get("payment-response");
-  if (!paymentResponseHeader || Buffer.byteLength(paymentResponseHeader, "utf8") > MAX_HEADER_BYTES) {
-    return markUnknown({
-      deps,
-      correlationId,
-      request,
-      incident,
-      geminiBaseline: orchestration.geminiRun,
-      selectedOffer,
-      reservationId: authorization.reservation.reservationId,
-      drafts,
-      reasonCode: "paid_response_invalid",
-    });
-  }
-
-  let reservationStage: "submitted" | "confirmed" | "fulfilled" | "committed" = "submitted";
-  try {
-    const settlement = SettleResponseSchema.parse(
-      decodeStrictPaymentResponseHeader(paymentResponseHeader),
-    );
-    assertBase58ByteLength(settlement.transaction, 64, "Settlement transaction signature");
-    assertBase58ByteLength(settlement.payer, 32, "Settlement payer");
-    if (
-      settlement.network !== challengeBinding.requirement.network ||
-      settlement.payer !== request.executionPolicy.executorPublicKey ||
-      settlement.payer === challengeBinding.requirement.payTo ||
-      settlement.amount !== challengeBinding.requirement.amount
-    ) {
-      throw new TypeError("PAYMENT-RESPONSE settlement binding mismatch");
-    }
-    const paidBody = await readBoundedJson(paidResponse, maxResponseBytes);
-    const fulfilled = VendorPaidResponseSchema.parse(paidBody.value);
-    if (
-      fulfilled.resource.incidentId !== incident.id ||
-      fulfilled.resource.offerId !== selectedOffer.payload.offerId ||
-      fulfilled.resource.operationId !== request.operationId ||
-      fulfilled.resource.paymentId !== request.paymentId ||
-      fulfilled.resource.txSignature !== settlement.transaction ||
-      fulfilled.resource.resourceUrl !== selectedResourceUrl
-    ) {
-      throw new TypeError("Recovery resource does not bind the paid request and settlement");
-    }
-    const resourceResponseHash = canonicalHash(fulfilled.resource);
-    const receipt = await verifyFulfillmentReceiptForFlow({
-      candidate: fulfilled.fulfillmentReceipt,
-      expectedSignerPublicKey: deps.vendorIdentity.receiptSignerPublicKey,
-      expectedSignerKeyId: deps.vendorIdentity.receiptSignerKeyId,
-      expectedAgentId: deps.vendorIdentity.agentId,
-      incident,
-      selectedOffer,
-      proposal: challengeBinding.proposal,
-      txSignature: settlement.transaction,
-      payer: settlement.payer,
-      resourceResponseHash,
-      challengeCapturedAt: challengeBinding.challenge.capturedAt,
-    });
-    if (
-      fulfilled.resource.expiresAt !== selectedOffer.payload.expiresAt ||
-      Date.parse(fulfilled.resource.activatedAt) <
-        Date.parse(challengeBinding.challenge.capturedAt) ||
-      Date.parse(fulfilled.resource.activatedAt) >
-        Date.parse(receipt.payload.fulfilledAt)
-    ) {
-      throw new Error("Recovery resource chronology does not bind the challenge and receipt");
-    }
-    const fulfillmentReceiptHash = computeSignedEnvelopeHash(receipt);
-    const confirmedAt = now();
-    await deps.store.transitionReservation(
-      authorization.reservation.reservationId,
-      ["submitted"],
-      "confirmed",
-      confirmedAt,
-      { txSignature: settlement.transaction, note: "Confirmed settlement returned by paid resource" },
-    );
-    reservationStage = "confirmed";
-    drafts.push({
-      kind: "settlement_confirmed",
-      occurredAt: confirmedAt,
-      protocolLabel: "PAYMENT-RESPONSE · confirmed 200",
-      transactionCreated: true,
-      txSignature: settlement.transaction,
-      details: eventDetails({
-        network: settlement.network,
-        amountBaseUnits: challengeBinding.requirement.amount,
-        payer: settlement.payer,
-        payee: challengeBinding.requirement.payTo,
-      }),
-    });
-    const fulfilledAt = now();
-    await deps.store.transitionReservation(
-      authorization.reservation.reservationId,
-      ["confirmed"],
-      "fulfilled",
-      fulfilledAt,
-      {
-        txSignature: settlement.transaction,
-        fulfillmentReceiptHash,
-        note: "Vendor receipt signature and all request/settlement bindings verified",
-      },
-    );
-    reservationStage = "fulfilled";
-    drafts.push({
-      kind: "fulfillment_receipt_verified",
-      occurredAt: fulfilledAt,
-      protocolLabel: "Ed25519 fulfillment receipt",
-      transactionCreated: true,
-      txSignature: settlement.transaction,
-      details: eventDetails({
-        fulfillmentReceiptHash,
-        keyId: receipt.keyId,
-        signer: receipt.signer,
-        resourceResponseHash,
-      }),
-    });
-
-    const applied = await deps.dependencyRouter.apply(fulfilled.resource);
-    if (!applied.applied || applied.activationId !== fulfilled.resource.activationId) {
-      throw new Error("Dependency router did not apply the purchased recovery route");
-    }
-    const appliedAt = now();
-    drafts.push({
-      kind: "recovery_resource_applied",
-      occurredAt: appliedAt,
-      protocolLabel: "firestore_recovery_route",
-      transactionCreated: true,
-      txSignature: settlement.transaction,
-      details: eventDetails({ activationId: applied.activationId, applied: true }),
-    });
-    const healthProbe = HealthProbeEvidenceSchema.parse(
-      await deps.healthProbe.probe({ incident, resource: fulfilled.resource }),
-    );
-    if (healthProbe.routeActivationId !== fulfilled.resource.activationId) {
-      throw new Error("Independent health probe did not use the purchased recovery route");
-    }
-    if (Date.parse(healthProbe.observedAt) < Date.parse(receipt.payload.fulfilledAt)) {
-      throw new Error("Healthy recovery proof predates the verified fulfillment receipt");
-    }
-    const healthProbeHash = canonicalHash(healthProbe);
-    drafts.push({
-      kind: "health_probe_healthy",
-      occurredAt: healthProbe.observedAt,
-      protocolLabel: "Independent health probe",
-      transactionCreated: true,
-      txSignature: settlement.transaction,
-      details: eventDetails({
-        healthProbeHash,
-        routeActivationId: healthProbe.routeActivationId,
-        statusAfter: "healthy",
-      }),
-    });
-    const recoveredAt = now();
-    if (Date.parse(recoveredAt) < Date.parse(healthProbe.observedAt)) {
-      throw new Error("Recovery outcome predates the independent healthy probe");
-    }
-    const outcomePayload = RecoveryOutcomePayloadSchema.parse({
-      incidentId: incident.id,
-      paymentId: request.paymentId,
-      fulfillmentReceiptHash,
-      resourceResponseHash,
-      statusBefore: incident.healthBefore,
-      statusAfter: "healthy",
-      healthProbeHash,
-      recoveredAt,
-    });
-    const recoveryOutcome = RecoveryOutcomeEnvelopeSchema.parse({
-      payload: outcomePayload,
-      signer: deps.outcomeSigner.publicKey,
-      keyId: deps.outcomeSigner.keyId,
-      signature: await deps.outcomeSigner.sign(outcomePayload),
-    });
-    assertSeparateSigningAuthorities(receipt, recoveryOutcome, selectedOffer.payload.payee);
-    await verifyRecoveryOutcomeForFlow({
-      candidate: recoveryOutcome,
-      expectedSignerPublicKey: deps.outcomeSigner.publicKey,
-      expectedSignerKeyId: deps.outcomeSigner.keyId,
-      expectedPayload: outcomePayload,
-      forbiddenVendorSigner: receipt.signer,
-      forbiddenPayee: selectedOffer.payload.payee,
-    });
-    drafts.push({
-      kind: "recovery_outcome_signed",
-      occurredAt: recoveredAt,
-      protocolLabel: "Control-plane RecoveryOutcome",
-      transactionCreated: true,
-      txSignature: settlement.transaction,
-      details: eventDetails({
-        outcomeHash: canonicalHash(recoveryOutcome),
-        keyId: recoveryOutcome.keyId,
-        healthProbeHash,
-      }),
-    });
-    const committedAt = now();
-    const committedReservation = await deps.store.transitionReservation(
-      authorization.reservation.reservationId,
-      ["fulfilled"],
-      "committed",
-      committedAt,
-      {
-        txSignature: settlement.transaction,
-        fulfillmentReceiptHash,
-        note: "Purchased resource applied and independent health probe is healthy",
-      },
-    );
-    reservationStage = "committed";
-    drafts.push({
-      kind: "budget_committed",
-      occurredAt: committedAt,
-      protocolLabel: "Budget commit",
-      transactionCreated: true,
-      txSignature: settlement.transaction,
-      details: eventDetails({
-        reservationId: authorization.reservation.reservationId,
-        state: "committed",
-      }),
-    });
-    await audit(deps.store, {
-      type: "control.recovery_committed",
-      occurredAt: committedAt,
-      correlationId,
-      incidentId: incident.id,
-      mandateId: request.mandateId,
-      paymentId: request.paymentId,
-      idempotencyKey: request.idempotencyKey,
-      txSignature: settlement.transaction,
-      payload: jsonValue({
-        reservationId: authorization.reservation.reservationId,
-        fulfillmentReceiptHash,
-        recoveryOutcomeHash: canonicalHash(recoveryOutcome),
-        healthProbeHash,
-      }),
-    });
-    const result: RecoveredIncidentResult = {
-      outcome: "recovered",
-      correlationId,
-      transactionCreated: true,
-      txSignature: settlement.transaction,
-      reservationId: authorization.reservation.reservationId,
-      incident,
-      decision: orchestration.decision,
-      geminiBaseline: orchestration.geminiRun,
-      offers,
-      selectedOffer,
-      challengeHash: challengeBinding.challenge.challengeHash,
-      requestFingerprint: challengeBinding.requestFingerprint,
-      paymentRequiredHeader,
-      paymentSignatureHeader: authorization.paymentSignature,
-      paymentResponseHeader,
-      signedTransactionSha256: Sha256Schema.parse(
-        authorization.signedTransactionSha256,
-      ) as `sha256:${string}`,
-      resource: fulfilled.resource,
-      resourceResponseHash,
-      fulfillmentReceipt: receipt,
-      fulfillmentReceiptHash,
-      healthProbe,
-      healthProbeHash,
-      recoveryOutcome,
-      policyEvidence: {
-        reservation: committedReservation,
-        remainingBeforeBaseUnits: authorization.budgetEvidence.remainingBeforeBaseUnits,
-        remainingAfterReserveBaseUnits:
-          authorization.budgetEvidence.remainingAfterReserveBaseUnits,
-        remainingAfterCommitBaseUnits:
-          authorization.budgetEvidence.remainingAfterReserveBaseUnits,
-        rules: authorization.checks,
-      },
-      events: materializeEvents(drafts, deps.evidenceLevel, correlationId),
-      evidence: {
-        level: deps.evidenceLevel,
-        explorerUrl: null,
-        tokenDeltas: [],
-      },
-    };
-    canonicalize(result);
-    return result;
-  } catch (error) {
-    if (reservationStage === "submitted") {
-      return markUnknown({
-        deps,
-        correlationId,
-        request,
-        incident,
-        geminiBaseline: orchestration.geminiRun,
-        selectedOffer,
-        reservationId: authorization.reservation.reservationId,
-        drafts,
-        reasonCode: "paid_response_invalid",
-      });
-    }
-    throw error;
-  }
+  return finalize(reconciliationResponse, "reconciled", "unknown");
 }

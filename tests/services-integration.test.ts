@@ -294,6 +294,7 @@ class FixtureSigner implements PrivateX402PayloadSigner {
 class FixtureGateway implements VendorX402Gateway {
   readonly mode = "local-simulated" as const;
   settleCalls = 0;
+  verifyCalls = 0;
   verifyResponse: VerifyResponse = { isValid: true, payer: EXECUTOR };
 
   async validateStateless({ paymentPayload }: { paymentPayload: PaymentPayload }) {
@@ -302,6 +303,7 @@ class FixtureGateway implements VendorX402Gateway {
       : ({ valid: false, reason: "missing_transaction" } as const);
   }
   async verify() {
+    this.verifyCalls += 1;
     return structuredClone(this.verifyResponse);
   }
   async settle(_payload: PaymentPayload, requirements: PaymentRequired["accepts"][number]) {
@@ -428,6 +430,8 @@ async function createFixture(perTransactionLimit = "20000") {
   const signer = new FixtureSigner();
   const gateway = new FixtureGateway();
   const safeDiagnostics: VendorSafeDiagnosticEvent[] = [];
+  const fulfillmentInputs: Array<Record<string, unknown>> = [];
+  const settlementVerificationInputs: Array<Record<string, unknown>> = [];
   let health = "down";
   const vendorBase: Omit<VendorAgentDependencies, "claims"> = {
     config: {
@@ -440,6 +444,9 @@ async function createFixture(perTransactionLimit = "20000") {
       maxTimeoutSeconds: 120,
       facilitatorOrigin: "https://x402.org",
       facilitatorFeePayer: FEE_PAYER,
+      expectedPayerPublicKey: EXECUTOR,
+      reconciliationAudience: ORIGIN,
+      allowedReconciliationPrincipal: CONTROL_PRINCIPAL,
       offers,
       offerEvaluations: [
         {
@@ -461,12 +468,41 @@ async function createFixture(perTransactionLimit = "20000") {
         offer.signer === RECEIPT_SIGNER && offer.keyId === "vendor-offer-key-v1",
     },
     x402: gateway,
+    existingSettlementVerifier: {
+      async verifyExistingSettlement(input) {
+        settlementVerificationInputs.push(structuredClone(input));
+        if (
+          input.txSignature !== TX_SIGNATURE ||
+          input.payerOwner !== EXECUTOR ||
+          input.payeeOwner !== PAYEE ||
+          input.assetMint !== DEVNET_USDC_MINT
+        ) {
+          throw new Error("fixture settlement binding mismatch");
+        }
+      },
+    },
+    reconciliationIamVerifier: {
+      async verifyBearerToken(token, expectedAudience) {
+        if (token === "vendor-control") {
+          return { audience: expectedAudience, principal: CONTROL_PRINCIPAL };
+        }
+        if (token === "vendor-wrong-audience") {
+          return { audience: "https://other.example", principal: CONTROL_PRINCIPAL };
+        }
+        if (token === "vendor-wrong-principal") {
+          return { audience: expectedAudience, principal: "attacker@example.com" };
+        }
+        throw new Error("invalid vendor test token");
+      },
+    },
     recoveryResource: {
       async fulfill(input) {
+        fulfillmentInputs.push(structuredClone(input));
         health = "healthy";
         return {
           contentType: "application/json",
           body: { routeActivated: true, health, operationId: input.operationId },
+          fulfilledAt: input.requestedAt,
         };
       },
     },
@@ -524,9 +560,11 @@ async function createFixture(perTransactionLimit = "20000") {
     executor: executorApp,
     gateway,
     getHealth: () => health,
+    fulfillmentInputs,
     policy,
     repositories: { executorRepository, vendorRepositoryA, vendorRepositoryB },
     safeDiagnostics,
+    settlementVerificationInputs,
     signer,
     vendorA: vendorAApp,
     vendorB: vendorBApp,
@@ -1020,6 +1058,229 @@ describe("local-simulated x402 service integration", () => {
     expect(paid.body.fulfillmentReceipt.signer).toBe(RECEIPT_SIGNER);
     expect(fixture.getHealth()).toBe("healthy");
     expect(fixture.gateway.settleCalls).toBe(1);
+    expect(fixture.fulfillmentInputs).toEqual([
+      {
+        incidentId: "incident-1",
+        offerId: "offer-fast",
+        operationId: "operation-1",
+        paymentId: challenge.body.paymentId,
+        txSignature: TX_SIGNATURE,
+        requestedAt: NOW,
+      },
+    ]);
+    expect(fixture.fulfillmentInputs[0]).not.toHaveProperty("executionPolicyHash");
+  });
+
+  it("OIDC-authorizes fulfillment-only reconciliation without verify, settle, or payload replay", async () => {
+    const fixture = await createFixture();
+    const challenge = await getChallenge(fixture);
+    const acquired = await fixture.repositories.vendorRepositoryA.claimVendorPayment({
+      vendorTenant: "vendor-tenant-1",
+      paymentId: challenge.body.paymentId,
+      requestFingerprint: challenge.proposal.requestFingerprint,
+      occurredAt: NOW,
+    });
+    expect(acquired.kind).toBe("acquired");
+    if (acquired.kind !== "acquired") throw new Error("fixture claim was not acquired");
+    const attempted = await fixture.repositories.vendorRepositoryA.markVendorSettlementAttempted(
+      "vendor-tenant-1",
+      challenge.body.paymentId,
+      acquired.record.version,
+      NOW,
+    );
+    await fixture.repositories.vendorRepositoryA.transitionVendorPaymentClaim(
+      "vendor-tenant-1",
+      challenge.body.paymentId,
+      "settling",
+      attempted.version,
+      "settlement_verified",
+      NOW,
+      { txSignature: TX_SIGNATURE },
+    );
+
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .send(challenge.body)
+      .expect(401, { error: "iam_token_required" });
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("content-type", "application/json")
+      .send('{"malformed":')
+      .expect(401, { error: "iam_token_required" });
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-wrong-audience")
+      .send(challenge.body)
+      .expect(403, { error: "iam_audience_mismatch" });
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-wrong-principal")
+      .send(challenge.body)
+      .expect(403, { error: "iam_principal_forbidden" });
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-control")
+      .set("PAYMENT-SIGNATURE", "forbidden-payload")
+      .send(challenge.body)
+      .expect(400, { error: "payment_signature_not_allowed" });
+
+    const reconciled = await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-control")
+      .send(challenge.body)
+      .expect(200);
+    expect(reconciled.headers["payment-response"]).toBeTypeOf("string");
+    expect(reconciled.body).toMatchObject({
+      protocol: "x402",
+      replayedFulfillment: false,
+      reconciledFulfillment: true,
+      settlementRetried: false,
+      transactionCreated: false,
+      resource: { routeActivated: true, health: "healthy" },
+    });
+    expect(reconciled.body.fulfillmentReceipt.payload).toMatchObject({
+      requestFingerprint: challenge.proposal.requestFingerprint,
+      txSignature: TX_SIGNATURE,
+      payer: EXECUTOR,
+      fulfilledAt: NOW,
+    });
+    expect(fixture.gateway.verifyCalls).toBe(0);
+    expect(fixture.gateway.settleCalls).toBe(0);
+    expect(fixture.settlementVerificationInputs).toEqual([
+      {
+        txSignature: TX_SIGNATURE,
+        payerOwner: EXECUTOR,
+        payeeOwner: PAYEE,
+        amountBaseUnits: "10000",
+        assetMint: DEVNET_USDC_MINT,
+      },
+    ]);
+    expect(fixture.fulfillmentInputs[0]).toEqual({
+      incidentId: "incident-1",
+      offerId: "offer-fast",
+      operationId: "operation-1",
+      paymentId: challenge.body.paymentId,
+      txSignature: TX_SIGNATURE,
+      requestedAt: NOW,
+    });
+    expect(fixture.fulfillmentInputs[0]).not.toHaveProperty("executionPolicyHash");
+
+    const audit = fixture.safeDiagnostics.find(
+      (event) => event.event === "fulfillment.reconciled",
+    );
+    expect(audit).toMatchObject({
+      event: "fulfillment.reconciled",
+      incidentId: "incident-1",
+      offerId: "offer-fast",
+      paymentId: challenge.body.paymentId,
+      requestFingerprint: challenge.proposal.requestFingerprint,
+      stateBefore: "settlement_verified",
+      stateAfter: "receipt_signed",
+      settlementRetried: false,
+    });
+    expect(JSON.stringify(audit)).not.toContain("vendor-control");
+    expect(JSON.stringify(audit)).not.toContain(TX_SIGNATURE);
+
+    const replayed = await request(fixture.vendorB)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-control")
+      .send(challenge.body)
+      .expect(200);
+    expect(replayed.body).toMatchObject({
+      replayedFulfillment: true,
+      reconciledFulfillment: true,
+    });
+    expect(replayed.body.fulfillmentReceipt).toEqual(reconciled.body.fulfillmentReceipt);
+    expect(fixture.fulfillmentInputs).toHaveLength(1);
+    expect(fixture.gateway.verifyCalls).toBe(0);
+    expect(fixture.gateway.settleCalls).toBe(0);
+
+    const changedBody = {
+      ...challenge.body,
+      operationId: "operation-changed",
+    };
+    const verificationCallsBeforeConflict = fixture.settlementVerificationInputs.length;
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-control")
+      .send(changedBody)
+      .expect(409, { error: "payment_identifier_fingerprint_conflict" });
+    expect(fixture.settlementVerificationInputs).toHaveLength(
+      verificationCallsBeforeConflict,
+    );
+    expect(fixture.gateway.verifyCalls).toBe(0);
+    expect(fixture.gateway.settleCalls).toBe(0);
+  });
+
+  it("rejects reconciliation while the claim is still ambiguous settling", async () => {
+    const fixture = await createFixture();
+    const challenge = await getChallenge(
+      fixture,
+      recoveryBody("payment_identifier_unverified_01"),
+    );
+    await fixture.repositories.vendorRepositoryA.claimVendorPayment({
+      vendorTenant: "vendor-tenant-1",
+      paymentId: challenge.body.paymentId,
+      requestFingerprint: challenge.proposal.requestFingerprint,
+      occurredAt: NOW,
+    });
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-control")
+      .send(challenge.body)
+      .expect(409, {
+        error: "settlement_not_verified",
+        settlementRetried: false,
+      });
+    expect(fixture.settlementVerificationInputs).toHaveLength(0);
+    expect(fixture.gateway.verifyCalls).toBe(0);
+    expect(fixture.gateway.settleCalls).toBe(0);
+  });
+
+  it("leaves fulfillment untouched when independent settlement binding verification fails", async () => {
+    const fixture = await createFixture();
+    const challenge = await getChallenge(
+      fixture,
+      recoveryBody("payment_identifier_mismatched_tx_01"),
+    );
+    const acquired = await fixture.repositories.vendorRepositoryA.claimVendorPayment({
+      vendorTenant: "vendor-tenant-1",
+      paymentId: challenge.body.paymentId,
+      requestFingerprint: challenge.proposal.requestFingerprint,
+      occurredAt: NOW,
+    });
+    if (acquired.kind !== "acquired") throw new Error("fixture claim was not acquired");
+    const attempted = await fixture.repositories.vendorRepositoryA.markVendorSettlementAttempted(
+      "vendor-tenant-1",
+      challenge.body.paymentId,
+      acquired.record.version,
+      NOW,
+    );
+    await fixture.repositories.vendorRepositoryA.transitionVendorPaymentClaim(
+      "vendor-tenant-1",
+      challenge.body.paymentId,
+      "settling",
+      attempted.version,
+      "settlement_verified",
+      NOW,
+      { txSignature: base58Bytes(9, 64) },
+    );
+    await request(fixture.vendorA)
+      .post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-control")
+      .send(challenge.body)
+      .expect(503, {
+        error: "settlement_reverification_failed",
+        settlementRetried: false,
+      });
+    const claim = await fixture.repositories.vendorRepositoryA.getVendorPaymentClaim(
+      "vendor-tenant-1",
+      challenge.body.paymentId,
+    );
+    expect(claim?.state).toBe("settlement_verified");
+    expect(fixture.fulfillmentInputs).toHaveLength(0);
+    expect(fixture.gateway.verifyCalls).toBe(0);
+    expect(fixture.gateway.settleCalls).toBe(0);
   });
 
   it("settles once across two vendor instances, replays cached fulfillment, and returns 409 for a changed fingerprint", async () => {

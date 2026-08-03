@@ -82,6 +82,48 @@ function strictExternalJsonParser() {
   });
 }
 
+type AuthenticatedVendorRequest = Request & { iamIdentity?: VendorIamIdentity };
+
+function bearerToken(header: string | undefined): string | null {
+  if (!header || header.length > 8_192) return null;
+  const match = /^Bearer ([A-Za-z0-9._~-]+)$/.exec(header);
+  return match?.[1] ?? null;
+}
+
+function authorizeReconciliation(deps: VendorAgentDependencies) {
+  return async (
+    request: AuthenticatedVendorRequest,
+    response: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    const token = bearerToken(request.header("authorization"));
+    if (!token) {
+      response.status(401).json({ error: "iam_token_required" });
+      return;
+    }
+    let identity: VendorIamIdentity;
+    try {
+      identity = await deps.reconciliationIamVerifier.verifyBearerToken(
+        token,
+        deps.config.reconciliationAudience,
+      );
+    } catch {
+      response.status(401).json({ error: "iam_token_invalid" });
+      return;
+    }
+    if (identity.audience !== deps.config.reconciliationAudience) {
+      response.status(403).json({ error: "iam_audience_mismatch" });
+      return;
+    }
+    if (identity.principal !== deps.config.allowedReconciliationPrincipal) {
+      response.status(403).json({ error: "iam_principal_forbidden" });
+      return;
+    }
+    request.iamIdentity = identity;
+    next();
+  };
+}
+
 const Base58PublicKeySchema = z.string().min(32).max(44).regex(/^[1-9A-HJ-NP-Za-km-z]+$/);
 
 const OfferDiscoveryRequestSchema = z
@@ -178,7 +220,31 @@ export interface RecoveryResourceProvider {
     operationId: string;
     paymentId: string;
     txSignature: string;
-  }): Promise<{ contentType: "application/json"; body: JsonValue }>;
+    requestedAt: string;
+  }): Promise<{
+    contentType: "application/json";
+    body: JsonValue;
+    fulfilledAt: string;
+  }>;
+}
+
+export interface VendorExistingSettlementVerifier {
+  verifyExistingSettlement(input: {
+    txSignature: string;
+    payerOwner: string;
+    payeeOwner: string;
+    amountBaseUnits: string;
+    assetMint: string;
+  }): Promise<void>;
+}
+
+export type VendorIamIdentity = Readonly<{
+  audience: string;
+  principal: string;
+}>;
+
+export interface VendorIamTokenVerifier {
+  verifyBearerToken(token: string, expectedAudience: string): Promise<VendorIamIdentity>;
 }
 
 export interface VendorFulfillmentReceiptSigner {
@@ -201,6 +267,10 @@ export type VendorAgentConfig = {
    * response and enhanced through @x402/svm's server scheme at startup.
    */
   facilitatorFeePayer: string;
+  /** Public address only. The vendor never receives the executor signer. */
+  expectedPayerPublicKey: string;
+  reconciliationAudience: string;
+  allowedReconciliationPrincipal: string;
   offers: OfferPair;
   offerEvaluations: OfferEvaluationPair;
 };
@@ -210,18 +280,34 @@ export type VendorAgentDependencies = {
   claims: VendorClaimRepository;
   offerVerifier: VendorOfferSignatureVerifier;
   x402: VendorX402Gateway;
+  existingSettlementVerifier: VendorExistingSettlementVerifier;
+  reconciliationIamVerifier: VendorIamTokenVerifier;
   recoveryResource: RecoveryResourceProvider;
   receiptSigner: VendorFulfillmentReceiptSigner;
   onSafeDiagnostic?: (event: VendorSafeDiagnosticEvent) => void;
   now?: () => string;
 };
 
-export type VendorSafeDiagnosticEvent = Readonly<{
-  event: "facilitator.verify_rejected";
-  paymentId: string;
-  settlementAttempted: false;
-  facilitatorDiagnostic: FacilitatorVerificationDiagnostic;
-}>;
+export type VendorSafeDiagnosticEvent =
+  | Readonly<{
+      event: "facilitator.verify_rejected";
+      paymentId: string;
+      settlementAttempted: false;
+      facilitatorDiagnostic: FacilitatorVerificationDiagnostic;
+    }>
+  | Readonly<{
+      event: "fulfillment.reconciled";
+      auditId: `sha256:${string}`;
+      incidentId: string;
+      offerId: string;
+      paymentId: string;
+      requestFingerprint: `sha256:${string}`;
+      txSignatureHash: `sha256:${string}`;
+      actorPrincipalHash: `sha256:${string}`;
+      stateBefore: "settlement_verified" | "resource_generated" | "receipt_signed";
+      stateAfter: "receipt_signed";
+      settlementRetried: false;
+    }>;
 
 export type VendorAgentVerificationMethod = Readonly<{
   id: string;
@@ -511,6 +597,10 @@ function sendPersistedClaim(
   response: Response,
   claim: VendorPaymentClaimRecord,
   paymentRequirements: PaymentRequirements,
+  options: Readonly<{
+    replayedFulfillment: boolean;
+    reconciledFulfillment?: boolean;
+  }> = { replayedFulfillment: true },
 ): void {
   if (!claim.resourceBodyBase64 || !claim.fulfillmentReceipt || !claim.txSignature) {
     response.status(503).json({ error: "reconcile_required", transactionCreated: false });
@@ -523,8 +613,151 @@ function sendPersistedClaim(
     resource: JSON.parse(Buffer.from(claim.resourceBodyBase64, "base64").toString("utf8")),
     fulfillmentReceipt: receipt,
     protocol: "x402",
-    replayedFulfillment: true,
+    replayedFulfillment: options.replayedFulfillment,
+    ...(options.reconciledFulfillment === undefined
+      ? {}
+      : {
+          reconciledFulfillment: options.reconciledFulfillment,
+          settlementRetried: false,
+          transactionCreated: false,
+        }),
   });
+}
+
+function exactFulfillmentInput(
+  input: RecoveryInput,
+  txSignature: string,
+  requestedAt: string,
+): Parameters<RecoveryResourceProvider["fulfill"]>[0] {
+  return {
+    incidentId: input.incidentId,
+    offerId: input.offerId,
+    operationId: input.operationId,
+    paymentId: input.paymentId,
+    txSignature,
+    requestedAt,
+  };
+}
+
+async function reloadProgressedClaim(
+  deps: VendorAgentDependencies,
+  previous: VendorPaymentClaimRecord,
+  error: unknown,
+): Promise<VendorPaymentClaimRecord> {
+  const latest = await deps.claims.getVendorPaymentClaim(
+    deps.config.vendorTenant,
+    previous.paymentId,
+  );
+  if (
+    latest &&
+    latest.requestFingerprint === previous.requestFingerprint &&
+    (latest.version !== previous.version || latest.state !== previous.state)
+  ) {
+    return latest;
+  }
+  throw error;
+}
+
+/**
+ * Completes only post-settlement work. Every state transition is an atomic
+ * compare-and-set; concurrent instances may duplicate deterministic signing
+ * or idempotent resource generation, but only one persisted transition wins.
+ */
+async function resumeVerifiedFulfillment(
+  deps: VendorAgentDependencies,
+  input: RecoveryInput,
+  offer: VendorOffer,
+  challenge: ReturnType<typeof buildChallenge>,
+  initialClaim: VendorPaymentClaimRecord,
+): Promise<VendorPaymentClaimRecord> {
+  let claim = initialClaim;
+  for (let step = 0; step < 4; step += 1) {
+    if (claim.requestFingerprint !== challenge.requestFingerprint) {
+      throw new Error("Vendor claim fingerprint changed during fulfillment reconciliation");
+    }
+    if (!claim.txSignature) {
+      throw new Error("Verified settlement claim is missing its transaction signature");
+    }
+    if (claim.state === "settlement_verified") {
+      const resource = await deps.recoveryResource.fulfill(
+        exactFulfillmentInput(
+          input,
+          claim.txSignature,
+          (deps.now ?? (() => new Date().toISOString()))(),
+        ),
+      );
+      const resourceBytes = Buffer.from(canonicalize(resource.body), "utf8");
+      try {
+        claim = await deps.claims.transitionVendorPaymentClaim(
+          deps.config.vendorTenant,
+          input.paymentId,
+          "settlement_verified",
+          claim.version,
+          "resource_generated",
+          resource.fulfilledAt,
+          {
+            resourceResponseHash: sha256Bytes(resourceBytes),
+            resourceContentType: resource.contentType,
+            resourceBodyBase64: resourceBytes.toString("base64"),
+          },
+        );
+      } catch (error) {
+        claim = await reloadProgressedClaim(deps, claim, error);
+      }
+      continue;
+    }
+
+    if (claim.state === "resource_generated") {
+      if (!claim.resourceResponseHash || !claim.resourceBodyBase64 || !claim.resourceContentType) {
+        throw new Error("Generated resource claim is missing persisted response bindings");
+      }
+      const receiptPayload: FulfillmentReceiptPayload = {
+        version: "1",
+        issuerAgentId: deps.config.agentId,
+        incidentId: input.incidentId,
+        offerId: offer.payload.offerId,
+        paymentId: input.paymentId,
+        executionPolicyHash: input.executionPolicyHash,
+        challengeHash: challenge.challengeHash,
+        requestFingerprint: challenge.requestFingerprint,
+        txSignature: claim.txSignature,
+        resourceResponseHash: claim.resourceResponseHash,
+        resourceUrl: offer.payload.resourceUrl,
+        payer: deps.config.expectedPayerPublicKey,
+        payee: offer.payload.payee,
+        assetMint: offer.payload.assetMint,
+        amountBaseUnits: offer.payload.amountBaseUnits,
+        // resource_generated.updatedAt is persisted once by the winning CAS,
+        // so receipt retries remain byte-identical without backdating them to
+        // the earlier settlement transition.
+        fulfilledAt: claim.updatedAt,
+      };
+      const receipt: FulfillmentReceipt = FulfillmentReceiptSchema.parse({
+        payload: receiptPayload,
+        signer: deps.receiptSigner.signerPublicKey,
+        keyId: deps.receiptSigner.keyId,
+        signature: await deps.receiptSigner.sign(receiptPayload),
+      });
+      try {
+        claim = await deps.claims.transitionVendorPaymentClaim(
+          deps.config.vendorTenant,
+          input.paymentId,
+          "resource_generated",
+          claim.version,
+          "receipt_signed",
+          claim.updatedAt,
+          { fulfillmentReceipt: receipt as unknown as JsonValue },
+        );
+      } catch (error) {
+        claim = await reloadProgressedClaim(deps, claim, error);
+      }
+      continue;
+    }
+
+    if (claim.state === "receipt_signed") return claim;
+    throw new Error("Settlement has not reached a reconcilable verified state");
+  }
+  throw new Error("Fulfillment reconciliation did not converge");
 }
 
 async function processPaidRecovery(
@@ -599,14 +832,20 @@ async function processPaidRecovery(
     response.status(502).json({ error: "facilitator_verify_unavailable", settlementAttempted: false });
     return;
   }
-  if (!verification.isValid || !verification.payer) {
+  if (
+    !verification.isValid ||
+    !verification.payer ||
+    verification.payer !== deps.config.expectedPayerPublicKey
+  ) {
     await deps.claims.releaseVendorClaimBeforeSubmission(
       deps.config.vendorTenant,
       input.paymentId,
       claim.record.version,
     );
     const facilitatorDiagnostic = sanitizeFacilitatorVerificationFailure(
-      verification.isValid
+      !verification.isValid
+        ? verification
+        : !verification.payer
         ? {
             isValid: false,
             invalidReason: "facilitator_payer_missing",
@@ -614,7 +853,7 @@ async function processPaidRecovery(
               ? {}
               : { invalidMessage: verification.invalidMessage }),
           }
-        : verification,
+        : { isValid: false, invalidReason: "facilitator_payer_mismatch" },
     );
     deps.onSafeDiagnostic?.({
       event: "facilitator.verify_rejected",
@@ -651,6 +890,7 @@ async function processPaidRecovery(
     !settlement.response.success ||
     !settlement.confirmed ||
     !settlement.response.payer ||
+    settlement.response.payer !== deps.config.expectedPayerPublicKey ||
     settlement.response.network !== paymentRequirements.network ||
     (settlement.response.amount !== undefined && settlement.response.amount !== paymentRequirements.amount)
   ) {
@@ -672,64 +912,107 @@ async function processPaidRecovery(
     now(),
     { txSignature: settlement.response.transaction },
   );
-  const resource = await deps.recoveryResource.fulfill({
-    ...input,
-    txSignature: settlement.response.transaction,
-  });
-  const resourceBytes = Buffer.from(canonicalize(resource.body), "utf8");
-  const resourceResponseHash = sha256Bytes(resourceBytes);
-  const generated = await deps.claims.transitionVendorPaymentClaim(
-    deps.config.vendorTenant,
-    input.paymentId,
-    "settlement_verified",
-    settled.version,
-    "resource_generated",
-    now(),
-    {
-      resourceResponseHash,
-      resourceContentType: resource.contentType,
-      resourceBodyBase64: resourceBytes.toString("base64"),
-    },
-  );
-  const receiptPayload: FulfillmentReceiptPayload = {
-    version: "1",
-    issuerAgentId: deps.config.agentId,
-    incidentId: input.incidentId,
-    offerId: offer.payload.offerId,
-    paymentId: input.paymentId,
-    executionPolicyHash: input.executionPolicyHash,
-    challengeHash: challenge.challengeHash,
-    requestFingerprint: challenge.requestFingerprint,
-    txSignature: settlement.response.transaction,
-    resourceResponseHash,
-    resourceUrl: offer.payload.resourceUrl,
-    payer: settlement.response.payer,
-    payee: offer.payload.payee,
-    assetMint: offer.payload.assetMint,
-    amountBaseUnits: offer.payload.amountBaseUnits,
-    fulfilledAt: now(),
-  };
-  const receipt: FulfillmentReceipt = FulfillmentReceiptSchema.parse({
-    payload: receiptPayload,
-    signer: deps.receiptSigner.signerPublicKey,
-    keyId: deps.receiptSigner.keyId,
-    signature: await deps.receiptSigner.sign(receiptPayload),
-  });
-  const completed = await deps.claims.transitionVendorPaymentClaim(
-    deps.config.vendorTenant,
-    input.paymentId,
-    "resource_generated",
-    generated.version,
-    "receipt_signed",
-    now(),
-    { fulfillmentReceipt: receipt as unknown as JsonValue },
-  );
-  response.set(PAYMENT_RESPONSE_HEADER, encodePaymentResponseHeader(settlement.response));
-  response.status(200).json({
-    resource: JSON.parse(Buffer.from(completed.resourceBodyBase64!, "base64").toString("utf8")),
-    fulfillmentReceipt: receipt,
-    protocol: "x402",
+  const completed = await resumeVerifiedFulfillment(deps, input, offer, challenge, settled);
+  sendPersistedClaim(response, completed, paymentRequirements, {
     replayedFulfillment: false,
+  });
+}
+
+async function processFulfillmentReconciliation(
+  deps: VendorAgentDependencies,
+  offers: OfferPair,
+  input: RecoveryInput,
+  actorPrincipal: string,
+  response: Response,
+): Promise<void> {
+  const offer = offerForRequest(offers, input);
+  if (
+    !offer ||
+    offer.payload.method !== "POST" ||
+    offer.payload.resourceUrl !== new URL("/v1/recovery", deps.config.agentOrigin).toString()
+  ) {
+    response.status(404).json({ error: "immutable_offer_not_found" });
+    return;
+  }
+  if (!(await deps.offerVerifier.verify(offer))) {
+    response.status(400).json({ error: "signed_offer_invalid" });
+    return;
+  }
+
+  const challenge = buildChallenge(deps.config, offer, input);
+  const claim = await deps.claims.getVendorPaymentClaim(
+    deps.config.vendorTenant,
+    input.paymentId,
+  );
+  if (!claim) {
+    response.status(404).json({ error: "vendor_payment_claim_not_found" });
+    return;
+  }
+  if (claim.requestFingerprint !== challenge.requestFingerprint) {
+    response.status(409).json({ error: "payment_identifier_fingerprint_conflict" });
+    return;
+  }
+  if (!claim.txSignature || claim.state === "settling") {
+    response.status(409).json({
+      error: "settlement_not_verified",
+      settlementRetried: false,
+    });
+    return;
+  }
+  const stateBefore = claim.state;
+
+  try {
+    await deps.existingSettlementVerifier.verifyExistingSettlement({
+      txSignature: claim.txSignature,
+      payerOwner: deps.config.expectedPayerPublicKey,
+      payeeOwner: offer.payload.payee,
+      amountBaseUnits: offer.payload.amountBaseUnits,
+      assetMint: offer.payload.assetMint,
+    });
+  } catch {
+    response.status(503).json({
+      error: "settlement_reverification_failed",
+      settlementRetried: false,
+    });
+    return;
+  }
+
+  let completed: VendorPaymentClaimRecord;
+  try {
+    completed = await resumeVerifiedFulfillment(deps, input, offer, challenge, claim);
+  } catch {
+    response.status(503).json({
+      error: "fulfillment_reconciliation_failed",
+      settlementRetried: false,
+    });
+    return;
+  }
+  sendPersistedClaim(response, completed, challenge.paymentRequired.accepts[0]!, {
+    replayedFulfillment: claim.state === "receipt_signed",
+    reconciledFulfillment: true,
+  });
+  const txSignatureHash = sha256Bytes(Buffer.from(claim.txSignature, "utf8"));
+  const actorPrincipalHash = canonicalHash({ principal: actorPrincipal });
+  deps.onSafeDiagnostic?.({
+    event: "fulfillment.reconciled",
+    auditId: canonicalHash({
+      event: "fulfillment.reconciled",
+      paymentId: input.paymentId,
+      requestFingerprint: challenge.requestFingerprint,
+      txSignatureHash,
+      actorPrincipalHash,
+      stateBefore,
+      stateAfter: completed.state,
+    }),
+    incidentId: input.incidentId,
+    offerId: input.offerId,
+    paymentId: input.paymentId,
+    requestFingerprint: challenge.requestFingerprint,
+    txSignatureHash,
+    actorPrincipalHash,
+    stateBefore,
+    stateAfter: "receipt_signed",
+    settlementRetried: false,
   });
 }
 
@@ -749,6 +1032,9 @@ export function createVendorAgentApp(deps: VendorAgentDependencies): Express {
   const a2aPath = deps.config.a2aPath ?? "/a2a";
 
   app.disable("x-powered-by");
+  // Authenticate the private reconciliation boundary before parsing any
+  // attacker-controlled body. The public A2A/x402 routes remain unchanged.
+  app.use("/v1/recovery/reconcile", authorizeReconciliation(deps));
   // This parser runs before the A2A SDK's parser as well as the x402 resource
   // route, so duplicate keys and malformed UTF-8 are rejected at the raw-byte
   // boundary instead of after SDK/schema normalization.
@@ -773,6 +1059,30 @@ export function createVendorAgentApp(deps: VendorAgentDependencies): Express {
   app.use(
     a2aPath,
     jsonRpcHandler({ requestHandler, userBuilder: UserBuilder.noAuthentication }),
+  );
+  app.post(
+    "/v1/recovery/reconcile",
+    async (request: AuthenticatedVendorRequest, response: Response) => {
+      if (request.headers[PAYMENT_SIGNATURE_HEADER.toLowerCase()] !== undefined) {
+        response.status(400).json({ error: "payment_signature_not_allowed" });
+        return;
+      }
+      const parsed = RecoveryRequestSchema.safeParse(request.body);
+      if (!parsed.success) {
+        response.status(400).json({
+          error: "invalid_recovery_request",
+          details: parsed.error.issues,
+        });
+        return;
+      }
+      await processFulfillmentReconciliation(
+        deps,
+        offers,
+        parsed.data,
+        request.iamIdentity!.principal,
+        response,
+      );
+    },
   );
   app.post(
     "/v1/recovery",

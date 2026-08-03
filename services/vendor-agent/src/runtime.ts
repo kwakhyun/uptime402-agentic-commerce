@@ -38,6 +38,7 @@ import type { PaymentPayload, PaymentRequirements, VerifyResponse } from "@x402/
 import { ExactSvmScheme as ExactSvmServerScheme } from "@x402/svm/exact/server";
 import { address } from "@solana/kit";
 import type { Express } from "express";
+import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 
 import {
@@ -48,6 +49,7 @@ import {
   type OfferEvaluationPair,
   type RecoveryResourceProvider,
   type VendorFulfillmentReceiptSigner,
+  type VendorIamTokenVerifier,
   type VendorOfferSignatureVerifier,
   type VendorX402Gateway,
 } from "./index.js";
@@ -105,6 +107,9 @@ export type VendorAgentRuntimeConfig = Readonly<{
   receiptPublicKey: string;
   receiptKeyId: string;
   usdcRecipient: string;
+  expectedPayerPublicKey: string;
+  reconciliationAudience: string;
+  allowedReconciliationPrincipal: string;
   solanaRpcUrl: string;
   facilitatorUrl: string;
   facilitatorOrigin: string;
@@ -179,6 +184,19 @@ function assertDevnetEnvironment(env: NodeJS.ProcessEnv): void {
 export function parseVendorAgentRuntimeConfig(env: NodeJS.ProcessEnv): VendorAgentRuntimeConfig {
   assertDevnetEnvironment(env);
   const agentOrigin = normalizePinnedOrigin(required(env, "PUBLIC_VENDOR_ORIGIN"));
+  const reconciliationAudience = normalizePinnedOrigin(
+    required(env, "VENDOR_RECONCILE_EXPECTED_AUDIENCE"),
+  );
+  if (reconciliationAudience !== agentOrigin) {
+    throw new Error("Vendor reconciliation audience must equal the public vendor origin");
+  }
+  const allowedReconciliationPrincipal = required(
+    env,
+    "VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL",
+  );
+  if (!/^[^@\s]+@[^@\s]+\.iam\.gserviceaccount\.com$/.test(allowedReconciliationPrincipal)) {
+    throw new TypeError("VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL must be a service account email");
+  }
   const facilitatorUrl = parseHttpsUrl(required(env, "X402_FACILITATOR_URL"), "X402_FACILITATOR_URL");
   const collectionPrefix = required(env, "FIRESTORE_COLLECTION_PREFIX");
   if (!/^[a-z][a-z0-9_-]{0,47}$/.test(collectionPrefix)) {
@@ -198,6 +216,20 @@ export function parseVendorAgentRuntimeConfig(env: NodeJS.ProcessEnv): VendorAge
     throw new Error(
       "Signed offers and fulfillment receipts must use the same pinned vendor Agent Card authority",
     );
+  }
+  const usdcRecipient = parseSolanaPublicKey(
+    required(env, "VENDOR_USDC_RECIPIENT"),
+    "VENDOR_USDC_RECIPIENT",
+  );
+  const expectedPayerPublicKey = parseSolanaPublicKey(
+    required(env, "VENDOR_EXPECTED_PAYER_PUBLIC_KEY"),
+    "VENDOR_EXPECTED_PAYER_PUBLIC_KEY",
+  );
+  if (
+    expectedPayerPublicKey === usdcRecipient ||
+    expectedPayerPublicKey === receiptPublicKey
+  ) {
+    throw new Error("Expected payer, USDC recipient, and vendor authority must be distinct");
   }
   return Object.freeze({
     host: env.HOST?.trim() || "0.0.0.0",
@@ -231,10 +263,10 @@ export function parseVendorAgentRuntimeConfig(env: NodeJS.ProcessEnv): VendorAge
     ),
     receiptPublicKey,
     receiptKeyId,
-    usdcRecipient: parseSolanaPublicKey(
-      required(env, "VENDOR_USDC_RECIPIENT"),
-      "VENDOR_USDC_RECIPIENT",
-    ),
+    usdcRecipient,
+    expectedPayerPublicKey,
+    reconciliationAudience,
+    allowedReconciliationPrincipal,
     solanaRpcUrl: parseHttpsUrl(required(env, "SOLANA_RPC_URL"), "SOLANA_RPC_URL"),
     facilitatorUrl,
     facilitatorOrigin: normalizePinnedOrigin(new URL(facilitatorUrl).origin),
@@ -474,11 +506,26 @@ class CanonicalReceiptSigner implements VendorFulfillmentReceiptSigner {
   }
 }
 
+class GoogleCloudVendorIamTokenVerifier implements VendorIamTokenVerifier {
+  constructor(private readonly client = new OAuth2Client()) {}
+
+  async verifyBearerToken(token: string, expectedAudience: string) {
+    const ticket = await this.client.verifyIdToken({
+      idToken: token,
+      audience: expectedAudience,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || typeof payload.aud !== "string" || typeof payload.email !== "string") {
+      throw new Error("Google ID token lacks an exact audience or service-account email");
+    }
+    return { audience: payload.aud, principal: payload.email };
+  }
+}
+
 class FirestoreRecoveryResourceProvider implements RecoveryResourceProvider {
   constructor(
     private readonly repository: FirestoreTransactionalRepository,
     private readonly offers: OfferPair,
-    private readonly now: () => string = () => new Date().toISOString(),
   ) {}
 
   async fulfill(input: {
@@ -487,22 +534,34 @@ class FirestoreRecoveryResourceProvider implements RecoveryResourceProvider {
     operationId: string;
     paymentId: string;
     txSignature: string;
-  }): Promise<{ contentType: "application/json"; body: JsonValue }> {
+    requestedAt: string;
+  }): Promise<{
+    contentType: "application/json";
+    body: JsonValue;
+    fulfilledAt: string;
+  }> {
     const offer = this.offers.find((candidate) => candidate.payload.offerId === input.offerId);
     if (!offer) throw new Error("Recovery resource references an unknown immutable offer");
+    const activationBinding = {
+      incidentId: input.incidentId,
+      offerId: input.offerId,
+      operationId: input.operationId,
+      paymentId: input.paymentId,
+      txSignature: input.txSignature,
+    };
     const activationId = canonicalHash({
       namespace: "uptime402-recovery-route-v1",
       paymentId: input.paymentId,
-      request: input,
+      request: activationBinding,
     }).slice("sha256:".length);
     const value = RecoveryResourceSchema.parse({
       version: "1",
       kind: "firestore_recovery_route",
       activationId,
-      ...input,
+      ...activationBinding,
       resourceUrl: offer.payload.resourceUrl,
       state: "active",
-      activatedAt: this.now(),
+      activatedAt: input.requestedAt,
       expiresAt: offer.payload.expiresAt,
     });
     const reference = this.repository.firestore
@@ -515,7 +574,11 @@ class FirestoreRecoveryResourceProvider implements RecoveryResourceProvider {
         if (canonicalHash(existing.value) !== existing.recordHash) {
           throw new Error("Recovery resource record integrity failure");
         }
-        if (canonicalHash(existing.value) !== canonicalHash(value)) {
+        const existingBinding: Record<string, unknown> = { ...existing.value };
+        const requestedBinding: Record<string, unknown> = { ...value };
+        delete existingBinding.activatedAt;
+        delete requestedBinding.activatedAt;
+        if (canonicalHash(existingBinding) !== canonicalHash(requestedBinding)) {
           throw new Error("Recovery resource activation identity conflict");
         }
         return existing.value;
@@ -527,7 +590,11 @@ class FirestoreRecoveryResourceProvider implements RecoveryResourceProvider {
       });
       return value;
     });
-    return { contentType: "application/json", body: persisted as JsonValue };
+    return {
+      contentType: "application/json",
+      body: persisted as JsonValue,
+      fulfilledAt: persisted.activatedAt,
+    };
   }
 }
 
@@ -666,6 +733,9 @@ export async function buildProductionVendorAgentApp(
     maxTimeoutSeconds: config.maxTimeoutSeconds,
     facilitatorOrigin: config.facilitatorOrigin,
     facilitatorFeePayer,
+    expectedPayerPublicKey: config.expectedPayerPublicKey,
+    reconciliationAudience: config.reconciliationAudience,
+    allowedReconciliationPrincipal: config.allowedReconciliationPrincipal,
     offers,
     offerEvaluations,
   } as const;
@@ -690,6 +760,25 @@ export async function buildProductionVendorAgentApp(
       config.settlementConfirmationAttempts,
       config.settlementConfirmationDelayMs,
     ),
+    existingSettlementVerifier: {
+      async verifyExistingSettlement(input) {
+        if (input.assetMint !== DEVNET_USDC_MINT) {
+          throw new Error("Reconciliation only accepts the pinned Devnet USDC mint");
+        }
+        if (input.payerOwner !== config.expectedPayerPublicKey) {
+          throw new Error("Reconciliation payer does not match the pinned executor address");
+        }
+        await verifySolanaSettlement({
+          rpc,
+          txSignature: input.txSignature,
+          payerOwner: config.expectedPayerPublicKey,
+          payeeOwner: input.payeeOwner,
+          amountBaseUnits: input.amountBaseUnits,
+          assetMint: DEVNET_USDC_MINT,
+        });
+      },
+    },
+    reconciliationIamVerifier: new GoogleCloudVendorIamTokenVerifier(),
     recoveryResource: new FirestoreRecoveryResourceProvider(repository, offers),
     receiptSigner: new CanonicalReceiptSigner(receiptSigner, config.receiptKeyId),
     onSafeDiagnostic: (event) => {

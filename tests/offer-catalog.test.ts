@@ -84,6 +84,10 @@ function runtimeConfig(
     receiptPublicKey: offerSignerPublicKey,
     receiptKeyId: KEY_ID,
     usdcRecipient,
+    expectedPayerPublicKey: "ComputeBudget111111111111111111111111111111",
+    reconciliationAudience: ORIGIN,
+    allowedReconciliationPrincipal:
+      "control@uptime402-devnet.iam.gserviceaccount.com",
     solanaRpcUrl: "https://api.devnet.solana.com/",
     facilitatorUrl: "https://facilitator.example/",
     facilitatorOrigin: "https://facilitator.example",

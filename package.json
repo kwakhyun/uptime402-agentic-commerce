@@ -18,6 +18,8 @@
     "test:integration": "vitest run tests/services-integration.test.ts tests/control-plane-live-flow.test.ts tests/a2a-process-smoke.test.ts tests/pinned-fetch.test.ts tests/dependency-health.test.ts --reporter=verbose",
     "evidence:capture": "node --conditions=react-server --import tsx scripts/capture-live-evidence.ts",
     "evidence:verify": "node --import tsx scripts/verify-evidence.ts",
+    "evidence:export-operator-capture": "node --conditions=react-server --import tsx scripts/export-live-operator-capture.ts",
+    "evidence:capture-settlement": "node --conditions=react-server --import tsx scripts/capture-verified-settlement.ts",
     "offers:sign": "node --import tsx scripts/sign-offer-catalog.ts",
     "mandate:sign": "node --import tsx scripts/mandate-sign.ts",
     "mandate:arm": "node --import tsx scripts/mandate-arm.ts",

@@ -64,6 +64,12 @@ spec:
               value: "{{VENDOR_RECEIPT_KEY_ID}}"
             - name: VENDOR_USDC_RECIPIENT
               value: "{{VENDOR_USDC_RECIPIENT}}"
+            - name: VENDOR_EXPECTED_PAYER_PUBLIC_KEY
+              value: "{{EXECUTOR_WALLET_PUBLIC_KEY}}"
+            - name: VENDOR_RECONCILE_EXPECTED_AUDIENCE
+              value: "{{PUBLIC_VENDOR_ORIGIN}}"
+            - name: VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL
+              value: "{{CONTROL_PLANE_SERVICE_ACCOUNT}}"
             - name: SOLANA_RPC_URL
               value: "{{SOLANA_RPC_URL}}"
             - name: X402_FACILITATOR_URL

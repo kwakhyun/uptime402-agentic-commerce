@@ -436,11 +436,80 @@ async function buildFixture() {
   const recorded = {
     unpaidBodies: [] as Uint8Array[],
     paidBodies: [] as Uint8Array[],
+    reconciliationBodies: [] as Uint8Array[],
+    reconciliationAuthorization: [] as Array<string | null>,
+    reconciliationPaymentSignatures: [] as Array<string | null>,
     paidCalls: 0,
+    reconciliationCalls: 0,
     executorCalls: 0,
   };
-  let paidBehavior: "success" | "throw" | "verify-reject" = "success";
+  let paidBehavior: "success" | "throw" | "http-400" | "verify-reject" = "success";
+  let reconciliationBehavior: "success" | "fail" = "success";
   let executorBehavior: "allow" | "deny" = "allow";
+
+  const fulfilledResponse = async (reconciledFulfillment: boolean): Promise<Response> => {
+    const recoveredResource: FirestoreRecoveryRoute = {
+      version: "1",
+      kind: "firestore_recovery_route",
+      activationId: "activation-incident-0001",
+      incidentId: request.incident.id,
+      offerId: offers[0].payload.offerId,
+      operationId: request.operationId,
+      paymentId: request.paymentId,
+      txSignature: TX_SIGNATURE,
+      resourceUrl: RESOURCE_URL,
+      state: "active",
+      activatedAt: clock(),
+      expiresAt: offers[0].payload.expiresAt,
+    };
+    const receiptPayload = {
+      version: "1" as const,
+      issuerAgentId: "vendor-agent-1",
+      incidentId: request.incident.id,
+      offerId: offers[0].payload.offerId,
+      paymentId: request.paymentId,
+      executionPolicyHash: executionPolicy.policyHash,
+      challengeHash,
+      requestFingerprint,
+      txSignature: TX_SIGNATURE,
+      resourceResponseHash: canonicalHash(recoveredResource),
+      resourceUrl: RESOURCE_URL,
+      payer: payer.address,
+      payee: payee.address,
+      assetMint: DEVNET_USDC_MINT,
+      amountBaseUnits: offers[0].payload.amountBaseUnits,
+      fulfilledAt: clock(),
+    };
+    const receipt = await signEnvelope(
+      receiptPayload,
+      FulfillmentReceiptPayloadSchema,
+      { signer: receiptSigner, keyId: RECEIPT_KEY_ID },
+    );
+    const settlement: SettleResponse = {
+      success: true,
+      payer: payer.address,
+      transaction: TX_SIGNATURE,
+      network: DEVNET_X402_NETWORK_ID,
+      amount: offers[0].payload.amountBaseUnits,
+    };
+    return jsonResponse(
+      200,
+      {
+        resource: recoveredResource,
+        fulfillmentReceipt: receipt,
+        protocol: "x402",
+        replayedFulfillment: false,
+        ...(reconciledFulfillment
+          ? {
+              reconciledFulfillment: true,
+              settlementRetried: false,
+              transactionCreated: false,
+            }
+          : {}),
+      },
+      { "payment-response": encodePaymentResponseHeader(settlement) },
+    );
+  };
 
   const fetchFactory: OriginBoundFetchFactory = {
     mode: "explicit-local-test",
@@ -526,6 +595,22 @@ async function buildFixture() {
             broadcastByExecutor: false,
           });
         }
+        if (url === `${VENDOR_ORIGIN}/v1/recovery/reconcile`) {
+          const bytes = await requestBodyBytes(init?.body);
+          recorded.reconciliationCalls += 1;
+          recorded.reconciliationBodies.push(bytes);
+          recorded.reconciliationAuthorization.push(headerValue(init, "authorization"));
+          recorded.reconciliationPaymentSignatures.push(
+            headerValue(init, "payment-signature"),
+          );
+          if (reconciliationBehavior === "fail") {
+            return jsonResponse(503, {
+              error: "settlement_reverification_failed",
+              settlementRetried: false,
+            });
+          }
+          return fulfilledResponse(true);
+        }
         if (url !== RESOURCE_URL) throw new Error(`Unexpected fixture URL: ${url}`);
         const bytes = await requestBodyBytes(init?.body);
         const paymentSignature = headerValue(init, "payment-signature");
@@ -550,6 +635,9 @@ async function buildFixture() {
         recorded.paidBodies.push(bytes);
         expect(paymentSignature).toBe(PAYMENT_SIGNATURE);
         if (paidBehavior === "throw") throw new TypeError("simulated ambiguous socket close");
+        if (paidBehavior === "http-400") {
+          return jsonResponse(400, { error: "post_settlement_fulfillment_failed" });
+        }
         if (paidBehavior === "verify-reject") {
           return jsonResponse(402, {
             error: "payment_verification_failed",
@@ -561,60 +649,7 @@ async function buildFixture() {
             },
           });
         }
-        const recoveredResource: FirestoreRecoveryRoute = {
-          version: "1",
-          kind: "firestore_recovery_route",
-          activationId: "activation-incident-0001",
-          incidentId: request.incident.id,
-          offerId: offers[0].payload.offerId,
-          operationId: request.operationId,
-          paymentId: request.paymentId,
-          txSignature: TX_SIGNATURE,
-          resourceUrl: RESOURCE_URL,
-          state: "active",
-          activatedAt: clock(),
-          expiresAt: offers[0].payload.expiresAt,
-        };
-        const receiptPayload = {
-          version: "1" as const,
-          issuerAgentId: "vendor-agent-1",
-          incidentId: request.incident.id,
-          offerId: offers[0].payload.offerId,
-          paymentId: request.paymentId,
-          executionPolicyHash: executionPolicy.policyHash,
-          challengeHash,
-          requestFingerprint,
-          txSignature: TX_SIGNATURE,
-          resourceResponseHash: canonicalHash(recoveredResource),
-          resourceUrl: RESOURCE_URL,
-          payer: payer.address,
-          payee: payee.address,
-          assetMint: DEVNET_USDC_MINT,
-          amountBaseUnits: offers[0].payload.amountBaseUnits,
-          fulfilledAt: clock(),
-        };
-        const receipt = await signEnvelope(
-          receiptPayload,
-          FulfillmentReceiptPayloadSchema,
-          { signer: receiptSigner, keyId: RECEIPT_KEY_ID },
-        );
-        const settlement: SettleResponse = {
-          success: true,
-          payer: payer.address,
-          transaction: TX_SIGNATURE,
-          network: DEVNET_X402_NETWORK_ID,
-          amount: offers[0].payload.amountBaseUnits,
-        };
-        return jsonResponse(
-          200,
-          {
-            resource: recoveredResource,
-            fulfillmentReceipt: receipt,
-            protocol: "x402",
-            replayedFulfillment: false,
-          },
-          { "payment-response": encodePaymentResponseHeader(settlement) },
-        );
+        return fulfilledResponse(false);
       }) as typeof fetch;
     },
   };
@@ -695,8 +730,11 @@ async function buildFixture() {
     get paidBehavior() {
       return paidBehavior;
     },
-    set paidBehavior(value: "success" | "throw" | "verify-reject") {
+    set paidBehavior(value: "success" | "throw" | "http-400" | "verify-reject") {
       paidBehavior = value;
+    },
+    set reconciliationBehavior(value: "success" | "fail") {
+      reconciliationBehavior = value;
     },
     set executorBehavior(value: "allow" | "deny") {
       executorBehavior = value;
@@ -802,6 +840,7 @@ describe("control-plane live incident flow", () => {
     expect(fixture.store.persisted).toBe(true);
     expect(fixture.recorded.executorCalls).toBe(1);
     expect(fixture.recorded.paidCalls).toBe(1);
+    expect(fixture.recorded.reconciliationCalls).toBe(0);
     expect(Buffer.from(fixture.recorded.unpaidBodies[0]!)).toEqual(
       Buffer.from(fixture.recorded.paidBodies[0]!),
     );
@@ -860,22 +899,86 @@ describe("control-plane live incident flow", () => {
     expect(JSON.stringify(result)).not.toContain("secret-secret");
   });
 
-  it("marks an ambiguous paid retry unknown and never retries payment", async () => {
-    fixture.paidBehavior = "throw";
+  it.each(["throw", "http-400"] as const)(
+    "reconciles a paid retry %s exactly once without another payment or settlement",
+    async (paidBehavior) => {
+    fixture.paidBehavior = paidBehavior;
     const result = await runLiveIncident(fixture.request, fixture.dependencies);
 
-    expect(result).toMatchObject({
-      outcome: "reconciliation_required",
-      reasonCode: "paid_retry_ambiguous",
-      transactionCreated: true,
-      txSignature: null,
-    });
+    expect(result.outcome).toBe("recovered");
+    if (result.outcome !== "recovered") throw new Error("Expected reconciled recovery");
+    expect(result.geminiBaseline.modelInput.incident).toEqual(result.incident);
+    expect(result.geminiBaseline.decision).toEqual(result.decision);
+    expect(result.offers.map((offer) => offer.payload.offerId)).toEqual([
+      "rpc-fast",
+      "rpc-economy",
+    ]);
+    expect(result.policyEvidence.rules).toEqual([
+      {
+        rule: "amount.per_transaction_limit",
+        expected: "<=20000",
+        actual: "18000",
+        pass: true,
+      },
+    ]);
+    expect(fixture.recorded.executorCalls).toBe(1);
     expect(fixture.recorded.paidCalls).toBe(1);
-    expect(fixture.store.transitions).toEqual(["submitted", "unknown"]);
+    expect(fixture.recorded.reconciliationCalls).toBe(1);
+    expect(Buffer.from(fixture.recorded.unpaidBodies[0]!)).toEqual(
+      Buffer.from(fixture.recorded.paidBodies[0]!),
+    );
+    expect(Buffer.from(fixture.recorded.unpaidBodies[0]!)).toEqual(
+      Buffer.from(fixture.recorded.reconciliationBodies[0]!),
+    );
+    expect(fixture.recorded.reconciliationAuthorization).toEqual([
+      "Bearer google-signed-fixture-id-token",
+    ]);
+    expect(fixture.recorded.reconciliationPaymentSignatures).toEqual([null]);
+    expect(fixture.tokenProvider.audiences).toEqual([
+      EXECUTOR_ORIGIN,
+      VENDOR_ORIGIN,
+    ]);
+    expect(fixture.store.transitions).toEqual([
+      "submitted",
+      "unknown",
+      "confirmed",
+      "fulfilled",
+      "committed",
+    ]);
+    expect(result.policyEvidence.reservation.stateHistory.map((entry) => entry.state)).toEqual([
+      "proposed",
+      "reserved",
+      "submitted",
+      "unknown",
+      "confirmed",
+      "fulfilled",
+      "committed",
+    ]);
+    expect(
+      result.events.find((event) => event.kind === "settlement_confirmed")?.details,
+    ).toMatchObject({
+      reconciledFulfillment: true,
+      paymentRetried: false,
+      settlementRetried: false,
+    });
+    const reconciliationAudit = fixture.store.audits.find(
+      (event) => event.type === "control.fulfillment_reconciled",
+    );
+    expect(reconciliationAudit?.payload).toMatchObject({
+      reservationId: "reservation-incident-0001",
+      requestFingerprint: result.requestFingerprint,
+      paymentRetried: false,
+      settlementRetried: false,
+    });
+    expect(JSON.stringify(fixture.store.audits)).not.toContain(
+      "google-signed-fixture-id-token",
+    );
+    expect(JSON.stringify(fixture.store.audits)).not.toContain(PAYMENT_SIGNATURE);
   });
 
   it("persists only the safe facilitator diagnostic and keeps the paid retry unknown", async () => {
     fixture.paidBehavior = "verify-reject";
+    fixture.reconciliationBehavior = "fail";
     const result = await runLiveIncident(fixture.request, fixture.dependencies);
 
     expect(result).toMatchObject({
@@ -885,6 +988,8 @@ describe("control-plane live incident flow", () => {
       txSignature: null,
     });
     expect(fixture.recorded.paidCalls).toBe(1);
+    expect(fixture.recorded.reconciliationCalls).toBe(1);
+    expect(fixture.recorded.reconciliationPaymentSignatures).toEqual([null]);
     expect(fixture.store.transitions).toEqual(["submitted", "unknown"]);
     const diagnosticAudit = fixture.store.audits.find(
       (event) => event.type === "control.facilitator_verify_rejected",

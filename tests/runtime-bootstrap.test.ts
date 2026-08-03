@@ -76,6 +76,10 @@ function vendorEnvironment(): NodeJS.ProcessEnv {
     VENDOR_RECEIPT_PUBLIC_KEY: KEY_A,
     VENDOR_RECEIPT_KEY_ID: "offer-v1",
     VENDOR_USDC_RECIPIENT: KEY_C,
+    VENDOR_EXPECTED_PAYER_PUBLIC_KEY: KEY_B,
+    VENDOR_RECONCILE_EXPECTED_AUDIENCE: "https://vendor.example",
+    VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL:
+      "control@uptime402-devnet.iam.gserviceaccount.com",
     X402_FACILITATOR_FEE_PAYER: FEE_PAYER,
     X402_MAX_TIMEOUT_SECONDS: "120",
   };
@@ -131,7 +135,11 @@ describe("production service runtime configuration", () => {
     });
     expect(executor).toMatchObject({ port: 9090, host: "127.0.0.2" });
     const vendor = parseVendorAgentRuntimeConfig(vendorEnvironment());
-    expect(vendor).toMatchObject({ port: 8080, host: "0.0.0.0" });
+    expect(vendor).toMatchObject({
+      port: 8080,
+      host: "0.0.0.0",
+      expectedPayerPublicKey: KEY_B,
+    });
   });
 
   it("requires one pinned vendor authority for both offers and receipts", () => {

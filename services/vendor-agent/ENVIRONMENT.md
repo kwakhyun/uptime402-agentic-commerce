@@ -24,6 +24,9 @@ Required runtime variables:
 | `VENDOR_RECEIPT_PUBLIC_KEY` | Expected receipt signer identity. |
 | `VENDOR_RECEIPT_KEY_ID` | Receipt key ID. Must exactly match `VENDOR_OFFER_SIGNER_KEY_ID`; signed offers and fulfillment receipts share the single pinned vendor Agent Card authority. |
 | `VENDOR_USDC_RECIPIENT` | Payee owner bound by both immutable offers; must differ from the payer. |
+| `VENDOR_EXPECTED_PAYER_PUBLIC_KEY` | Public executor address pinned for independent reconciliation of an existing settlement; no signer material. Must differ from payee and vendor authority. |
+| `VENDOR_RECONCILE_EXPECTED_AUDIENCE` | Exact Google-signed Cloud Run ID-token audience for `/v1/recovery/reconcile`; must equal `PUBLIC_VENDOR_ORIGIN`. |
+| `VENDOR_RECONCILE_CONTROL_PLANE_PRINCIPAL` | The single control-plane service-account email allowed to invoke fulfillment reconciliation. |
 | `SOLANA_RPC_URL` | HTTPS RPC checked against the full Devnet genesis hash. |
 | `X402_FACILITATOR_URL` | Pinned HTTPS facilitator base URL, including any base path. |
 | `X402_FACILITATOR_FEE_PAYER` | Deterministically pinned fee payer; startup confirms it in `/supported` and uses the official `ExactSvmScheme.enhancePaymentRequirements` path. |
@@ -44,3 +47,7 @@ bounded settlement confirmation loop is configurable through
 After confirmed settlement, the vendor atomically persists an actual
 `firestore_recovery_route` resource. The control plane must consume that route
 and independently prove the resulting health recovery before claiming success.
+If settlement is already verified but fulfillment was interrupted, the
+OIDC-protected `/v1/recovery/reconcile` route independently checks that existing
+transaction on Solana and resumes only resource/receipt transitions. It never
+accepts `PAYMENT-SIGNATURE` and never calls facilitator verify or settle.
