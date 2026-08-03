@@ -34,7 +34,7 @@ export interface MissionTimelineStep {
 export interface ImmutableOfferView {
   offerId: string;
   revision: string;
-  capability: "rpc.failover";
+  capability: "solana-rpc-health";
   vendorLabel: string;
   priceUsdc: string;
   estimatedRecoverySeconds?: number;
@@ -48,9 +48,9 @@ export interface MandateView {
   status: "active" | "revoked";
   incidentCapUsdc: string;
   perTransactionCapUsdc: string;
-  durationMinutes: number;
+  durationMinutes: number | null;
   asset: "USDC";
-  capability: "rpc.failover";
+  capability: "solana-rpc-health";
   remainingUsdc: string;
 }
 
@@ -210,7 +210,7 @@ export interface MissionControlDemoState {
     modeLabel: "SIMULATED ADAPTER" | "STRUCTURED OUTPUT VERIFIED";
     selectedOfferId: string;
     counterfactualOfferId: string;
-    capability: "rpc.failover";
+    capability: "solana-rpc-health";
     rationale: string;
     counterfactualResult: string;
   };
@@ -234,7 +234,7 @@ const TIMELINE_COPY: ReadonlyArray<
     id: "gemini",
     protocolLabel: "GEMINI",
     title: "진단 · capability 제안",
-    summary: "허용된 telemetry로 rpc.failover를 제안합니다.",
+    summary: "허용된 telemetry로 solana-rpc-health를 제안합니다.",
     detail: "모델은 supplied offerId만 비교합니다. 금액 계산, 정책 변경, key 접근, raw transaction 서명 권한은 없습니다.",
   },
   {
@@ -320,7 +320,7 @@ export const createLocalDemoState = (): MissionControlDemoState => ({
     perTransactionCapUsdc: "0.020000",
     durationMinutes: 10,
     asset: "USDC",
-    capability: "rpc.failover",
+    capability: "solana-rpc-health",
     remainingUsdc: "0.050000",
   },
   modelDecision: {
@@ -328,7 +328,7 @@ export const createLocalDemoState = (): MissionControlDemoState => ({
     modeLabel: "SIMULATED ADAPTER",
     selectedOfferId: "offer-rpc-burst-v1",
     counterfactualOfferId: "offer-rpc-economy-v1",
-    capability: "rpc.failover",
+    capability: "solana-rpc-health",
     rationale:
       "오류율 38%와 p95 2.8초 조건에서는 12초 이내 복구가 예산 범위 안의 최저 위험 선택입니다.",
     counterfactualResult:
@@ -338,7 +338,7 @@ export const createLocalDemoState = (): MissionControlDemoState => ({
     {
       offerId: "offer-rpc-economy-v1",
       revision: "sha256-bound · v1",
-      capability: "rpc.failover",
+      capability: "solana-rpc-health",
       vendorLabel: "Vendor Agent / Economy",
       priceUsdc: "0.012000",
       estimatedRecoverySeconds: 32,
@@ -350,7 +350,7 @@ export const createLocalDemoState = (): MissionControlDemoState => ({
     {
       offerId: "offer-rpc-burst-v1",
       revision: "sha256-bound · v1",
-      capability: "rpc.failover",
+      capability: "solana-rpc-health",
       vendorLabel: "Vendor Agent / Burst",
       priceUsdc: "0.018000",
       estimatedRecoverySeconds: 12,

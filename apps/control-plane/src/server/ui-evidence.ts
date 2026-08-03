@@ -81,7 +81,7 @@ const OfferEnvelopeSchema = z
         amountBaseUnits: PositiveIntegerSchema,
         payee: Base58Schema,
         expiresAt: TimestampSchema,
-        capability: z.literal("rpc.failover"),
+        capability: z.literal("solana-rpc-health"),
         method: z.literal("POST"),
       })
       .passthrough(),
@@ -325,12 +325,13 @@ function requireLimit(
   return value;
 }
 
-function requireDurationMinutes(
+function readDurationMinutes(
   limits: Record<string, string | number | boolean>,
-): number {
+): number | null {
   const value = limits.durationMinutes;
+  if (value === undefined) return null;
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 1_440) {
-    throw new TypeError("Verified policy evidence is missing durationMinutes");
+    throw new TypeError("Verified policy evidence durationMinutes is invalid");
   }
   return value;
 }
@@ -409,7 +410,7 @@ export function missionControlStateFromVerifiedEvidence(
   const limits = evidence.attestations.policy.enforcedLimits;
   const incidentLimit = requireLimit(limits, "incidentLimitBaseUnits");
   const perTransactionLimit = requireLimit(limits, "perTransactionLimitBaseUnits");
-  const durationMinutes = requireDurationMinutes(limits);
+  const durationMinutes = readDurationMinutes(limits);
   const incidentAt = Date.parse(payment.incidentAt);
   const recoveryStartedAt = Date.parse(evidence.selection.baseline.capturedAt);
   const recoveredAt = Date.parse(payment.outcome.payload.recoveredAt);
@@ -424,7 +425,7 @@ export function missionControlStateFromVerifiedEvidence(
   const offerViews = evidence.offers.map((offer) => ({
     offerId: offer.payload.offerId,
     revision: compactHash(offer.payload.providerAgentCardHash),
-    capability: "rpc.failover" as const,
+    capability: "solana-rpc-health" as const,
     vendorLabel: offer.payload.providerAgentId,
     priceUsdc: baseUnitsToUsdc(offer.payload.amountBaseUnits),
     expiresAtLabel: offer.payload.expiresAt,
@@ -468,15 +469,15 @@ export function missionControlStateFromVerifiedEvidence(
       perTransactionCapUsdc: baseUnitsToUsdc(perTransactionLimit),
       durationMinutes,
       asset: "USDC",
-      capability: "rpc.failover",
-      remainingUsdc: baseUnitsToUsdc(payment.policyEvidence.remainingBeforeBaseUnits),
+      capability: "solana-rpc-health",
+      remainingUsdc: baseUnitsToUsdc(payment.policyEvidence.remainingAfterCommitBaseUnits),
     },
     modelDecision: {
       provider: "Gemini",
       modeLabel: "STRUCTURED OUTPUT VERIFIED",
       selectedOfferId: evidence.selection.baseline.selectedOfferId,
       counterfactualOfferId: evidence.selection.counterfactual.selectedOfferId,
-      capability: "rpc.failover",
+      capability: "solana-rpc-health",
       rationale: `${evidence.attestations.gemini.model} strict output가 supplied offer ${evidence.selection.baseline.selectedOfferId}를 선택했습니다. output ${compactHash(evidence.selection.baseline.modelOutputHash)}`,
       counterfactualResult: `${compactHash(evidence.selection.counterfactual.telemetryHash)} telemetry에서 ${evidence.selection.counterfactual.selectedOfferId}로 선택이 바뀌었습니다.`,
     },

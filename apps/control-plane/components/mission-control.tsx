@@ -273,11 +273,20 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
       step.state === "denied",
   ).length;
   const runComplete = runStarted && completionCount === demoState.timeline.length;
-  const devnetVerified = demoState.paymentEvidence.level === "devnet-verified";
+  const verifiedEvidence = demoState.paymentEvidence.level === "devnet-verified"
+    ? demoState.paymentEvidence
+    : null;
+  const devnetVerified = verifiedEvidence !== null;
   const liveUnverified = demoState.evidenceLevel === "live-unverified";
   const displayedOfferId = decisionView === "baseline"
     ? demoState.modelDecision.selectedOfferId
     : demoState.modelDecision.counterfactualOfferId;
+  const paidAmountLabel = verifiedEvidence?.amountUsdc
+    .replace(/0+$/u, "")
+    .replace(/\.$/u, "");
+  const recoverySecondsLabel = verifiedEvidence
+    ? (verifiedEvidence.recoveryTimeMs / 1_000).toFixed(3)
+    : null;
 
   const startIncident = () => {
     if (runStarted) return;
@@ -305,11 +314,11 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
 
   return (
     <main className="mission-shell">
-      <a className="skip-link" href="#timeline">
-        프로토콜 타임라인으로 건너뛰기
+      <a className="skip-link" href={devnetVerified ? "#verified-result" : "#timeline"}>
+        {devnetVerified ? "검증된 복구 결과로 건너뛰기" : "프로토콜 타임라인으로 건너뛰기"}
       </a>
 
-      <header className="topbar">
+      <header className={`topbar${devnetVerified ? " topbar--replay" : ""}`}>
         <div className="brand-block">
           <div className="brand-lockup">
             <ProtocolMark />
@@ -321,7 +330,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
           <span className="environment-badge">{demoState.environmentLabel}</span>
         </div>
 
-        <section className="status-strip" aria-label="운영 상태">
+        {!devnetVerified ? <section className="status-strip" aria-label="운영 상태">
           <article className={`status-tile health-${demoState.dependency.state}`}>
             <p>DEPENDENCY HEALTH</p>
             <strong>
@@ -334,7 +343,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
             <p>ACTIVE MANDATE</p>
             <strong>{demoState.mandate.incidentCapUsdc} USDC / incident</strong>
             <small>
-              tx ≤ {demoState.mandate.perTransactionCapUsdc} · {demoState.mandate.durationMinutes} min
+              tx ≤ {demoState.mandate.perTransactionCapUsdc} · {demoState.mandate.durationMinutes === null ? "versioned mandate" : `${demoState.mandate.durationMinutes} min`}
             </small>
           </article>
           <article className="status-tile budget-tile">
@@ -358,7 +367,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
             <strong>{demoState.killSwitch.engaged ? "ENGAGED" : "STANDBY"}</strong>
             <small>{demoState.killSwitch.label}</small>
           </article>
-        </section>
+        </section> : null}
 
         <div className="topbar-actions">
           <div className="automation-note">
@@ -389,20 +398,79 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
                   : runStarted
                     ? "자동 복구 시퀀스 실행 중"
                     : devnetVerified
-                      ? "검증된 incident trace 재생"
+                      ? "검증된 trace 보기"
                       : "로컬 incident preview"}
               </strong>
               <small>
                 {runStarted
                   ? `${completionCount}/${demoState.timeline.length} ${devnetVerified ? "verified events" : "local preview"}`
                   : devnetVerified
-                    ? "REPLAY ONLY · 새 결제 없음"
+                    ? "READ-ONLY · 새 결제 없음"
                     : "NO NETWORK · NO PAYMENT"}
               </small>
             </span>
           </button>
         </div>
       </header>
+
+      {verifiedEvidence ? (
+        <section className="recovery-hero" id="verified-result" aria-labelledby="verified-result-heading">
+          <div className="recovery-hero__copy">
+            <p className="eyebrow">AUTONOMOUS RECOVERY · VERIFIED DEVNET EVIDENCE</p>
+            <h1 id="verified-result-heading">
+              Gemini가 정책 한도 안에서 <em>{paidAmountLabel} USDC</em>를 자동 결제해 장애를 복구했습니다.
+            </h1>
+            <p>
+              운영자가 최초 mandate를 설정한 뒤 결제 승인 클릭과 wallet popup 없이,
+              A2A offer 선택부터 x402 settlement와 health recovery까지 자동 실행했습니다.
+            </p>
+            <div className="recovery-context" aria-label="검증 컨텍스트">
+              <span>READ-ONLY EVIDENCE REPLAY</span>
+              <span>{demoState.incidentId}</span>
+              <span>{demoState.cluster.label}</span>
+            </div>
+          </div>
+
+          <div className="outcome-metrics" aria-label="핵심 복구 결과">
+            <article>
+              <span>AUTOMATIC PAYMENT</span>
+              <strong>{paidAmountLabel} USDC</strong>
+              <small>Solana Devnet · finalized</small>
+            </article>
+            <article>
+              <span>PER-PAYMENT APPROVAL</span>
+              <strong>0회</strong>
+              <small>최초 mandate 이후</small>
+            </article>
+            <article>
+              <span>RECOVERY TIME</span>
+              <strong>{recoverySecondsLabel}초</strong>
+              <small>degraded → healthy</small>
+            </article>
+            <article>
+              <span>POLICY RESULT</span>
+              <strong>IN POLICY</strong>
+              <small>{verifiedEvidence.amountBaseUnits} ≤ 20000 base units</small>
+            </article>
+          </div>
+
+          <ol className="recovery-path" aria-label="자동 복구 핵심 경로">
+            <li><span>01</span><strong>Gemini 진단</strong><small>2 offers 비교</small></li>
+            <li><span>02</span><strong>A2A 선택</strong><small>{verifiedEvidence.offerId}</small></li>
+            <li><span>03</span><strong>x402 자동 결제</strong><small>402 → paid retry → 200</small></li>
+            <li><span>04</span><strong>Health 복구</strong><small>signed receipt verified</small></li>
+          </ol>
+
+          <footer className="recovery-hero__footer">
+            <span><strong>Budget</strong> {demoState.mandate.incidentCapUsdc} → {demoState.mandate.remainingUsdc} USDC</span>
+            <span><strong>Mandate</strong> tx ≤ {demoState.mandate.perTransactionCapUsdc} USDC · {demoState.mandate.durationMinutes === null ? "hash-bound window" : `${demoState.mandate.durationMinutes} min`}</span>
+            <span><strong>Kill switch</strong> {demoState.killSwitch.engaged ? "ENGAGED" : "STANDBY"}</span>
+            <a href={verifiedEvidence.explorerUrl} target="_blank" rel="noopener noreferrer">
+              Solana Explorer ↗
+            </a>
+          </footer>
+        </section>
+      ) : null}
 
       <div
         className={`truth-banner${devnetVerified ? " is-verified" : ""}`}
@@ -426,8 +494,21 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
         </span>
       </div>
 
-      <LiveOperatorTrigger config={liveOperatorConfig} />
+      {!devnetVerified ? (
+        <details className="operator-disclosure">
+          <summary>Capture-only operator controls · Google OIDC</summary>
+          <LiveOperatorTrigger config={liveOperatorConfig} />
+        </details>
+      ) : null}
 
+      <details className="protocol-disclosure" id="protocol-detail" open={!devnetVerified}>
+        <summary>
+          <span>
+            <span className="eyebrow">PROTOCOL &amp; POLICY DETAIL</span>
+            <strong>전체 x402 증거 흐름 보기</strong>
+          </span>
+          <span>10-step trace · 2 signed offers · 2 automatic denials</span>
+        </summary>
       <div className="workspace-grid">
         <section className="timeline-panel panel" id="timeline" aria-labelledby="timeline-heading">
           <header className="panel-heading timeline-heading">
@@ -601,6 +682,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
           </section>
         </aside>
       </div>
+      </details>
 
       <section className={`evidence-drawer panel${evidenceOpen ? " is-open" : ""}`} aria-labelledby="evidence-heading">
         <button

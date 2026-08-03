@@ -1,9 +1,10 @@
 # Cloud Run deployment contract
 
-이 디렉터리는 **아직 실행되지 않은** 세 서비스 배포 계약입니다. 파일 존재는
-Cloud Run, managed Firestore, Secret Manager, Gemini, 또는 Devnet 증거가 아닙니다.
-실제 배포·API 활성화·IAM 변경·Secret 업로드는 GCP project/auth/billing과 외부
-변경에 대한 사용자 승인을 받은 뒤에만 수행합니다.
+이 디렉터리는 실제 demo5 `capture` 배포에 사용한 세 서비스 계약과, 같은 증거를
+hash-pin한 `final` revision으로 승격하는 절차를 함께 설명합니다. 현재 capture의 raw
+Cloud Run/IAM exports는 `artifacts/live-capture/`에 있고 UI는 `LIVE UNVERIFIED`입니다.
+Template 파일 존재만으로 live 증거가 되는 것은 아니며, 새 image build·final 배포·IAM
+변경·Secret version 추가는 매번 승인된 GCP 범위와 fresh raw export로 다시 검증합니다.
 
 현재 P0 경계는 다음과 같습니다.
 
@@ -75,8 +76,8 @@ gcloud builds submit \
   .
 ```
 
-위 명령은 외부 변경이며 여기서는 실행하지 않았습니다. `GIT_COMMIT_HEX`는 실제
-commit ID로 교체해야 하며 renderer의 `IMAGE_TAG`에도 같은 값을 사용합니다.
+Capture 이미지는 이 형태로 build됐습니다. 다음 `final` build는 외부 변경이며 현재
+audited commit의 실제 `GIT_COMMIT_HEX`를 사용하고 renderer `IMAGE_TAG`와 일치시켜야 합니다.
 
 ## Secret Manager 계약
 
@@ -219,8 +220,9 @@ gcloud run services replace /private/tmp/uptime402-cloudrun/vendor-agent.service
 - vendor receipt/catalog secrets: vendor만 `secretAccessor`.
 - control outcome/demo-request config: control-plane만 `secretAccessor`.
 
-승인된 project에서 placeholder를 실제 값으로 바꾼 뒤 적용하는 최소 명령 형태는
-다음과 같습니다. 이 명령들은 여기서 실행하지 않았습니다.
+승인된 project에서 placeholder를 실제 값으로 바꿔 적용·감사하는 최소 명령 형태는
+다음과 같습니다. Capture IAM은 적용되어 raw export로 검증됐지만, final revision에서도
+effective IAM과 unauthenticated executor `401/403`을 다시 확인합니다.
 
 ```bash
 gcloud projects add-iam-policy-binding PROJECT_ID \
@@ -294,8 +296,8 @@ primary amount `≤20000`, over-cap amount `>20000`을 강제하고 각각
 자동 retry하지 않고 `failed_locked`로 남기므로 수동 reconcile 뒤에만 새 slot을
 사용합니다.
 
-이 구조는 로컬 15-test suite에서 검증됐지만 live OIDC/IAM artifact가 생기기 전에는
-배포 증거가 아닙니다. 별도 admin service가 아니므로 문구는
+이 구조는 로컬 suite와 demo5의 live OIDC/IAM/operator capture에서 검증됐습니다. Final
+revision에서도 OAuth와 IAM을 다시 확인해야 합니다. 별도 admin service가 아니므로 문구는
 **application-role/proxied separation**으로 제한하며 hard admin/executor separation을
 주장하지 않습니다. Executor IAM에 human principal을 추가해 이 경계를 우회하면 안
 됩니다.
@@ -317,10 +319,10 @@ activation ID, active state, TTL을 검사하고 다음 구조를 반환합니�
 ```
 
 Renderer는 `RECOVERY_HEALTH_PROBE_URL`이 정확히 이 control-plane URL인지 검사합니다.
-로컬 mutation/missing/expired tests는 있지만 managed Firestore와 final Cloud Run
-revision에서 probe가 통과하기 전에는 live recovery evidence가 아닙니다. 이 probe는
-paid route activation 회복을 증명하며 외부 Solana RPC 자체의 성능 개선으로
-과장하지 않습니다.
+로컬 mutation/missing/expired tests와 demo5 managed-Firestore capture의 probe가
+통과했습니다. Final Cloud Run revision에서는 같은 evidence replay/UI binding을 다시
+확인해야 합니다. 이 probe는 paid route activation 회복을 증명하며 외부 Solana RPC
+자체의 성능 개선으로 과장하지 않습니다.
 
 ## 배포 후 증거 수집
 
@@ -350,7 +352,7 @@ executor만 읽는지 확인합니다. Project IAM raw export도 별도로 hash-
 level `roles/run.invoker`/`roles/secretmanager.secretAccessor`와 runtime identity의
 `roles/owner`/`roles/editor`가 있으면 promotion을 거절합니다. 공개 검증은
 control-plane `/api/health`, vendor
-`/healthz`, vendor `/.well-known/agent-card.json`도 포함합니다.
+`/health`, vendor `/.well-known/agent-card.json`도 포함합니다.
 
 Cloud Asset 명령은 exact executor/secret resource의 ancestor policy까지 포함한 effective
 allow policy를 보여 주므로 unexpected principal, custom role, conditional binding을 final

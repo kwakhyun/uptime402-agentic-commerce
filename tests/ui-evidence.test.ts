@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -61,7 +61,7 @@ function fixture() {
       amountBaseUnits,
       payee,
       expiresAt: "2026-08-03T08:00:00.000Z",
-      capability: "rpc.failover",
+      capability: "solana-rpc-health",
       method: "POST",
     },
     signer: vendor,
@@ -288,7 +288,7 @@ describe("verified mission-control evidence adapter", () => {
     expect(state.modelDecision.counterfactualOfferId).toBe("offer-economy-v1");
     expect(state.modelDecision.counterfactualResult).toContain("offer-economy-v1");
     expect(state.dependency.state).toBe("unhealthy");
-    expect(state.mandate.remainingUsdc).toBe("0.050000");
+    expect(state.mandate.remainingUsdc).toBe("0.032000");
     expect(state.timeline.at(-1)).toMatchObject({ id: "denial" });
     expect(state.paymentEvidence.level).toBe("devnet-verified");
     if (state.paymentEvidence.level === "devnet-verified") {
@@ -352,6 +352,14 @@ describe("verified mission-control evidence adapter", () => {
     expect(() => missionControlStateFromVerifiedEvidence(evidence, report)).toThrow(
       /Recovery chronology/u,
     );
+  });
+
+  it("does not invent a mandate duration when the verified bundle omits it", () => {
+    const { evidence, report } = fixture();
+    delete (evidence.attestations.policy.enforcedLimits as Record<string, unknown>)
+      .durationMinutes;
+    const state = missionControlStateFromVerifiedEvidence(evidence, report);
+    expect(state.mandate.durationMinutes).toBeNull();
   });
 
   it("keeps capture LIVE UNVERIFIED without reading or promoting artifacts", async () => {
@@ -446,5 +454,19 @@ describe("verified mission-control evidence adapter", () => {
     expect(() => parseUiEvidenceDeploymentStage("verified")).toThrow(
       /must be local, capture, or final/u,
     );
+  });
+
+  it("makes verified final evidence a read-only result and omits operator auth", async () => {
+    const source = await readFile(
+      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("READ-ONLY EVIDENCE REPLAY");
+    expect(source).toContain("paidAmountLabel} USDC");
+    expect(source).toContain("결제 승인 클릭과 wallet popup 없이");
+    expect(source).toContain("recoverySecondsLabel}초");
+    expect(source).toContain("IN POLICY");
+    expect(source).toMatch(/\{!devnetVerified \? \([\s\S]*?<LiveOperatorTrigger/u);
   });
 });

@@ -100,6 +100,30 @@ code {
   align-items: stretch;
 }
 
+.topbar--replay {
+  grid-template-columns: minmax(230px, 0.6fr) minmax(440px, 1fr);
+}
+
+.topbar--replay .brand-block {
+  min-height: 72px;
+}
+
+.topbar--replay .environment-badge {
+  color: var(--green);
+  border-color: rgba(110, 242, 166, 0.32);
+  background: var(--green-wash);
+}
+
+.topbar--replay .topbar-actions {
+  grid-template-columns: minmax(280px, 1fr) minmax(220px, 0.45fr);
+  grid-template-rows: 1fr;
+}
+
+.topbar--replay .automation-note {
+  justify-content: center;
+  font-size: 10px;
+}
+
 .brand-block,
 .status-strip,
 .topbar-actions {
@@ -391,6 +415,233 @@ code {
 .truth-banner.is-verified .truth-banner__label,
 .truth-banner.is-verified strong {
   color: var(--green);
+}
+
+.recovery-hero {
+  display: grid;
+  margin-top: 12px;
+  padding: 24px;
+  grid-template-columns: minmax(380px, 0.95fr) minmax(520px, 1.05fr);
+  gap: 22px 28px;
+  border: 1px solid rgba(110, 242, 166, 0.28);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(41, 217, 255, 0.1), transparent 24rem),
+    linear-gradient(135deg, rgba(110, 242, 166, 0.1), rgba(8, 18, 27, 0.94) 42%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 28px 70px rgba(0, 0, 0, 0.2);
+}
+
+.recovery-hero__copy {
+  align-self: center;
+}
+
+.recovery-hero__copy h1 {
+  max-width: 760px;
+  margin: 8px 0 10px;
+  font-size: clamp(26px, 2.25vw, 40px);
+  line-height: 1.16;
+  letter-spacing: -0.045em;
+}
+
+.recovery-hero__copy h1 em {
+  color: var(--green);
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.recovery-hero__copy > p:not(.eyebrow) {
+  max-width: 690px;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.recovery-context {
+  display: flex;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recovery-context span {
+  padding: 5px 8px;
+  color: var(--cyan-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.025);
+  font-family: var(--mono);
+  font-size: 8px;
+}
+
+.recovery-context span:first-child {
+  color: var(--green);
+  border-color: rgba(110, 242, 166, 0.25);
+  background: var(--green-wash);
+  font-weight: 800;
+}
+
+.outcome-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.outcome-metrics article {
+  display: flex;
+  min-height: 116px;
+  padding: 15px;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(4, 10, 16, 0.48);
+}
+
+.outcome-metrics article > span {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.outcome-metrics strong {
+  margin-top: 5px;
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: clamp(18px, 1.55vw, 25px);
+  line-height: 1.2;
+}
+
+.outcome-metrics small {
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.recovery-path {
+  display: grid;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+}
+
+.recovery-path li {
+  display: grid;
+  min-width: 0;
+  padding: 11px 12px;
+  grid-template-columns: auto 1fr;
+  gap: 1px 9px;
+  border: 1px solid rgba(41, 217, 255, 0.14);
+  border-radius: 9px;
+  background: rgba(41, 217, 255, 0.035);
+}
+
+.recovery-path li > span {
+  grid-row: 1 / 3;
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 9px;
+}
+
+.recovery-path strong {
+  font-size: 11px;
+}
+
+.recovery-path small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recovery-hero__footer {
+  display: flex;
+  grid-column: 1 / -1;
+  padding-top: 13px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 8px;
+}
+
+.recovery-hero__footer strong {
+  color: var(--text-soft);
+}
+
+.recovery-hero__footer a {
+  margin-left: auto;
+  color: var(--cyan);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.operator-disclosure,
+.protocol-disclosure {
+  margin-top: 10px;
+}
+
+.operator-disclosure > summary,
+.protocol-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.operator-disclosure > summary::-webkit-details-marker,
+.protocol-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.operator-disclosure > summary {
+  width: fit-content;
+  margin-left: auto;
+  padding: 7px 10px;
+  color: var(--text-muted);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 8px;
+}
+
+.protocol-disclosure > summary {
+  display: flex;
+  min-height: 64px;
+  padding: 12px 15px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(8, 18, 27, 0.78);
+}
+
+.protocol-disclosure > summary > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.protocol-disclosure > summary strong {
+  font-size: 13px;
+}
+
+.protocol-disclosure > summary > span:last-child {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 8px;
+}
+
+.protocol-disclosure[open] > summary {
+  border-color: var(--line-strong);
 }
 
 .live-operator-panel {
@@ -1488,6 +1739,14 @@ code {
     grid-template-columns: 1fr;
   }
 
+  .topbar--replay .topbar-actions {
+    grid-template-columns: 1fr 240px;
+  }
+
+  .recovery-hero {
+    grid-template-columns: 1fr;
+  }
+
   .brand-block {
     min-height: auto;
     flex-direction: row;
@@ -1526,6 +1785,10 @@ code {
     padding: 8px;
   }
 
+  .evidence-drawer {
+    position: static;
+  }
+
   .status-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1557,6 +1820,41 @@ code {
   .offer-list,
   .denial-list {
     grid-template-columns: 1fr;
+  }
+
+  .topbar--replay .topbar-actions,
+  .outcome-metrics,
+  .recovery-path {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recovery-hero {
+    padding: 17px 14px;
+    gap: 16px;
+  }
+
+  .recovery-hero__copy h1 {
+    font-size: 25px;
+  }
+
+  .outcome-metrics article {
+    min-height: 102px;
+    padding: 12px;
+  }
+
+  .outcome-metrics strong {
+    font-size: 17px;
+  }
+
+  .recovery-hero__footer a {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .protocol-disclosure > summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .truth-banner__label {

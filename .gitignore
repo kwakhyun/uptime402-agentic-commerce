@@ -33,3 +33,7 @@ firepit-log.txt
 artifacts/product-audit-current/
 tmp/
 *.inspect.ndjson
+
+# The QA-failed recording must not enter a broad public `git add`.
+# Remove this rule only after a replacement passes the final video checklist.
+submission/Uptime402_Demo.mp4

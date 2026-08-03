@@ -2,9 +2,21 @@
 
 > **An outage does not wait for procurement.**
 
-Uptime402는 Gemini 기반 AI SRE가 정제된 장애 신호를 진단하고, 별도 A2A vendor agent의 서명된 복구 견적을 비교한 뒤, 운영자가 미리 설정한 정책과 예산 안에서 x402 + Solana Devnet USDC 결제 payload를 자동 서명하는 B2B 복구 데모입니다. `finalist-demo-5`에서 세 Cloud Run 서비스와 Firestore를 거쳐 `0.015 USDC`가 실제로 결제됐고, paid resource가 health를 `healthy`로 전환했습니다. 같은 operator action에서 per-transaction 초과와 nonce replay도 자동 거절됐습니다. 결제 건별 사람 승인이나 브라우저 지갑 팝업은 없었습니다.
+Uptime402는 Gemini 기반 AI SRE가 정제된 장애 신호를 진단하고, 별도 A2A vendor agent의 서명된 복구 견적을 비교한 뒤, 운영자가 미리 설정한 정책과 예산 안에서 x402 + Solana Devnet USDC 결제 payload를 자동 서명하는 B2B 복구 데모입니다. 주요 사용자는 on-call SRE와 platform engineer이고, 경제적 구매자는 infrastructure/FinOps lead입니다. 제품은 payment rail을 대체하지 않고 x402 위에서 구매 정책과 recovery outcome을 증명합니다. `finalist-demo-5`에서 세 Cloud Run 서비스와 Firestore를 거쳐 `0.015 USDC`가 실제로 결제됐고, paid resource가 health를 `healthy`로 전환했습니다. 같은 operator action에서 per-transaction 초과와 nonce replay도 자동 거절됐습니다. 결제 건별 사람 승인이나 브라우저 지갑 팝업은 없었습니다.
 
 다만 현재 control-plane은 증거 승격 전 `capture` revision이며 UI는 반드시 `LIVE UNVERIFIED`로 표시됩니다. `artifacts/payment-evidence.json`과 독립 `verification-report.json`은 검증을 통과했지만 두 파일의 exact hash pin, `final` revision 재배포, 로그아웃/모바일/영상 최종 QA가 아직 열려 있습니다. 따라서 이 문서는 final 또는 submission-ready를 주장하지 않습니다. 현재 증거 수준은 [BUILD_STATUS.md](docs/BUILD_STATUS.md)가 기준입니다. pay.sh는 live path에 없으므로 통합을 주장하지 않습니다.
+
+## Live capture endpoints
+
+| Role | URL | 현재 상태 |
+|---|---|---|
+| Control plane | [Mission control](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app) · [health](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/api/health) | public capture revision; 반드시 `LIVE UNVERIFIED` |
+| Vendor agent | [Agent Card](https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json) · [health](https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/health) | public, 별도 Cloud Run/A2A boundary; bare service root는 product route가 아니므로 `404`가 정상 |
+| Payment executor | `https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app` | private; unauthenticated request는 `403` |
+
+위 URL은 현재 capture deployment를 가리킨다. Evidence/report hash를 pin한 `final` revision과 로그아웃 manual QA가 끝나기 전에는 public URL 자체를 verified UI 증거로 해석하면 안 된다.
+
+Judge quick links: [transaction Explorer](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet) · [payment evidence](artifacts/payment-evidence.json) · [verification report](artifacts/verification-report.json) · [architecture](docs/ARCHITECTURE.md) · [deck PDF](submission/Uptime402_Deck.pdf) · [editable deck](submission/Uptime402_Deck.pptx) · [video production checklist](docs/DEMO_VIDEO_PRODUCTION.md). Final demo video는 아직 없다.
 
 ## 구현 경계
 
@@ -15,13 +27,16 @@ Uptime402는 Gemini 기반 AI SRE가 정제된 장애 신호를 진단하고, �
 - `packages/policy`: 순수 결정론적 policy evaluation.
 - `packages/payments`: 공식 x402 SVM client/server adapters, pinned facilitator, receipt/outcome signatures, independent Solana RPC verifier.
 - `packages/persistence`: in-memory test adapter와 Firestore transactional adapter.
+- `scripts` / `tests`: capture·verification·operator tooling과 unit/integration/security suites.
+- `deploy`: Cloud Build와 세 Cloud Run template, capture→final renderer 계약.
+- `artifacts` / `docs` / `submission`: hash-bound runtime evidence, 설계·대본, deck/video 제출물.
 
 ## Fresh clone: 로컬 검증
 
-필수 도구는 Node.js 22+, pnpm 10.29.2, Python 3.11+입니다.
+필수 도구는 Git, Corepack, Node.js 22+, pnpm 10.29.2, Python 3.11+입니다. Firestore emulator test에는 Firebase CLI 11+와 JDK 17+가, 실제 Cloud Run 렌더/배포에는 Google Cloud SDK가 추가로 필요합니다.
 
 ```bash
-git clone <repository-url> uptime402
+git clone https://github.com/kwakhyun/uptime402-agentic-commerce.git uptime402
 cd uptime402
 corepack enable
 pnpm install --frozen-lockfile
@@ -198,7 +213,7 @@ P0는 **application-enforced policy plus low-balance blast-radius isolation**입
 - Denials: `amount.per_transaction_limit` at `25000 > 20000`, and `identifier.nonce_fresh` with the primary nonce reused. Both record `transactionCreated:false` and `txSignature:null`.
 - Recovery binding: vendor key `uptime402-vendor-v1` signs the fulfillment receipt; distinct control-plane key `uptime402-outcome-v1` binds it to `statusAfter: healthy`.
 
-The capture bundle is [payment-evidence.json](artifacts/payment-evidence.json). After renaming the raw signer-access IAM policy artifact to a non-secret-like filename, its file SHA-256 is `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`; the IAM policy bytes and their bound SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8` did not change. The final automated checker reran the verifier and produced [verification-report.json](artifacts/verification-report.json), SHA-256 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`, bound to the current evidence bytes. These hashes are not a live UI claim until the new `final` revision is deployed and manually checked. Do not reuse `finalist-demo-5` or create another payment; the authorized Devnet spend budget is already `0.045 USDC` across the successful live runs.
+The capture bundle is [payment-evidence.json](artifacts/payment-evidence.json), generated `2026-08-03T11:39:06.877Z`, SHA-256 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`. The final automated checker produced [verification-report.json](artifacts/verification-report.json) at `2026-08-03T12:24:50.914Z`, SHA-256 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`, bound to those evidence bytes. These hashes are not a live UI claim until the new `final` revision is deployed and manually checked. Do not reuse `finalist-demo-5` or create another payment; the authorized Devnet spend budget is already `0.045 USDC` across the successful live runs.
 
 실제 실행 뒤 `artifacts/payment-evidence.json`에는 `runBindingHash`, 402/200 raw x402 headers, CAIP-2 network, full genesis hash, USDC mint, integer base units, 서로 다른 payer/payee owner, tx signature/Explorer, confirmation, 관련 token account의 정확한 음·양 delta, signed fulfillment receipt, healthy outcome만 기록합니다. 검증 명령은 다음과 같습니다.
 
@@ -213,10 +228,13 @@ Paid run이 반환한 exact `geminiBaseline`은 재호출하지 않고, producti
 `captureCounterfactual`/`collectGeminiSelectionForRecoveredResult`가 추가 Gemini 호출 한
 번만 수행해 selection pair를 만듭니다.
 
+`evidence:capture`는 owner-only promotion manifest와 live credentials가 있는 수집자용이며 fresh-clone public 검증 단계가 아닙니다. 기존 public evidence를 결제·settlement·배포 없이 다시 검증하려면 공식 Devnet RPC를 명시합니다. `evidence:verify`는 transaction을 만들지 않지만 fresh nonce/timestamp 때문에 tracked `verification-report.json`을 다시 씁니다.
+
 ```bash
-pnpm run evidence:capture -- /absolute/ignored/promotion-manifest.json
+SOLANA_RPC_URL=https://api.devnet.solana.com \
 UPTIME402_VERIFICATION_NONCE="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')" \
   pnpm run evidence:verify
+SOLANA_RPC_URL=https://api.devnet.solana.com \
 python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py \
   --root . --submission --run-repo-scripts \
   --rpc-url-env SOLANA_RPC_URL \
@@ -289,10 +307,10 @@ identity의 primitive owner/editor grant가 있으면 live promotion을 거절�
 - demo5의 Devnet transaction, Gemini two-offer selection, managed Firestore state, 세 Cloud Run revision, IAM/Secret Manager export는 capture됐고 independent verifier report가 통과했습니다. 현재 live UI는 아직 이 두 artifact hash를 pin하지 않았으므로 `unverified`입니다.
 - Control-plane은 `capture` stage이며 evidence/report hash env가 없습니다. 이 revision에서 `DEVNET VERIFIED`, `final`, 또는 submission-ready로 보이는 경로는 허용하지 않습니다.
 - Executor Run IAM은 control-plane identity 하나로 유지하고 unauthenticated request는 `403`입니다. 구조 자체는 hard admin-service separation이 아니라 **application-role separation**입니다.
-- [Uptime402_Demo.mp4](submission/Uptime402_Demo.mp4)는 `164.966667`초 provisional capture지만 audio stream이 없고, 샘플 구간 대부분이 Codex desktop과 작은 UI inset이며 빈 Google auth window가 중앙을 가립니다. Manual QA에 실패했으므로 final evidence-stage walkthrough로 교체해야 합니다.
+- QA에 실패한 `164.966667`초 provisional MP4는 Git 후보와 `submission/`에서 제거했습니다. Final evidence-stage walkthrough 파일 또는 접근 가능한 URL은 아직 없으며, 180초 이하·audio/playback·secret 미노출·full-screen read-only demo5 replay QA를 통과한 뒤에만 README에 링크합니다.
 - [Uptime402_Deck.pdf](submission/Uptime402_Deck.pdf)는 demo5 실측값을 반영한 9페이지 export이며 overflow, template fidelity, source/final render QA를 통과했습니다. 이미지 기반 PDF라 태그/텍스트 검색은 지원하지 않고 editable PPTX를 함께 제공합니다.
 - owned vendor P0이며 두 immutable offer를 제공합니다. 두 번째 vendor deployment, MPP, AP2 conformance, passkey, gasless, BigQuery, KMS, Fixed Delegation은 P1입니다.
 - P0는 AP2 conformance/compliance를 주장하지 않습니다. 설계 수준에서 AP2를 언급할 때만 `AP2-aligned`를 사용하고, official schema 검증 전에는 `AP2-validated` 또는 `AP2-compliant`라고 쓰지 않습니다.
-- Automated submission checker는 `75 passed / 0 warned / 0 failed`로 통과했습니다. 남은 gate는 exact evidence/report hash pin, 동일 Git SHA 이미지의 `final` 재배포, 로그아웃/OAuth/IAM/desktop/mobile QA, replacement video QA입니다. Public GitHub push와 외부 video upload는 직전 사용자 승인이 필요합니다.
+- 마지막 automated submission checker는 provisional video가 존재하던 시점에 `75 passed / 0 warned / 0 failed`였습니다. 그 QA-failed 파일을 제거한 현재 tree는 final video가 없으므로 동일 결과를 주장하지 않습니다. Replacement가 evidence의 `submission/Uptime402_Demo.mp4`와 `165`초 계약을 바꾸면 evidence→fresh report→hash pin을 다시 수행해야 합니다. 이후 동일 Git SHA `final` 재배포와 로그아웃/OAuth/IAM/desktop/mobile/video QA가 남습니다. Public GitHub push와 외부 video upload는 직전 사용자 승인이 필요합니다.
 
 상세 상태: [BUILD_STATUS.md](docs/BUILD_STATUS.md) · 실제/목표 구조: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · 촬영 순서: [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
