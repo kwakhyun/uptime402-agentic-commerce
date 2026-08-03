@@ -469,4 +469,15 @@ describe("verified mission-control evidence adapter", () => {
     expect(source).toContain("IN POLICY");
     expect(source).toMatch(/\{!devnetVerified \? \([\s\S]*?<LiveOperatorTrigger/u);
   });
+
+  it("makes only the two public final artifacts readable by the nonroot image", async () => {
+    const dockerfile = await readFile(
+      new URL("../apps/control-plane/Dockerfile", import.meta.url),
+      "utf8",
+    );
+    expect(dockerfile).toContain(
+      "chmod 0444 artifacts/payment-evidence.json artifacts/verification-report.json",
+    );
+    expect(dockerfile).not.toMatch(/chmod\s+(?:-R\s+)?0?4{3}\s+artifacts(?:\s|$)/u);
+  });
 });

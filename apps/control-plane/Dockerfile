@@ -10,6 +10,11 @@ COPY apps/control-plane/app ./apps/control-plane/app
 COPY apps/control-plane/components ./apps/control-plane/components
 COPY artifacts ./artifacts
 
+# The final replay reads only these two public, hash-pinned submission files.
+# Capture creates them as owner-only locally; make the image copies readable by
+# the distroless nonroot runtime without broadening any key or local-secret mode.
+RUN chmod 0444 artifacts/payment-evidence.json artifacts/verification-report.json
+
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @uptime402/control-plane build
 
