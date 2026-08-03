@@ -1,6 +1,6 @@
 # Uptime402 — 9-slide submission deck source
 
-Export target: `submission/Uptime402_Deck.pdf`. 아래 값은 `finalist-demo-5`의 `artifacts/payment-evidence.json`과 hash-bound runtime artifacts에서 가져왔다. 9-page PDF/PPTX는 이 실측값으로 재export했고 overflow, template fidelity, source render, final PDF render QA를 통과했다. 전체 제품은 final Cloud Run/video gate가 남아 있으므로 submission-ready로 표시하지 않는다.
+Export target: `submission/Uptime402_Deck.pdf`. 아래 값은 `finalist-demo-5`의 `artifacts/payment-evidence.json`과 독립 `artifacts/verification-report.json`에서 가져왔다. 9-page PDF/PPTX는 이 실측값으로 재export했고 overflow, template fidelity, source render, final PDF render QA를 통과했다. 이 deck은 새 결제를 만들지 않는 judge-facing read-only replay이며, final video capture/QA만 별도 handoff로 남아 있다.
 
 ## 1. An outage does not wait for procurement
 
@@ -40,12 +40,12 @@ Sequence visual:
 
 ## 5. Three real trust boundaries
 
-- Public control-plane `00012-h7q`: incident/Gemini/A2A/orchestration, wallet signer 없음, UI stage `capture / LIVE UNVERIFIED`.
-- Public vendor-agent `00008-hrb`: Agent Card, two signed offers, shared claim, paid resource.
-- Private payment-executor `00009-wgq`: exact IAM audience, authoritative policy, wallet signer; unauthenticated `403`.
+- Public control-plane: incident/Gemini/A2A/orchestration; wallet signer 없음.
+- Public vendor-agent: Agent Card, two signed offers, atomic shared claim, paid resource.
+- Private payment-executor: exact IAM audience, authoritative policy reload/recheck, wallet signer; unauthenticated 요청은 `401/403`.
 - Firestore transaction + distinct Cloud Run service accounts + version-pinned secrets.
 
-All three run in project `uptime402-hack-260803`, region `asia-northeast3`, from Git SHA `c938a866b74c9f2682b0d1c1fe27391e562b7caa`. Capture-stage raw service/IAM exports exist; final hash-pinned revisions do not yet exist.
+Judge-facing slide copy intentionally omits Cloud Run runtime deployment identifiers, image tags, and release-stage labels. Runtime/deployment identity is verified separately in hash-bound artifacts and is not inferred from this architecture diagram.
 
 ## 6. Gemini is material, but not the bank
 
@@ -73,10 +73,10 @@ Demo5 measured evidence:
 
 - `0.015 USDC` / `15000` base units, finalized slot `480903755`
 - tx `4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ`
-- payer `-15000`, payee `+15000`; incident budget `50000 -> 35000`
+- payer `-15000`, payee `+15000`; incident budget `50000 -> 35000` base units (`0.050 -> 0.035 USDC`)
 - vendor receipt key `uptime402-vendor-v1`; distinct outcome key `uptime402-outcome-v1`; `statusAfter: healthy`
 
-These values appear in the verified local deck export after the independent report passed. They may appear as a live `DEVNET VERIFIED` UI claim only after the exact evidence/report hashes are pinned in the final evidence-stage revision.
+These values are bound to `payment-evidence.json` SHA-256 `0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4` and `verification-report.json` SHA-256 `b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`. The deck shows their prefixes and presents them only as a read-only replay of `finalist-demo-5`.
 
 ## 8. Safety under failure and replay
 
@@ -99,11 +99,11 @@ Final frame:
 - Deterministic safety: **two automatic denials, zero new transactions**
 - Business model: Team control-plane fee + routed-spend percentage; Enterprise annual policy/audit/SSO package.
 - Positioning: buyer-side governance and recovery-outcome layer above x402, not a replacement payment rail.
-- Live control-plane: `https://uptime402-control-plane-1065649463621.asia-northeast3.run.app` (currently capture / `LIVE UNVERIFIED`; replace label with final only after hash pin).
+- Live control-plane origin: `https://uptime402-control-plane-1065649463621.asia-northeast3.run.app` (deployment state is verified separately; this deck makes no deployment-state claim).
 - Ask: bring programmable, bounded incident procurement into production SRE workflows.
 
 Footer: `Uptime402 — An outage does not wait for procurement.`
 
-Export gate footer for the current working copy: `CAPTURE EVIDENCE — FINAL HASH PIN PENDING`. Remove it only after the final revision and public claim cross-check pass; PDF render QA and the independent evidence report have passed.
+Judge-facing close: `finalist-demo-5` / `READ-ONLY REPLAY · NO NEW PAYMENT`, followed by the verified amount, recovery time, decimal budget delta, and transaction signature summary. Final video capture/QA remains a separate handoff.
 
-Do not print a GitHub URL until the user authorizes and the public push is independently opened from a clean session.
+Public source target: `https://github.com/kwakhyun/uptime402-agentic-commerce`. Keep the deck itself URL-light; release handoff must record the actual public commit after push and clean-clone QA.

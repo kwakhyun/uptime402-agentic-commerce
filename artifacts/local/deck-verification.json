@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "artifact": "submission/Uptime402_Deck.pdf",
-  "generatedAt": "2026-08-03T21:03:00+09:00",
+  "generatedAt": "2026-08-03T22:21:38+09:00",
   "evidenceLevel": "local",
   "pageCount": 9,
   "pageSizePoints": {
@@ -15,8 +15,13 @@
     "pixelHeight": 900
   },
   "sha256": {
-    "pdf": "fd2c4dde1719daa396772ed78285d47aa3f568f42e2b82e648f33c600236399f",
-    "pptx": "6c09d925ebdbe3dfcb2d301b5dd78e9e3838ee808be8372cdd76f0ea0e12b62d"
+    "pdf": "983ac8354b76f06b4e364abf5f5aa70afa1d40fd828255b4c79b09b35ef6a263",
+    "pptx": "cc5eefbb2d7c659deeedce3aa3899d6c06b7f35c422982e1aca694ffbaf68264"
+  },
+  "evidenceBindings": {
+    "runId": "finalist-demo-5",
+    "paymentEvidenceSha256": "0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
   },
   "checks": {
     "pptxOverflow": "passed",
@@ -24,6 +29,11 @@
     "sourceSlideVisualInspection": "passed",
     "finalPdfRenderInspection": "passed",
     "demo5ClaimsMatchedPaymentEvidence": true,
+    "decimalBudgetBeforeAfterPresent": true,
+    "evidenceAndReportHashPrefixesPresent": true,
+    "readOnlyReplayLabelPresent": true,
+    "noNewPaymentLabelPresent": true,
+    "cloudRunRevisionClaimsAbsent": true,
     "hangulGlyphsVisible": true,
     "javascript": false,
     "encrypted": false

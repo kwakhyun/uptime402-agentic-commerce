@@ -1,8 +1,9 @@
 # Cloud Run deployment contract
 
 이 디렉터리는 실제 demo5 `capture` 배포에 사용한 세 서비스 계약과, 같은 증거를
-hash-pin한 `final` revision으로 승격하는 절차를 함께 설명합니다. 현재 capture의 raw
-Cloud Run/IAM exports는 `artifacts/live-capture/`에 있고 UI는 `LIVE UNVERIFIED`입니다.
+hash-pin한 `final` revision으로 승격하는 절차를 함께 설명합니다. Capture 당시 raw
+Cloud Run/IAM exports는 `artifacts/live-capture/`에 보존돼 있고, 현재 public control UI는
+exact evidence/report hash를 고정한 `DEVNET VERIFIED` read-only final replay입니다.
 Template 파일 존재만으로 live 증거가 되는 것은 아니며, 새 image build·final 배포·IAM
 변경·Secret version 추가는 매번 승인된 GCP 범위와 fresh raw export로 다시 검증합니다.
 
@@ -76,8 +77,11 @@ gcloud builds submit \
   .
 ```
 
-Capture 이미지는 이 형태로 build됐습니다. 다음 `final` build는 외부 변경이며 현재
-audited commit의 실제 `GIT_COMMIT_HEX`를 사용하고 renderer `IMAGE_TAG`와 일치시켜야 합니다.
+현재 final images는 Git SHA `91eae38291b6e353052bffbcc6f60aa586234c0e`로 build됐습니다.
+Cloud Build `9edd3b87-fbb0-4b16-89b2-6bae6b27d5a1`은 `SUCCESS`이며 control/executor/vendor
+digest는 각각 `sha256:76fb47c7…cc90`, `sha256:e9e14606…4757`,
+`sha256:b6543f80…e55f`입니다. 후속 build도 audited commit의 actual
+`GIT_COMMIT_HEX`와 renderer `IMAGE_TAG`를 일치시켜야 합니다.
 
 ## Secret Manager 계약
 
@@ -129,7 +133,10 @@ operator-signed mandate attestation이 제공되기 전에는 live path를 배�
 ### Mission-control one-click operator trigger
 
 `CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED`는 로컬에서 기본 `false`이고 배포 template에서
-`true`입니다. Google Identity Services용 OAuth **Web** client ID를
+`true`입니다. `final` evidence stage의 public root는 이 설정이 있어도 operator login과
+live trigger를 렌더링하지 않고 read-only replay만 기본으로 제공합니다. 보호된 route는
+capture/운영 audit를 위해 남지만 same-origin + Google OIDC 검사를 계속 적용합니다.
+Google Identity Services용 OAuth **Web** client ID를
 `CONTROL_PLANE_UI_GOOGLE_CLIENT_ID`와 `CONTROL_PLANE_OPERATOR_AUDIENCE`에 같은 값으로
 넣고, OAuth client의 Authorized JavaScript origin을 exact `CONTROL_PLANE_ORIGIN`으로
 등록합니다. OAuth client ID는 공개 식별자이며 client secret을 생성하거나 UI에
@@ -200,6 +207,14 @@ Final loader는 configured evidence hash, configured report hash, report 안의
 `evidenceSha256`, report의 모든 verification check를 함께 검사합니다. Final revision을
 로그아웃 세션에서 다시 확인하기 전에는 `VERIFIED`로 승격하지 않습니다.
 
+현재 final 배포는 evidence SHA-256
+`sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`와 report SHA-256
+`sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`를 pin했습니다.
+Ready revisions are control `uptime402-control-plane-00014-9p7`, executor
+`uptime402-payment-executor-00011-hmq`, vendor `uptime402-vendor-agent-00010-xrj`, all at
+100% traffic. Logged-out desktop/mobile, evidence drawer, unauthenticated mutation/executor
+`403`, IAM/Secret boundaries, and zero recent ERROR logs were checked without another payment.
+
 ## Manifest 적용과 IAM
 
 렌더링한 세 manifest를 각각 적용합니다.
@@ -221,8 +236,8 @@ gcloud run services replace /private/tmp/uptime402-cloudrun/vendor-agent.service
 - control outcome/demo-request config: control-plane만 `secretAccessor`.
 
 승인된 project에서 placeholder를 실제 값으로 바꿔 적용·감사하는 최소 명령 형태는
-다음과 같습니다. Capture IAM은 적용되어 raw export로 검증됐지만, final revision에서도
-effective IAM과 unauthenticated executor `401/403`을 다시 확인합니다.
+다음과 같습니다. Capture IAM은 적용되어 raw export로 검증됐고 final revision에서도
+effective IAM과 unauthenticated executor `403`을 다시 확인했습니다.
 
 ```bash
 gcloud projects add-iam-policy-binding PROJECT_ID \
@@ -297,7 +312,9 @@ primary amount `≤20000`, over-cap amount `>20000`을 강제하고 각각
 사용합니다.
 
 이 구조는 로컬 suite와 demo5의 live OIDC/IAM/operator capture에서 검증됐습니다. Final
-revision에서도 OAuth와 IAM을 다시 확인해야 합니다. 별도 admin service가 아니므로 문구는
+revision은 prior successful OAuth capture와 동일한 audience/client ID를 사용하고, public
+read-only root에서 로그인/trigger를 숨기며 unauthenticated mutation을 `403`으로 거절합니다.
+새 payment를 피하기 위해 authenticated incident mutation은 반복하지 않았습니다. 별도 admin service가 아니므로 문구는
 **application-role/proxied separation**으로 제한하며 hard admin/executor separation을
 주장하지 않습니다. Executor IAM에 human principal을 추가해 이 경계를 우회하면 안
 됩니다.
@@ -320,13 +337,13 @@ activation ID, active state, TTL을 검사하고 다음 구조를 반환합니�
 
 Renderer는 `RECOVERY_HEALTH_PROBE_URL`이 정확히 이 control-plane URL인지 검사합니다.
 로컬 mutation/missing/expired tests와 demo5 managed-Firestore capture의 probe가
-통과했습니다. Final Cloud Run revision에서는 같은 evidence replay/UI binding을 다시
-확인해야 합니다. 이 probe는 paid route activation 회복을 증명하며 외부 Solana RPC
+통과했습니다. Final Cloud Run revision에서는 같은 evidence replay/UI binding을
+로그아웃 상태로 다시 확인했습니다. 이 probe는 paid route activation 회복을 증명하며 외부 Solana RPC
 자체의 성능 개선으로 과장하지 않습니다.
 
 ## 배포 후 증거 수집
 
-아래 raw 출력은 final service가 Ready인 뒤에만 `artifacts/deployment/`에 저장합니다.
+아래 raw 출력은 final service가 Ready인 뒤에만 `artifacts/final-deployment/`에 저장합니다.
 Handwritten summary나 template은 live evidence가 아닙니다.
 
 ```bash

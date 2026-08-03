@@ -1,15 +1,16 @@
 # Uptime402 architecture
 
-이 문서는 **현재 배포된 P0 capture 경계**와 **검증 후에만 가능한 final evidence stage**를 분리한다. 상태의 최종 기준은 [BUILD_STATUS.md](BUILD_STATUS.md)다. 현재 UI는 `capture / LIVE UNVERIFIED`이며 final 또는 submission-ready가 아니다.
+이 문서는 **실행 당시 P0 capture 경계**와 **현재 배포된 hash-pinned final evidence stage**를 분리한다. 상태의 최종 기준은 [BUILD_STATUS.md](BUILD_STATUS.md)다. 현재 public UI는 `final / DEVNET VERIFIED` read-only replay이며, 최종 영상이 없으므로 아직 submission-ready는 아니다.
 
 ## 현재 구현·배포된 경계
 
 ```mermaid
 flowchart LR
-    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\n00012-h7q · capture"]
+    J["Judge / reviewer\nlogged-out read-only replay"] --> C
+    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\n00014-9p7 · final replay"]
     C -->|"allowlisted / redacted telemetry"| G["Gemini 2.5 Flash\nstrict supplied offerId 선택"]
-    C -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run 00008-hrb\n2 immutable signed offers"]
-    C -->|"IAM decision envelope"| E["Private executor Cloud Run 00009-wgq\nauthoritative reload + policy + reserve + sign"]
+    C -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run 00010-xrj\n2 immutable signed offers"]
+    C -->|"IAM decision envelope"| E["Private executor Cloud Run 00011-hmq\nauthoritative reload + policy + reserve + sign"]
     E -->|"PAYMENT-SIGNATURE\nno broadcast"| C
     C -->|"paid retry"| V
     V -->|"verify → settle → 200 resource\n+ signed receipt"| C
@@ -22,7 +23,7 @@ flowchart LR
     K ~~~ G
 ```
 
-세 Cloud Run revision은 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이며 동일 Git SHA `c938a866b74c9f2682b0d1c1fe27391e562b7caa` 이미지로 배포됐다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다.
+세 Cloud Run final revision은 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이며 동일 Git SHA `91eae38291b6e353052bffbcc6f60aa586234c0e` 이미지로 배포돼 100% traffic을 받는다. Raw final service/IAM exports는 `artifacts/final-deployment/`에 있고 `artifacts/final-release.json`이 exact SHA-256을 인덱스한다. 이 deployment QA summary는 payment evidence 자체와 구분된다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
 
 ## Demo5 실제 runtime flow
 
@@ -66,7 +67,7 @@ sequenceDiagram
     Executor-->>UI: nonce deny, transactionCreated=false
 ```
 
-이 순서로 `finalist-demo-5`가 한 번 실행됐고 paid resource가 health를 `healthy`로 바꿨다. Evidence bundle과 co-sign-aware independent verification report는 검증을 통과했지만, 현재 capture revision에는 두 hash가 pin되지 않았으므로 UI에 승격되지 않았다. Capture revision은 reduced telemetry와 `runBindingHash`만 `LIVE UNVERIFIED`로 보여 주며, raw payment evidence를 verified로 렌더링하지 않는다.
+이 순서로 `finalist-demo-5`가 한 번 실행됐고 paid resource가 health를 `healthy`로 바꿨다. Evidence bundle과 co-sign-aware independent verification report는 검증을 통과했으며, 현재 final control revision은 두 exact hash를 pin해 이 prior run만 `DEVNET VERIFIED`로 렌더링한다. Capture 단계의 reduced telemetry는 `LIVE UNVERIFIED`였고, final replay로 승격된 뒤에도 operator mutation과는 별도 surface로 유지된다.
 
 ## Capture에서 final로 가는 단방향 승격
 
@@ -79,7 +80,7 @@ flowchart LR
     E --> F["final revision\nread-only DEVNET VERIFIED replay"]
 ```
 
-Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Final automated checker가 verifier를 다시 실행해 `artifacts/verification-report.json` SHA-256 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`로 `D`를 닫았다. 이제 이 exact pair만 `E`에서 pin한다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
+Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Independent report SHA-256은 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`이고 all 13 checks가 true다. Cloud Build `9edd3b87-fbb0-4b16-89b2-6bae6b27d5a1`의 immutable images에 이 exact pair를 포함해 `final`에 pin했다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
 
 ## Trust and identity boundaries
 
@@ -87,12 +88,13 @@ Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifact
 |---|---:|---|---|---|
 | control-plane | yes | dedicated control SA | outcome signing key + immutable demo-request config | incident orchestration, operator OIDC, redaction, A2A/Gemini inputs, receipt verification, recovery outcome |
 | payment-executor | no | dedicated executor SA | existing executor keypair only | mandate/policy reload, integer money math, atomic reserve, x402 payload signing |
-| vendor-agent | yes | dedicated vendor SA | vendor offer/receipt key only | immutable offers, 402 challenge, claim/replay, facilitator verify/settle, fulfillment |
+| vendor-agent | yes | dedicated vendor SA | receipt key + immutable signed-offer catalog | immutable offers, 402 challenge, claim/replay, facilitator verify/settle, fulfillment |
 
 P0 admin/executor separation은 별도 admin service가 아니라 operator-authenticated route를 둔 **application role separation**이다. wallet 보장은 **application-enforced policy plus low-balance blast-radius isolation**이며 cryptographic cap이 아니다.
 
 Mission-control live trigger는 Google OAuth Web client ID와 server exact audience가
-같을 때만 활성화된다. Browser는 ephemeral ID token만 same-origin Authorization
+같을 때만 인증될 수 있다. Final public root는 login/trigger를 렌더링하지 않고 read-only
+evidence replay를 기본으로 제공한다. 보호된 operator route에서 browser는 ephemeral ID token만 same-origin Authorization
 header로 보내고, incident/policy body는 보내지 않는다. Server는 version-pinned
 read-only JSON을 strict parse하며 UI에는 reduced events를 `LIVE UNVERIFIED`로만
 반환한다. Hash-pinned `DEVNET VERIFIED` evidence replay와 live execution telemetry는
@@ -158,7 +160,7 @@ stateDiagram-v2
 
 For the SVM exact flow, the executor signs the payer slot and returns the x402 payload with the facilitator fee-payer slot intentionally empty. The vendor sends that same paid retry to the facilitator. Settlement may add only the configured fee-payer signature: the serialized message bytes and payer signature must remain identical, the previously empty fee-payer signature must become valid, and no other signer or message mutation is accepted. `signedTransactionSha256` continues to bind the pre-retry payload bytes; RPC verification separately proves the constrained facilitator co-signing.
 
-## Demo5 evidence snapshot — unpinned capture
+## Demo5 evidence snapshot — hash-pinned final
 
 | Field | Captured value |
 |---|---|
@@ -173,7 +175,7 @@ For the SVM exact flow, the executor signs the payer slot and returns the x402 p
 | Replay denial | `identifier.nonce_fresh`, reused `nonce-finalist-primary-5`, fresh payment/idempotency IDs, `transactionCreated:false`, `txSignature:null` |
 | Recovery | vendor receipt key `uptime402-vendor-v1`; distinct outcome key `uptime402-outcome-v1`; `statusAfter: healthy` |
 
-The Explorer URL is `https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet`. These live values passed the independent verifier, but are not yet a final UI claim: the post-checker report hash pin, final revision, and public/manual QA remain open.
+The Explorer URL is `https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet`. These values passed the independent verifier and are now the exact final UI claim. Logged-out desktop/mobile, evidence drawer, IAM/private executor denial, and public endpoints were rechecked; only final video capture/playback/upload remains outside this architecture gate.
 
 ## P1, not P0 claims
 

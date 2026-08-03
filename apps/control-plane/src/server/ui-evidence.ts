@@ -340,6 +340,12 @@ function verifiedTimeline(
   evidence: UiEvidence,
 ): readonly MissionTimelineStep[] {
   const payment = evidence.payments[0]!;
+  const replayDenial = evidence.denials.find(
+    (denial) => denial.replayProof !== undefined,
+  );
+  if (replayDenial === undefined) {
+    throw new TypeError("Verified UI evidence is missing replay denial proof");
+  }
   const local = createLocalDemoState().timeline;
   const times = [
     payment.incidentAt,
@@ -351,7 +357,7 @@ function verifiedTimeline(
     payment.x402.settlement.capturedAt,
     payment.fulfillmentReceipt.payload.fulfilledAt,
     payment.outcome.payload.recoveredAt,
-    evidence.denials[0]!.attemptedAt,
+    replayDenial.attemptedAt,
   ] as const;
   return local.map((step, index) => ({
     ...step,
@@ -365,7 +371,7 @@ function verifiedTimeline(
           : index === 7
             ? "confirmed Devnet settlement 뒤 반환된 resource와 vendor-signed fulfillment receipt가 검증되었습니다."
             : index === 9
-              ? `${evidence.denials[0]!.reasonCode} 규칙이 transactionCreated:false, txSignature:null로 종료됐고 새로운 온체인 결제는 없었습니다.`
+              ? `${replayDenial.reasonCode} 규칙이 transactionCreated:false, txSignature:null로 종료됐고 새로운 온체인 결제는 없었습니다.`
             : step.detail,
   }));
 }

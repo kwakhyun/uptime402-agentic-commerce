@@ -289,7 +289,11 @@ describe("verified mission-control evidence adapter", () => {
     expect(state.modelDecision.counterfactualResult).toContain("offer-economy-v1");
     expect(state.dependency.state).toBe("unhealthy");
     expect(state.mandate.remainingUsdc).toBe("0.032000");
-    expect(state.timeline.at(-1)).toMatchObject({ id: "denial" });
+    expect(state.timeline.at(-1)).toMatchObject({
+      id: "denial",
+      timeLabel: "07:00:08.000Z",
+      detail: expect.stringContaining("identifier.nonce_fresh"),
+    });
     expect(state.paymentEvidence.level).toBe("devnet-verified");
     if (state.paymentEvidence.level === "devnet-verified") {
       expect(state.paymentEvidence.runBindingHash).toBe(

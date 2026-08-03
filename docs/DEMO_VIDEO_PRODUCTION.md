@@ -41,8 +41,8 @@ mkdir -p private/demo-video-work
 cp assets/demo-video/finalist-demo-5.replay.json private/demo-video-work/finalist-demo-5.final.json
 ```
 
-The fresh verifier has passed; after the final deployment, set `stage: "final"`,
-the exact evidence/report hashes, the deployed source Git SHA, and each screenshot's
+The fresh verifier and final deployment QA have passed. Set `stage: "final"`,
+the exact evidence/report hashes, deployed source Git SHA `91eae38291b6e353052bffbcc6f60aa586234c0e`, and each screenshot's
 `sha256:<lowercase hex>` in the private manifest. Validate without creating a
 video:
 
@@ -112,7 +112,9 @@ python3 scripts/build-demo-replay.py build \
   --overwrite
 ```
 
-If the final duration differs from the `165` seconds declared in
-`payment-evidence.json`, do not promote it. Update the declared duration,
-regenerate evidence, rerun the verifier, and re-pin the hashes first. External
-video upload still requires separate user approval.
+The target is 165 seconds and the hard limit is 180 seconds. Payment evidence
+declares `submission/Uptime402_Demo.mp4` and `demoVideoDurationSeconds: 165`, although
+it does not bind the eventual video bytes/hash. If path or declared duration changes,
+regenerate the evidence/report and re-pin final UI hashes; never create a new payment
+solely for the video. Promote only after full playback, audio, duration, secret-exposure,
+and claim-consistency QA. External video upload still requires separate user approval.

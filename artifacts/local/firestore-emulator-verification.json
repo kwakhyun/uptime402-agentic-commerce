@@ -3,7 +3,7 @@
   "mode": "firestore-emulator",
   "verifiedAt": "2026-08-03T21:25:44+09:00",
   "nodeRuntime": "v22.21.0",
-  "command": "firebase emulators:exec --only firestore '\"/Users/kwakhyun/.nvm/versions/node/v22.21.0/bin/node\" node_modules/vitest/vitest.mjs run tests/persistence-firestore.test.ts tests/payment-authorization-firestore.test.ts --reporter=verbose'",
+  "command": "NODE_BIN=\"$(command -v node)\"; firebase emulators:exec --only firestore '\"${NODE_BIN}\" node_modules/vitest/vitest.mjs run tests/persistence-firestore.test.ts tests/payment-authorization-firestore.test.ts --reporter=verbose'",
   "testFiles": [
     "tests/persistence-firestore.test.ts",
     "tests/payment-authorization-firestore.test.ts"
