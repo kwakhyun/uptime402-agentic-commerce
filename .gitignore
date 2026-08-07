@@ -34,6 +34,6 @@ artifacts/product-audit-current/
 tmp/
 *.inspect.ndjson
 
-# The QA-failed recording must not enter a broad public `git add`.
-# Remove this rule only after a replacement passes the final video checklist.
+# Keep the final portfolio video out of source control; publish it via YouTube.
+# Raw and QA-failed recordings remain under ignored private directories.
 submission/Uptime402_Demo.mp4

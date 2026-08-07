@@ -1,5 +1,9 @@
 # Uptime402 deterministic demo-video production
 
+Status: the 165.021-second H.264/AAC final export was published at
+`https://www.youtube.com/watch?v=jwJRfs-NRZY`. The source MP4 remains ignored;
+this document is retained as the reproducible production and QA procedure.
+
 This workflow creates a Korean-captioned and narrated 165-second,
 1920x1080/30fps H.264 replay of the already completed `finalist-demo-5` run. It
 contains no browser, GCP, RPC, facilitator, signing, or payment call. It must not

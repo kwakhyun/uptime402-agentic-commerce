@@ -511,6 +511,34 @@ describe("verified mission-control evidence adapter", () => {
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
+  it("keeps the verified replay readable, repeatable, and free of payment side effects", async () => {
+    const source = await readFile(
+      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
+      "utf8",
+    );
+    const styles = await readFile(
+      new URL("../apps/control-plane/app/globals.css", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("const STEP_INTERVAL_MS = 1_000");
+    expect(source).toContain("검증된 trace 다시 재생");
+    expect(source).toContain("검증된 trace 재생 제어");
+    expect(source).toContain("일시정지");
+    expect(source).toContain("처음부터");
+    expect(source).toContain("JUDGE VERDICT");
+    expect(source).toContain("OVER-CAP DENIED");
+    expect(source).toContain("REPLAY DENIED");
+    expect(source).toContain("selectedOfferId CHANGED");
+    expect(source).toContain("READ-ONLY · 새 결제 없이 반복 가능");
+    expect(styles).toMatch(/\.evidence-drawer\s*\{[\s\S]*?position:\s*static;/u);
+    expect(styles).toContain(".completion-verdict__checks");
+    expect(styles).toContain(".trace-playback-controls");
+    expect(styles).toMatch(/\.timeline-copy > small\s*\{[\s\S]*?display:\s*none;/u);
+    expect(styles).toMatch(/@media \(max-width: 760px\)[\s\S]*?\.brand-block\s*\{[\s\S]*?flex-direction:\s*column;/u);
+    expect(styles).toMatch(/@media \(max-width: 760px\)[\s\S]*?\.automation-note\s*\{[\s\S]*?white-space:\s*normal;/u);
+  });
+
   it("makes only the two public final artifacts readable by the nonroot image", async () => {
     const dockerfile = await readFile(
       new URL("../apps/control-plane/Dockerfile", import.meta.url),

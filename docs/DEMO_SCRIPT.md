@@ -2,7 +2,7 @@
 
 이 대본은 보존된 `finalist-demo-5` operator/evidence artifacts를 hash-pinned final UI에서 read-only로 재생하는 새 영상을 촬영하는 기준이다. 기존 raw screen recordings는 usable footage가 아니므로 사용하지 않고, 새 incident나 결제도 실행하지 않는다. `payment-evidence.json`, UI, README, deck의 값이 모두 같지 않으면 final export하지 않는다. 목표 길이: **2:45**, 절대 상한: **3:00**.
 
-현재 handoff는 **hash-pinned final replay deployed / video capture required**다. 과거 provisional MP4는 audio가 없고 화면 구성이 QA에 실패해 `submission/`과 Git 후보에서 제거했다. 새 영상은 공개 final UI만 full-screen으로 촬영하며 로그인, Codex, terminal, wallet, Secret Manager를 포함하지 않는다.
+이 대본으로 제작한 165-second final video는 `https://www.youtube.com/watch?v=jwJRfs-NRZY`에 공개했다. Local final source는 `submission/Uptime402_Demo.mp4`에 보존하되 Git에는 포함하지 않는다. 아래 내용은 영상 재제작이나 claim audit를 위한 canonical capture sequence이며, 새 incident나 결제를 요구하지 않는다.
 
 ## 촬영 전 체크
 

@@ -1,6 +1,6 @@
 # Uptime402 — 9-slide submission deck source
 
-Export target: `submission/Uptime402_Deck.pdf`. 아래 값은 `finalist-demo-5`의 `artifacts/payment-evidence.json`과 독립 `artifacts/verification-report.json`에서 가져왔다. 9-page PDF/PPTX는 이 실측값으로 재export했고 overflow, template fidelity, source render, final PDF render QA를 통과했다. 이 deck은 새 결제를 만들지 않는 judge-facing read-only replay이며, final video capture/QA만 별도 handoff로 남아 있다.
+Export target: `submission/Uptime402_Deck.pdf`. 아래 값은 `finalist-demo-5`의 `artifacts/payment-evidence.json`과 독립 `artifacts/verification-report.json`에서 가져왔다. 9-page PDF/PPTX는 이 실측값으로 재export했고 overflow, template fidelity, source render, final PDF render QA를 통과했다. 이 deck은 새 결제를 만들지 않는 judge-facing read-only replay이며, 165-second final walkthrough는 `https://www.youtube.com/watch?v=jwJRfs-NRZY`에 공개했다.
 
 ## 1. An outage does not wait for procurement
 
@@ -104,6 +104,6 @@ Final frame:
 
 Footer: `Uptime402 — An outage does not wait for procurement.`
 
-Judge-facing close: `finalist-demo-5` / `READ-ONLY REPLAY · NO NEW PAYMENT`, followed by the verified amount, recovery time, decimal budget delta, and transaction signature summary. Final video capture/QA remains a separate handoff.
+Judge-facing close: `finalist-demo-5` / `READ-ONLY REPLAY · NO NEW PAYMENT`, followed by the verified amount, recovery time, decimal budget delta, and transaction signature summary. The deck, public replay, evidence and published video use the same verified values.
 
 Public source: `https://github.com/kwakhyun/uptime402-agentic-commerce`. The repository is public and a logged-out fresh clone passed install, lint, typecheck, 178-test suite, Firestore emulator 10/10, production build, template validation, Git boundary audit, and structural readiness. Keep the deck itself URL-light; the final handoff records the exact public commit.

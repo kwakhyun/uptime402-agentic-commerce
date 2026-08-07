@@ -17,7 +17,7 @@ interface MissionControlProps {
   liveOperatorConfig: LiveOperatorUiConfig;
 }
 
-const STEP_INTERVAL_MS = 620;
+const STEP_INTERVAL_MS = 1_000;
 
 const statusLabel: Record<MissionTimelineStep["state"], string> = {
   waiting: "대기",
@@ -249,6 +249,7 @@ function VerifiedEvidence({ evidence }: { evidence: VerifiedPaymentEvidenceView 
 export function MissionControl({ initialState, liveOperatorConfig }: MissionControlProps) {
   const [demoState, setDemoState] = useState(initialState);
   const [runStarted, setRunStarted] = useState(false);
+  const [runPaused, setRunPaused] = useState(false);
   const [decisionView, setDecisionView] = useState<"baseline" | "counterfactual">("baseline");
   const [selectedStepId, setSelectedStepId] = useState(
     initialState.timeline[0]?.id ?? "incident",
@@ -260,6 +261,35 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef(0);
   const protocolDisclosureRef = useRef<HTMLDetailsElement | null>(null);
+
+  const clearPlaybackTimer = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = null;
+  }, []);
+
+  const setTimelineProgress = useCallback((nextProgress: number) => {
+    const timelineLength = initialState.timeline.length;
+    const boundedProgress = Math.max(0, Math.min(nextProgress, timelineLength));
+    progressRef.current = boundedProgress;
+    setDemoState(applyTimelineProgress(initialState, boundedProgress));
+
+    const nextStep = initialState.timeline[
+      Math.min(boundedProgress, Math.max(timelineLength - 1, 0))
+    ];
+    if (nextStep) setSelectedStepId(nextStep.id);
+  }, [initialState]);
+
+  const beginPlayback = useCallback(() => {
+    clearPlaybackTimer();
+    setRunPaused(false);
+    intervalRef.current = setInterval(() => {
+      const next = progressRef.current + 1;
+      setTimelineProgress(next);
+      if (next >= initialState.timeline.length) {
+        clearPlaybackTimer();
+      }
+    }, STEP_INTERVAL_MS);
+  }, [clearPlaybackTimer, initialState.timeline.length, setTimelineProgress]);
 
   const revealProtocolFlow = useCallback(() => {
     setProtocolOpen(true);
@@ -273,10 +303,9 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
 
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      intervalRef.current = null;
+      clearPlaybackTimer();
     };
-  }, []);
+  }, [clearPlaybackTimer]);
 
   const selectedStep = demoState.timeline.find((step) => step.id === selectedStepId);
 
@@ -295,6 +324,12 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
   const displayedOfferId = decisionView === "baseline"
     ? demoState.modelDecision.selectedOfferId
     : demoState.modelDecision.counterfactualOfferId;
+  const overCapDenial = demoState.denials.find((denial) =>
+    denial.rule.toLowerCase().includes("cap"),
+  );
+  const replayDenial = demoState.denials.find((denial) =>
+    /nonce|replay|idempotency/u.test(denial.rule.toLowerCase()),
+  );
   const paidAmountLabel = verifiedEvidence?.amountUsdc
     .replace(/0+$/u, "")
     .replace(/\.$/u, "");
@@ -303,28 +338,39 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
     : null;
 
   const startIncident = () => {
-    if (runStarted) return;
     revealProtocolFlow();
-    progressRef.current = 0;
+    clearPlaybackTimer();
     setRunStarted(true);
-    setSelectedStepId("incident");
-    setDemoState((current) => applyTimelineProgress(current, 0));
+    setDecisionView("baseline");
+    setTimelineProgress(0);
+    beginPlayback();
+  };
 
-    intervalRef.current = setInterval(() => {
-      const next = progressRef.current + 1;
-      if (next > initialState.timeline.length) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = null;
-        return;
-      }
+  const togglePlayback = () => {
+    if (!runStarted) {
+      startIncident();
+      return;
+    }
 
-      progressRef.current = next;
-      setDemoState((current) => applyTimelineProgress(current, next));
-      const nextId = initialState.timeline[
-        Math.min(next, initialState.timeline.length - 1)
-      ]?.id;
-      if (nextId) setSelectedStepId(nextId);
-    }, STEP_INTERVAL_MS);
+    if (runPaused) {
+      beginPlayback();
+      return;
+    }
+
+    clearPlaybackTimer();
+    setRunPaused(true);
+  };
+
+  const stepPlayback = (direction: -1 | 1) => {
+    revealProtocolFlow();
+    clearPlaybackTimer();
+    setRunStarted(true);
+    const nextProgress = Math.max(
+      0,
+      Math.min(progressRef.current + direction, initialState.timeline.length),
+    );
+    setTimelineProgress(nextProgress);
+    setRunPaused(nextProgress < initialState.timeline.length);
   };
 
   return (
@@ -390,12 +436,14 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
             id={devnetVerified ? "replay-guide" : undefined}
           >
             <span className="automation-note__step" aria-hidden="true">
-              {runComplete ? "DONE" : runStarted ? "PLAY" : "NEXT"}
+              {runComplete ? "DONE" : runPaused ? "PAUSE" : runStarted ? "PLAY" : "NEXT"}
             </span>
             <span>
               {devnetVerified ? (
                 runComplete ? (
                   <>판단 완료 · 자동 결제, 정책 준수, 복구 결과가 모두 <strong>PASS</strong></>
+                ) : runPaused ? (
+                  <>재생 일시정지 · 이전/다음으로 증거를 직접 확인할 수 있습니다</>
                 ) : runStarted ? (
                   <>현재 cyan 단계가 결제·복구 순서대로 이동합니다</>
                 ) : (
@@ -412,7 +460,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
             className={`trigger-button${!runStarted ? " needs-attention" : ""}`}
             type="button"
             onClick={startIncident}
-            disabled={runStarted}
+            disabled={runStarted && !runComplete}
             aria-describedby={devnetVerified ? "replay-guide" : undefined}
           >
             <span className="trigger-button__icon" aria-hidden="true">↯</span>
@@ -420,20 +468,24 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
               <strong>
                 {runComplete
                   ? devnetVerified
-                    ? "검증된 복구 trace 재생 완료"
+                    ? "검증된 trace 다시 재생"
                     : "로컬 복구 preview 완료"
-                  : runStarted
-                    ? "자동 복구 시퀀스 실행 중"
-                    : devnetVerified
-                      ? "검증된 trace 보기"
-                      : "로컬 incident preview"}
+                  : runPaused
+                    ? "증거 흐름 일시정지"
+                    : runStarted
+                      ? "자동 복구 시퀀스 실행 중"
+                      : devnetVerified
+                        ? "검증된 trace 보기"
+                        : "로컬 incident preview"}
               </strong>
               <small>
-                {runStarted
-                  ? `${completionCount}/${demoState.timeline.length} ${devnetVerified ? "verified events" : "local preview"}`
-                  : devnetVerified
-                    ? "READ-ONLY · 새 결제 없음"
-                    : "NO NETWORK · NO PAYMENT"}
+                {runComplete
+                  ? "READ-ONLY · 새 결제 없이 반복 가능"
+                  : runStarted
+                    ? `${completionCount}/${demoState.timeline.length} ${devnetVerified ? "verified events" : "local preview"}`
+                    : devnetVerified
+                      ? "READ-ONLY · 새 결제 없음"
+                      : "NO NETWORK · NO PAYMENT"}
               </small>
             </span>
           </button>
@@ -557,26 +609,99 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
           <span>10-step trace · 2 signed offers · 2 automatic denials</span>
         </summary>
         <div
-          className={`trace-guide${runStarted ? " is-active" : ""}`}
+          className={`trace-guide${runStarted && !runPaused && !runComplete ? " is-active" : ""}`}
           role="status"
           aria-live="polite"
         >
-          <span>{runComplete ? "03 · 판단 완료" : runStarted ? "02 · 흐름 재생 중" : "02 · 실행 흐름"}</span>
+          <span>
+            {runComplete
+              ? "03 · 판단 완료"
+              : runPaused
+                ? "02 · 흐름 일시정지"
+                : runStarted
+                  ? "02 · 흐름 재생 중"
+                  : "02 · 실행 흐름"}
+          </span>
           <div>
             <strong>
               {runComplete
                 ? "PASS · Gemini → A2A → 402 → 자동 서명 → settle → 200 → healthy"
+                : runPaused
+                  ? "일시정지됨 · 선택 단계의 상세 증거를 확인하세요."
                 : runStarted
                   ? "cyan으로 강조된 현재 단계가 자동으로 이동합니다."
                   : `상단 ${devnetVerified ? "'검증된 trace 보기'" : "'로컬 incident preview'"}를 누르면 10단계가 자동 재생됩니다.`}
             </strong>
             <small>
               {runComplete
-                ? "우측 offer 선택과 아래 두 denial의 transactionCreated:false까지 확인하세요."
+                ? "아래 PASS 요약에서 두 denial의 transactionCreated:false까지 확인하세요. 이어서 counterfactual selection flip을 비교할 수 있습니다."
                 : "좌측 실행 순서와 우측 Gemini 선택 근거를 함께 확인하세요."}
             </small>
           </div>
+          <div className="trace-playback-controls" aria-label="검증된 trace 재생 제어">
+            <button
+              type="button"
+              onClick={() => stepPlayback(-1)}
+              disabled={!runStarted || progressRef.current === 0}
+            >
+              이전
+            </button>
+            <button
+              type="button"
+              onClick={togglePlayback}
+              disabled={!runStarted || runComplete}
+            >
+              {runPaused ? "계속" : "일시정지"}
+            </button>
+            <button
+              type="button"
+              onClick={() => stepPlayback(1)}
+              disabled={runComplete}
+            >
+              다음
+            </button>
+            <button type="button" onClick={startIncident}>
+              처음부터
+            </button>
+          </div>
         </div>
+        {runComplete && devnetVerified ? (
+          <section className="completion-verdict" aria-labelledby="completion-verdict-heading">
+            <header>
+              <span>JUDGE VERDICT</span>
+              <div>
+                <strong id="completion-verdict-heading">자동 결제와 안전 경계가 모두 증명되었습니다.</strong>
+                <small>제출된 Devnet evidence를 다시 표시한 read-only 판정입니다.</small>
+              </div>
+            </header>
+            <div className="completion-verdict__checks">
+              <article>
+                <span>PAYMENT</span>
+                <strong>{paidAmountLabel} USDC FINALIZED</strong>
+                <small>승인 0회 · recovery healthy</small>
+              </article>
+              <article>
+                <span>OVER-CAP DENIED</span>
+                <strong>transactionCreated:{String(overCapDenial?.transactionCreated ?? false)}</strong>
+                <small>txSignature:{String(overCapDenial?.txSignature ?? null)}</small>
+              </article>
+              <article>
+                <span>REPLAY DENIED</span>
+                <strong>transactionCreated:{String(replayDenial?.transactionCreated ?? false)}</strong>
+                <small>txSignature:{String(replayDenial?.txSignature ?? null)}</small>
+              </article>
+              <button
+                type="button"
+                onClick={() => setDecisionView("counterfactual")}
+                aria-label="Counterfactual Gemini 선택 변경 확인"
+              >
+                <span>COUNTERFACTUAL</span>
+                <strong>selectedOfferId CHANGED</strong>
+                <small>{demoState.modelDecision.selectedOfferId} → {demoState.modelDecision.counterfactualOfferId}</small>
+              </button>
+            </div>
+          </section>
+        ) : null}
       <div className="workspace-grid">
         <section className="timeline-panel panel" id="timeline" aria-labelledby="timeline-heading">
           <header className="panel-heading timeline-heading">
