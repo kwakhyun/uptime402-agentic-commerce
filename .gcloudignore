@@ -25,6 +25,7 @@ credentials
 *wallet*.json
 artifacts/local
 artifacts/product-audit-current
+artifacts/product-design-receipt
 submission/*.mp4
 tmp
 *.inspect.ndjson
