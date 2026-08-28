@@ -1,40 +1,29 @@
 "use client";
 
 import Image from "next/image";
-import {
-  ArrowRight,
-  ArrowSquareOut,
-  CaretDown,
-  Check,
-  CheckCircle,
-  CircleNotch,
-  Code,
-  FileText,
-  Heartbeat,
-  LockKey,
-  Pause,
-  Play,
-  Receipt,
-  ShieldCheck,
-  WarningCircle,
-} from "@phosphor-icons/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowRight } from "@phosphor-icons/react/ArrowRight";
+import { ArrowSquareOut } from "@phosphor-icons/react/ArrowSquareOut";
+import { Check } from "@phosphor-icons/react/Check";
+import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
+import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
+import { Heartbeat } from "@phosphor-icons/react/Heartbeat";
+import { LockKey } from "@phosphor-icons/react/LockKey";
+import { Pause } from "@phosphor-icons/react/Pause";
+import { Play } from "@phosphor-icons/react/Play";
+import { Receipt } from "@phosphor-icons/react/Receipt";
+import { ShieldCheck } from "@phosphor-icons/react/ShieldCheck";
+import { WarningCircle } from "@phosphor-icons/react/WarningCircle";
+import { useState } from "react";
 
-import {
-  applyTimelineProgress,
-  type MissionControlDemoState,
-  type MissionTimelineStep,
-  type VerifiedPaymentEvidenceView,
-} from "./demo-state";
-import { LiveOperatorTrigger } from "./live-operator-trigger";
+import type { MissionControlDemoState } from "./demo-state";
+import { DeveloperEvidence } from "./developer-evidence";
+import { useRecoveryPlayback } from "./use-recovery-playback";
 import type { LiveOperatorUiConfig } from "../src/live-ui-contract";
 
 interface MissionControlProps {
   initialState: MissionControlDemoState;
   liveOperatorConfig: LiveOperatorUiConfig;
 }
-
-const STEP_INTERVAL_MS = 1_000;
 
 const RECOVERY_PHASES = [
   { id: 1, label: "장애 감지", protocol: "Incident" },
@@ -43,198 +32,27 @@ const RECOVERY_PHASES = [
   { id: 4, label: "복구 검증", protocol: "Receipt" },
 ] as const;
 
-const statusLabel: Record<MissionTimelineStep["state"], string> = {
-  waiting: "대기",
-  running: "확인 중",
-  "local-simulated": "로컬 미리보기",
-  "devnet-verified": "검증됨",
-  denied: "자동 차단",
-};
-
 function compactDecimal(value: string): string {
   return value.replace(/0+$/u, "").replace(/\.$/u, "");
 }
 
-function EvidenceRows({
-  rows,
-}: {
-  rows: ReadonlyArray<readonly [string, string]>;
-}) {
-  return (
-    <dl className="evidence-list">
-      {rows.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd><code>{value}</code></dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-function VerifiedEvidence({ evidence }: { evidence: VerifiedPaymentEvidenceView }) {
-  const paymentRows: ReadonlyArray<readonly [string, string]> = [
-    ["Payment ID", evidence.paymentId],
-    ["Run binding hash", evidence.runBindingHash],
-    ["Offer ID", evidence.offerId],
-    ["CAIP-2 network", evidence.network],
-    ["Genesis hash", evidence.genesisHash],
-    ["SDK network ID", evidence.sdkNetworkId],
-    ["USDC mint", evidence.mint],
-    ["Amount", `${evidence.amountUsdc} USDC / ${evidence.amountBaseUnits} base units`],
-    ["Budget", `${evidence.budgetBeforeBaseUnits} → ${evidence.budgetAfterBaseUnits} base units`],
-    ["Payer owner", evidence.payerOwner],
-    ["Payee owner", evidence.payeeOwner],
-    ["Token delta", `${evidence.payerTokenDeltaBaseUnits} / +${evidence.payeeTokenDeltaBaseUnits.replace(/^\+/u, "")}`],
-    ["Transaction signature", evidence.transactionSignature],
-    ["Confirmation", `${evidence.confirmationStatus} · slot ${evidence.confirmationSlot}`],
-  ];
-  const requestRows: ReadonlyArray<readonly [string, string]> = [
-    ["Resource URL", evidence.resourceUrl],
-    ["Operation ID", evidence.operationId],
-    ["Canonical body hash", evidence.canonicalBodyHash],
-    ["Execution policy hash", evidence.executionPolicyHash],
-    ["Challenge hash", evidence.challengeHash],
-    ["Request fingerprint", evidence.requestFingerprint],
-    ["Resource response hash", evidence.resourceResponseHash],
-    ["PAYMENT-REQUIRED hash", evidence.paymentRequiredHeaderHash],
-    ["PAYMENT-SIGNATURE hash", evidence.paymentSignatureHeaderHash],
-    ["PAYMENT-RESPONSE hash", evidence.paymentResponseHeaderHash],
-  ];
-  const receiptRows: ReadonlyArray<readonly [string, string]> = [
-    ["Receipt envelope hash", evidence.fulfillmentReceiptHash],
-    ["Receipt signer", `${evidence.receiptSignerPublicKey} · ${evidence.receiptKeyId}`],
-    ["Receipt signature", evidence.receiptSignature],
-    ["Bound incident", evidence.receiptBindings.incidentId],
-    ["Bound offer", evidence.receiptBindings.offerId],
-    ["Bound payment", evidence.receiptBindings.paymentId],
-    ["Bound policy", evidence.receiptBindings.executionPolicyHash],
-    ["Bound challenge", evidence.receiptBindings.challengeHash],
-    ["Bound request", evidence.receiptBindings.requestFingerprint],
-    ["Bound transaction", evidence.receiptBindings.transactionSignature],
-    ["Bound response", evidence.receiptBindings.resourceResponseHash],
-    ["Outcome signer", `${evidence.outcomeSignerPublicKey} · ${evidence.outcomeKeyId}`],
-    ["Outcome signature", evidence.outcomeSignature],
-    ["Health probe hash", evidence.healthProbeHash],
-    ["Outcome artifact hash", evidence.outcomeArtifactHash],
-  ];
-
-  return (
-    <div className="verified-evidence">
-      <div className="verified-evidence__summary">
-        <CheckCircle size={20} weight="fill" aria-hidden="true" />
-        <div>
-          <strong>Devnet 결제와 복구 결과 검증 완료</strong>
-          <span>
-            receiptVerified: {String(evidence.receiptVerified)} · outcomeVerified: {String(evidence.outcomeVerified)}
-          </span>
-        </div>
-      </div>
-
-      <details className="evidence-subsection">
-        <summary>온체인 결제와 계정 변화 <CaretDown size={16} aria-hidden="true" /></summary>
-        <EvidenceRows rows={paymentRows} />
-        <div className="token-delta-list">
-          {evidence.tokenAccountDeltas.map((delta) => (
-            <div key={delta.tokenAccount}>
-              <span>Token account {delta.accountIndex}</span>
-              <code>{delta.tokenAccount}</code>
-              <small>{delta.preAmountBaseUnits} → {delta.postAmountBaseUnits} · Δ {delta.deltaBaseUnits}</small>
-            </div>
-          ))}
-        </div>
-      </details>
-
-      <details className="evidence-subsection">
-        <summary>x402 요청 바인딩 <CaretDown size={16} aria-hidden="true" /></summary>
-        <EvidenceRows rows={requestRows} />
-        <div className="x402-trace">
-          {evidence.x402Headers.map((header) => (
-            <article key={header.name}>
-              <strong>{header.status} · {header.name}</strong>
-              <time>{header.capturedAt}</time>
-              <code>{header.value}</code>
-            </article>
-          ))}
-        </div>
-      </details>
-
-      <details className="evidence-subsection">
-        <summary>정책 reserve → commit <CaretDown size={16} aria-hidden="true" /></summary>
-        <EvidenceRows rows={[
-          ["Reservation ID", evidence.reservationId],
-          ["State history", evidence.reservationStateHistory.join(" → ")],
-        ]} />
-        <ol className="policy-rule-list">
-          {evidence.policyRules.map((rule, index) => (
-            <li key={`${rule.rule}-${index}`}>
-              <Check size={15} weight="bold" aria-hidden="true" />
-              <code>{rule.rule}</code>
-              <span>expected {String(rule.expected)} · actual {String(rule.actual)}</span>
-            </li>
-          ))}
-        </ol>
-      </details>
-
-      <details className="evidence-subsection">
-        <summary>서명 영수증과 outcome binding <CaretDown size={16} aria-hidden="true" /></summary>
-        <EvidenceRows rows={receiptRows} />
-      </details>
-    </div>
-  );
-}
-
-function phaseForStep(stepId: MissionTimelineStep["id"]): number {
-  if (stepId === "incident") return 1;
-  if (stepId === "gemini" || stepId === "a2a") return 2;
-  if (["challenge", "policy", "retry", "settle"].includes(stepId)) return 3;
-  return 4;
-}
-
 export function MissionControl({ initialState, liveOperatorConfig }: MissionControlProps) {
-  const [demoState, setDemoState] = useState(initialState);
-  const [runStarted, setRunStarted] = useState(false);
-  const [runPaused, setRunPaused] = useState(false);
+  const {
+    completionCount,
+    currentPhase,
+    demoState,
+    phaseClass,
+    phaseState,
+    playbackLabel,
+    replayProgressPercent,
+    runComplete,
+    runPaused,
+    runStarted,
+    selectedStep,
+    selectedStepId,
+    togglePlayback,
+  } = useRecoveryPlayback(initialState);
   const [decisionView, setDecisionView] = useState<"baseline" | "counterfactual">("baseline");
-  const [selectedStepId, setSelectedStepId] = useState<MissionTimelineStep["id"]>(
-    initialState.timeline[0]?.id ?? "incident",
-  );
-  const [developerOpen, setDeveloperOpen] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressRef = useRef(0);
-
-  const clearPlaybackTimer = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = null;
-  }, []);
-
-  const setTimelineProgress = useCallback((nextProgress: number) => {
-    const timelineLength = initialState.timeline.length;
-    const boundedProgress = Math.max(0, Math.min(nextProgress, timelineLength));
-    progressRef.current = boundedProgress;
-    setDemoState(applyTimelineProgress(initialState, boundedProgress));
-    const nextStep = initialState.timeline[
-      Math.min(boundedProgress, Math.max(timelineLength - 1, 0))
-    ];
-    if (nextStep) setSelectedStepId(nextStep.id);
-  }, [initialState]);
-
-  const beginPlayback = useCallback(() => {
-    clearPlaybackTimer();
-    setRunPaused(false);
-    intervalRef.current = setInterval(() => {
-      const next = progressRef.current + 1;
-      setTimelineProgress(next);
-      if (next >= initialState.timeline.length) clearPlaybackTimer();
-    }, STEP_INTERVAL_MS);
-  }, [clearPlaybackTimer, initialState.timeline.length, setTimelineProgress]);
-
-  useEffect(() => () => clearPlaybackTimer(), [clearPlaybackTimer]);
-
-  const completionCount = demoState.timeline.filter((step) =>
-    ["local-simulated", "devnet-verified", "denied"].includes(step.state),
-  ).length;
-  const runComplete = runStarted && completionCount === demoState.timeline.length;
   const verifiedEvidence = demoState.paymentEvidence.level === "devnet-verified"
     ? demoState.paymentEvidence
     : null;
@@ -247,59 +65,12 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
   const displayedOfferId = decisionView === "baseline"
     ? demoState.modelDecision.selectedOfferId
     : demoState.modelDecision.counterfactualOfferId;
-  const currentPhase = runStarted ? phaseForStep(selectedStepId) : 0;
-  const selectedStep = demoState.timeline.find((step) => step.id === selectedStepId);
   const incidentTimeLabel = initialState.timeline.find((step) => step.id === "incident")?.timeLabel ?? "--:--.---";
   const recoveredTimeLabel = initialState.timeline.find((step) => step.id === "recovery")?.timeLabel ?? "--:--.---";
-  const overCapDenial = demoState.denials.find((denial) => denial.rule === "perTransactionCap");
-  const replayDenial = demoState.denials.find((denial) => denial.rule !== "perTransactionCap");
-  const replayProgressPercent = !runStarted
-    ? 0
-    : runComplete
-      ? 100
-      : Math.round((completionCount / Math.max(demoState.timeline.length, 1)) * 100);
-
-  const phaseState = (phase: number): "waiting" | "active" | "complete" => {
-    if (!runStarted) return "waiting";
-    if (runComplete || currentPhase > phase) return "complete";
-    return currentPhase === phase ? "active" : "waiting";
+  const handlePlaybackToggle = () => {
+    if (!runStarted || runComplete) setDecisionView("baseline");
+    togglePlayback();
   };
-
-  const phaseClass = (phase: number): string => {
-    const state = phaseState(phase);
-    if (state === "complete") return " is-complete";
-    return state === "active" ? " is-active" : "";
-  };
-
-  const startPlayback = () => {
-    clearPlaybackTimer();
-    setRunStarted(true);
-    setDecisionView("baseline");
-    setTimelineProgress(0);
-    beginPlayback();
-  };
-
-  const togglePlayback = () => {
-    if (!runStarted || runComplete) {
-      startPlayback();
-      return;
-    }
-    if (runPaused) {
-      beginPlayback();
-      return;
-    }
-    clearPlaybackTimer();
-    setRunPaused(true);
-  };
-
-  const playbackLabel = runComplete
-    ? "처음부터 다시 보기"
-    : runPaused
-      ? "재생 계속"
-      : runStarted
-        ? "재생 일시정지"
-        : "실행 과정 재생";
-
   return (
     <div className="app-shell">
       <a className="skip-link" href="#recovery-flow">복구 과정으로 건너뛰기</a>
@@ -340,8 +111,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
             <button
               className={`replay-button${!runStarted ? " is-ready" : ""}`}
               type="button"
-              onClick={togglePlayback}
-              aria-pressed={runStarted && !runPaused && !runComplete}
+              onClick={handlePlaybackToggle}
             >
               {runStarted && !runPaused && !runComplete
                 ? <Pause size={19} weight="fill" aria-hidden="true" />
@@ -576,73 +346,16 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
           </li>
         </ol>
 
-        <details
-          className="developer-evidence"
-          id="developer-evidence"
-          open={developerOpen}
-          onToggle={(event) => setDeveloperOpen(event.currentTarget.open)}
-        >
-          <summary>
-            <span className="developer-summary__icon"><Code size={19} aria-hidden="true" /></span>
-            <span>
-              <strong>개발자용 원본 증거 보기</strong>
-              <small>10단계 실행 trace, x402 headers, 정책 판정, 온체인 delta</small>
-            </span>
-            <CaretDown className="developer-summary__caret" size={18} aria-hidden="true" />
-          </summary>
-          <div className="developer-evidence__body">
-            <section className="trace-panel" aria-labelledby="trace-heading">
-              <header>
-                <FileText size={20} aria-hidden="true" />
-                <div><h3 id="trace-heading">실행 trace</h3><p>읽기 전용 evidence adapter가 표시하는 시간순 기록입니다.</p></div>
-              </header>
-              <ol className="trace-list">
-                {demoState.timeline.map((step, index) => (
-                  <li className={step.id === selectedStepId && runStarted && !runComplete ? "is-current" : ""} key={step.id}>
-                    <span className="trace-number">{String(index + 1).padStart(2, "0")}</span>
-                    <div><span>{step.protocolLabel}</span><strong>{step.title}</strong><p>{step.detail}</p></div>
-                    <div className={`trace-status trace-status--${step.state}`}><span>{statusLabel[step.state]}</span><time>{step.timeLabel}</time></div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-
-            <section className="denial-panel" aria-labelledby="denial-heading">
-              <header><ShieldCheck size={20} aria-hidden="true" /><h3 id="denial-heading">자동 차단 증거</h3></header>
-              <div className="denial-grid">
-                {[overCapDenial, replayDenial].filter((denial) => denial !== undefined).map((denial) => (
-                  <article key={denial.id}>
-                    <span>{denial.rule === "perTransactionCap" ? "한도 초과" : "Nonce replay"}</span>
-                    <strong>{denial.title}</strong>
-                    <code>transactionCreated:{String(denial.transactionCreated)}</code>
-                    <code>txSignature:{String(denial.txSignature)}</code>
-                    <small>{denial.requestedValue} · policy {denial.policyValue}</small>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            {verifiedEvidence ? <VerifiedEvidence evidence={verifiedEvidence} /> : (
-              <section className="unverified-panel">
-                <WarningCircle size={22} weight="fill" aria-hidden="true" />
-                <div>
-                  <strong>{liveUnverified ? "LIVE UNVERIFIED" : "LOCAL SIMULATION"}</strong>
-                  <p>검증된 payment-evidence.json과 verification-report.json이 고정되기 전에는 transaction, Explorer, receipt를 verified로 표시하지 않습니다.</p>
-                </div>
-              </section>
-            )}
-
-            {!devnetVerified ? (
-              <details className="operator-controls">
-                <summary>Capture-only operator controls · Google OIDC <CaretDown size={16} aria-hidden="true" /></summary>
-                <LiveOperatorTrigger
-                  config={liveOperatorConfig}
-                  onRunStarted={() => setDeveloperOpen(true)}
-                />
-              </details>
-            ) : null}
-          </div>
-        </details>
+        <DeveloperEvidence
+          demoState={demoState}
+          devnetVerified={devnetVerified}
+          liveOperatorConfig={liveOperatorConfig}
+          liveUnverified={liveUnverified}
+          runComplete={runComplete}
+          runStarted={runStarted}
+          selectedStepId={selectedStepId}
+          verifiedEvidence={verifiedEvidence}
+        />
 
         <footer className="report-footer">
           <span>Uptime402 · An outage does not wait for procurement.</span>

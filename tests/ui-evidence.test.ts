@@ -33,6 +33,24 @@ const CHECKS = {
   urlCanonicalization: true,
 } as const;
 
+async function readMissionControlSources(): Promise<string> {
+  const componentFiles = [
+    "mission-control.tsx",
+    "developer-evidence.tsx",
+    "verified-evidence.tsx",
+    "use-recovery-playback.ts",
+  ] as const;
+  const sources = await Promise.all(
+    componentFiles.map((file) =>
+      readFile(
+        new URL(`../apps/control-plane/components/${file}`, import.meta.url),
+        "utf8",
+      ),
+    ),
+  );
+  return sources.join("\n");
+}
+
 function fixture() {
   const payer = "2".repeat(32);
   const payee = "3".repeat(32);
@@ -461,10 +479,7 @@ describe("verified mission-control evidence adapter", () => {
   });
 
   it("makes verified final evidence a read-only result and omits operator auth", async () => {
-    const source = await readFile(
-      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
-      "utf8",
-    );
+    const source = await readMissionControlSources();
 
     expect(source).toContain("읽기 전용 · 새 결제 없음");
     expect(source).toContain("${paidAmountLabel} USDC를 자동 결제");
@@ -475,10 +490,7 @@ describe("verified mission-control evidence adapter", () => {
   });
 
   it("keeps the four-step flow visible and opens capture controls only for live execution", async () => {
-    const missionSource = await readFile(
-      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
-      "utf8",
-    );
+    const missionSource = await readMissionControlSources();
     const triggerSource = await readFile(
       new URL("../apps/control-plane/components/live-operator-trigger.tsx", import.meta.url),
       "utf8",
@@ -487,16 +499,13 @@ describe("verified mission-control evidence adapter", () => {
     expect(missionSource).toContain('id="recovery-flow"');
     expect(missionSource).toContain("phaseClass(1)");
     expect(missionSource).toContain("phaseClass(4)");
-    expect(missionSource).toContain("const [developerOpen, setDeveloperOpen]");
-    expect(missionSource).toContain("onRunStarted={() => setDeveloperOpen(true)}");
+    expect(missionSource).toContain("const [open, setOpen]");
+    expect(missionSource).toContain("onRunStarted={() => setOpen(true)}");
     expect(triggerSource).toContain("onRunStarted?.();");
   });
 
   it("guides first-time viewers from the verified outcome to the replay verdict", async () => {
-    const source = await readFile(
-      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
-      "utf8",
-    );
+    const source = await readMissionControlSources();
     const styles = await readFile(
       new URL("../apps/control-plane/app/globals.css", import.meta.url),
       "utf8",
@@ -516,16 +525,14 @@ describe("verified mission-control evidence adapter", () => {
     expect(source).toContain("진행 중");
     expect(source).toContain("transactionCreated:{String(denial.transactionCreated)}");
     expect(source).toContain("txSignature:{String(denial.txSignature)}");
-    expect(source).toContain('aria-pressed={runStarted && !runPaused && !runComplete}');
+    expect(source).toContain("onClick={handlePlaybackToggle}");
+    expect(source).not.toContain('aria-pressed={runStarted && !runPaused && !runComplete}');
     expect(styles).toContain(".replay-button.is-ready");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
   it("keeps the verified replay readable, repeatable, and free of payment side effects", async () => {
-    const source = await readFile(
-      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
-      "utf8",
-    );
+    const source = await readMissionControlSources();
     const styles = await readFile(
       new URL("../apps/control-plane/app/globals.css", import.meta.url),
       "utf8",
@@ -560,10 +567,7 @@ describe("verified mission-control evidence adapter", () => {
       new URL("../apps/control-plane/app/layout.tsx", import.meta.url),
       "utf8",
     );
-    const missionSource = await readFile(
-      new URL("../apps/control-plane/components/mission-control.tsx", import.meta.url),
-      "utf8",
-    );
+    const missionSource = await readMissionControlSources();
     expect(layout).toContain('colorScheme: "light"');
     expect(layout).toContain('themeColor: "#f6f7f9"');
     expect(styles).toMatch(/body\s*\{[\s\S]*?background:\s*var\(--page\);/u);
@@ -571,7 +575,8 @@ describe("verified mission-control evidence adapter", () => {
     expect(styles).toContain("--text: #182235");
     expect(styles).toContain("--blue: #2563eb");
     expect(styles).toMatch(/\.replay-button\s*\{[\s\S]*?background:\s*var\(--blue\);[\s\S]*?color:\s*#ffffff;/u);
-    expect(missionSource).toContain('from "@phosphor-icons/react"');
+    expect(missionSource).toContain('from "@phosphor-icons/react/');
+    expect(missionSource).not.toContain('from "@phosphor-icons/react"');
   });
 
   it("makes only the two public final artifacts readable by the nonroot image", async () => {
