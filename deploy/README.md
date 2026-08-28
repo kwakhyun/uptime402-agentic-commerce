@@ -79,12 +79,12 @@ gcloud builds submit \
 
 Executor/vendor final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
 Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. Control은 같은
-evidence/report pair를 포함한 UX-only image tag `e388f8fb1516ed53`, regional Cloud Build
-`9500df8e-8507-4d9a-b21b-d215f42a2c2f`, digest
-`sha256:480558f8e29b9194070a2a2a01ddc058c48b54be8f2f3c15557f46de6ccbaf56`로
-재배포됐습니다. 이 tag는 base HEAD `e388f8fe7e9fbb45210ddc75e13298599093ac47`와
-UX diff fingerprint `b1516ed5334ce75f`를 결합합니다. 후속 build도 audited source와
-renderer `IMAGE_TAG`의 관계를 문서화해야 합니다.
+evidence/report pair를 포함한 exact Git SHA tag
+`699e95ddc4ef2134630de9142888c6f10bbafd3c`, regional Cloud Build
+`66968e28-235b-49d4-aa13-ed1ef84e87cc`, digest
+`sha256:b544310162ac4f1ea4af94d452fe2a69d3755b04d20898cac47e90cc8938224a`로
+재배포됐습니다. 후속 build도 audited source와 renderer `IMAGE_TAG`의 관계를
+문서화해야 합니다.
 
 ## Secret Manager 계약
 
@@ -213,10 +213,13 @@ Final loader는 configured evidence hash, configured report hash, report 안의
 현재 final 배포는 evidence SHA-256
 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`와 report SHA-256
 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`를 pin했습니다.
-Ready revisions are control `uptime402-control-plane-ux-b1516ed`, executor
+Ready revisions are control `uptime402-control-plane-receipt-699e95d`, executor
 `uptime402-payment-executor-00012-2dg`, vendor `uptime402-vendor-agent-00011-88p`, all at
-100% traffic. Logged-out desktop/mobile, evidence drawer, unauthenticated mutation/executor
-`403`, IAM/Secret boundaries, and zero recent ERROR logs were checked without another payment.
+100% traffic. The control-only portfolio build `66968e28-235b-49d4-aa13-ed1ef84e87cc`
+uses exact Git SHA `699e95ddc4ef2134630de9142888c6f10bbafd3c` and immutable digest
+`sha256:b544310162ac4f1ea4af94d452fe2a69d3755b04d20898cac47e90cc8938224a`.
+Logged-out desktop/mobile, step loading/progress, evidence disclosure, unauthenticated executor
+`403`, IAM boundaries, and zero recent ERROR logs were checked without another payment.
 
 ## Manifest 적용과 IAM
 
