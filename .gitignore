@@ -31,6 +31,7 @@ firestore-debug.log
 ui-debug.log
 firepit-log.txt
 artifacts/product-audit-current/
+artifacts/product-design-receipt/
 tmp/
 *.inspect.ndjson
 

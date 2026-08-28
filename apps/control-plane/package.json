@@ -15,6 +15,7 @@
     "@a2a-js/sdk": "1.0.1",
     "@google-cloud/firestore": "8.7.0",
     "@google/genai": "2.15.0",
+    "@phosphor-icons/react": "2.1.10",
     "@solana/kit": "5.1.0",
     "@uptime402/domain": "workspace:*",
     "@uptime402/payments": "workspace:*",
