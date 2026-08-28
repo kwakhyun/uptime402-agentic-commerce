@@ -80,9 +80,9 @@ gcloud builds submit \
 Executor/vendor final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
 Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. Control은 같은
 evidence/report pair를 포함한 exact Git SHA tag
-`699e95ddc4ef2134630de9142888c6f10bbafd3c`, regional Cloud Build
-`66968e28-235b-49d4-aa13-ed1ef84e87cc`, digest
-`sha256:b544310162ac4f1ea4af94d452fe2a69d3755b04d20898cac47e90cc8938224a`로
+`62f9767593703863abdffa2bd24ccecab4cbd2cf`, regional Cloud Build
+`57a697fc-c9d3-4375-85b1-24fe52cefa1e`, digest
+`sha256:70441a196502e8d2115627dad2487e28f3148cf57d5d52f0975752bccd11a312`로
 재배포됐습니다. 후속 build도 audited source와 renderer `IMAGE_TAG`의 관계를
 문서화해야 합니다.
 
@@ -213,11 +213,11 @@ Final loader는 configured evidence hash, configured report hash, report 안의
 현재 final 배포는 evidence SHA-256
 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`와 report SHA-256
 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`를 pin했습니다.
-Ready revisions are control `uptime402-control-plane-receipt-699e95d`, executor
+Ready revisions are control `uptime402-control-plane-react-62f9767`, executor
 `uptime402-payment-executor-00012-2dg`, vendor `uptime402-vendor-agent-00011-88p`, all at
-100% traffic. The control-only portfolio build `66968e28-235b-49d4-aa13-ed1ef84e87cc`
-uses exact Git SHA `699e95ddc4ef2134630de9142888c6f10bbafd3c` and immutable digest
-`sha256:b544310162ac4f1ea4af94d452fe2a69d3755b04d20898cac47e90cc8938224a`.
+100% traffic. The control-only portfolio build `57a697fc-c9d3-4375-85b1-24fe52cefa1e`
+uses exact Git SHA `62f9767593703863abdffa2bd24ccecab4cbd2cf` and immutable digest
+`sha256:70441a196502e8d2115627dad2487e28f3148cf57d5d52f0975752bccd11a312`.
 Logged-out desktop/mobile, step loading/progress, evidence disclosure, unauthenticated executor
 `403`, IAM boundaries, and zero recent ERROR logs were checked without another payment.
 

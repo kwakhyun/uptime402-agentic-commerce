@@ -23,7 +23,7 @@ flowchart LR
     K ~~~ G
 ```
 
-세 Cloud Run service는 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이고 latest revision에 100% traffic을 보낸다. Executor/vendor는 payment runtime Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`를 유지하고, public control만 exact Git SHA tag `699e95ddc4ef2134630de9142888c6f10bbafd3c` / digest `sha256:b544310162ac4f1ea4af94d452fe2a69d3755b04d20898cac47e90cc8938224a`로 재배포됐다. Raw initial final service/IAM exports는 `artifacts/final-deployment/`에 있고 `artifacts/final-release.json`이 그 promotion baseline을 SHA-256으로 인덱스한다. 후속 control revision은 final evidence/report bytes와 hash env, service account, IAM, secret mounts를 변경하지 않았다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
+세 Cloud Run service는 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이고 latest revision에 100% traffic을 보낸다. Executor/vendor는 payment runtime Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`를 유지하고, public control만 exact Git SHA tag `62f9767593703863abdffa2bd24ccecab4cbd2cf` / digest `sha256:70441a196502e8d2115627dad2487e28f3148cf57d5d52f0975752bccd11a312`로 재배포됐다. Raw initial final service/IAM exports는 `artifacts/final-deployment/`에 있고 `artifacts/final-release.json`이 그 promotion baseline을 SHA-256으로 인덱스한다. 후속 control revision은 final evidence/report bytes와 hash env, service account, IAM, secret mounts를 변경하지 않았다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
 
 ## Demo5 실제 runtime flow
 
@@ -80,7 +80,7 @@ flowchart LR
     E --> F["final revision\nread-only DEVNET VERIFIED replay"]
 ```
 
-Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Independent report SHA-256은 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`이고 all 13 checks가 true다. Initial final promotion build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`, earlier control-only UX builds, and current portfolio build `66968e28-235b-49d4-aa13-ed1ef84e87cc` 모두 이 exact pair를 image에 포함한다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
+Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Independent report SHA-256은 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`이고 all 13 checks가 true다. Initial final promotion build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`, earlier control-only UX builds, and current portfolio build `57a697fc-c9d3-4375-85b1-24fe52cefa1e` 모두 이 exact pair를 image에 포함한다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
 
 ## Trust and identity boundaries
 
