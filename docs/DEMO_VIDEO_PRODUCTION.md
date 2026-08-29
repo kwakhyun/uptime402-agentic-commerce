@@ -45,10 +45,15 @@ mkdir -p private/demo-video-work
 cp assets/demo-video/finalist-demo-5.replay.json private/demo-video-work/finalist-demo-5.final.json
 ```
 
-The fresh verifier and final deployment QA have passed. Set `stage: "final"`,
-the exact evidence/report hashes, deployed source Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`, and each screenshot's
-`sha256:<lowercase hex>` in the private manifest. Validate without creating a
-video:
+The fresh verifier and final deployment QA have passed. The published 2026-08-03
+video is bound to the capture-time UI source Git SHA
+`10ca5f2ccaf2af45e2d80f6065de9c623b24e559`; this is historical video provenance,
+not the current portfolio control revision (`62f9767593703863abdffa2bd24ccecab4cbd2cf`).
+For an exact reproduction of the published video, set `stage: "final"`, the exact
+evidence/report hashes, that capture-time SHA, and each screenshot's
+`sha256:<lowercase hex>` in the private manifest. A new recording of the current UI
+must instead use the current deployed control source SHA. Validate without creating
+a video:
 
 ```bash
 python3 scripts/build-demo-replay.py validate \
@@ -121,4 +126,5 @@ declares `submission/Uptime402_Demo.mp4` and `demoVideoDurationSeconds: 165`, al
 it does not bind the eventual video bytes/hash. If path or declared duration changes,
 regenerate the evidence/report and re-pin final UI hashes; never create a new payment
 solely for the video. Promote only after full playback, audio, duration, secret-exposure,
-and claim-consistency QA. External video upload still requires separate user approval.
+and claim-consistency QA. The existing YouTube upload is already complete; only a
+replacement upload requires separate user approval.

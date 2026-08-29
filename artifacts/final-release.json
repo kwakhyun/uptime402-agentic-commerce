@@ -1,7 +1,10 @@
 {
   "schemaVersion": "1.0",
-  "artifactKind": "human-readable-deployment-qa-summary",
+  "artifactKind": "historical-human-readable-deployment-qa-summary",
   "notPaymentEvidence": true,
+  "snapshotScope": "initial-final-promotion-baseline",
+  "snapshotStatus": "superseded-for-current-portfolio-status",
+  "currentStatusRef": "artifacts/local/portfolio-release-verification.json",
   "capturedAt": "2026-08-03T13:50:21.000Z",
   "projectId": "uptime402-hack-260803",
   "projectNumber": "1065649463621",
@@ -114,5 +117,5 @@
       "sha256": "sha256:ea9c47505546dda7c9de66e85deb38eccae2c06ee69edf41bd425dbc639486a5"
     }
   },
-  "remainingSubmissionBlocker": "Final demo video capture, playback QA, and upload are not complete."
+  "remainingSubmissionBlockerAtCapture": "Final demo video capture, playback QA, and upload were not complete at this snapshot time."
 }

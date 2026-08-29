@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "artifactKind": "current-portfolio-release-read-only-verification",
+  "notPaymentEvidence": true,
+  "verifiedAt": "2026-08-30T07:38:36+09:00",
+  "projectId": "uptime402-hack-260803",
+  "region": "asia-northeast3",
+  "git": {
+    "localBaseHeadAtInspection": "596f8a3df6adf56e2f58f035c35ba78d74213f64",
+    "remoteMainAtInspection": "596f8a3df6adf56e2f58f035c35ba78d74213f64",
+    "publicRepositoryUrl": "https://github.com/kwakhyun/uptime402-agentic-commerce",
+    "publicRepositoryStatus": 200
+  },
+  "controlPlane": {
+    "sourceCommit": "62f9767593703863abdffa2bd24ccecab4cbd2cf",
+    "cloudBuildId": "57a697fc-c9d3-4375-85b1-24fe52cefa1e",
+    "cloudBuildStatus": "SUCCESS",
+    "imageDigest": "sha256:70441a196502e8d2115627dad2487e28f3148cf57d5d52f0975752bccd11a312",
+    "revision": "uptime402-control-plane-react-62f9767",
+    "trafficPercent": 100,
+    "publicUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+    "rootStatus": 200,
+    "healthStatus": 200,
+    "evidenceStage": "final",
+    "paymentEvidenceSha256": "sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
+  },
+  "paymentExecutor": {
+    "sourceCommit": "10ca5f2ccaf2af45e2d80f6065de9c623b24e559",
+    "revision": "uptime402-payment-executor-00012-2dg",
+    "trafficPercent": 100,
+    "unauthenticatedStatus": 403
+  },
+  "vendorAgent": {
+    "sourceCommit": "10ca5f2ccaf2af45e2d80f6065de9c623b24e559",
+    "revision": "uptime402-vendor-agent-00011-88p",
+    "trafficPercent": 100,
+    "healthStatus": 200,
+    "agentCardStatus": 200
+  },
+  "deck": {
+    "pdfPath": "submission/Uptime402_Deck.pdf",
+    "pdfSha256": "aa9c5c0a892fd3399439ed5e5689929b51e6920bba4ab4a0c8d148fb01af6061",
+    "pptxPath": "submission/Uptime402_Deck.pptx",
+    "pptxSha256": "a18662b5d680ae5646e318a3f6595913ba0197fac4cb74a25563874cb074a430",
+    "pageCount": 9,
+    "renderInspection": "passed"
+  },
+  "video": {
+    "localPath": "submission/Uptime402_Demo.mp4",
+    "trackedByGit": false,
+    "sha256": "204a6bee622c251975b1cd6c55ccba2e3ecc9592c7e0c732f1735e0915a6f2d0",
+    "durationSeconds": 165.021333,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "width": 1920,
+    "height": 1080,
+    "framesPerSecond": 30,
+    "publicUrl": "https://www.youtube.com/watch?v=jwJRfs-NRZY",
+    "publicOEmbedStatus": 200,
+    "publicTitle": "Uptime402 | Gemini AI SRE의 정책 한도 내 Solana USDC 자동 장애 복구"
+  },
+  "checks": {
+    "gitRemoteMatchedLocalBaseHeadAtInspection": true,
+    "controlPlaneReadyAtFullTraffic": true,
+    "executorReadyAtFullTraffic": true,
+    "vendorReadyAtFullTraffic": true,
+    "executorUnauthenticatedDenied": true,
+    "evidencePinsMatchTrackedBytes": true,
+    "deckBytesMatchVerificationArtifact": true,
+    "videoWithin180Seconds": true,
+    "publicRepositoryReachable": true,
+    "publicVideoReachable": true,
+    "noNewPaymentPerformed": true
+  },
+  "historicalBaselineRef": "artifacts/final-release.json"
+}

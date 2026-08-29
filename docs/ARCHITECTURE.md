@@ -7,7 +7,7 @@
 ```mermaid
 flowchart LR
     J["Judge / reviewer\nlogged-out read-only replay"] --> C
-    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\nux-b1516ed · final replay"]
+    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\nreact-62f9767 · final replay"]
     C -->|"allowlisted / redacted telemetry"| G["Gemini 2.5 Flash\nstrict supplied offerId 선택"]
     C -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run 00011-88p\n2 immutable signed offers"]
     C -->|"IAM decision envelope"| E["Private executor Cloud Run 00012-2dg\nauthoritative reload + policy + reserve + sign"]

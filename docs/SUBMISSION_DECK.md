@@ -106,4 +106,4 @@ Footer: `Uptime402 — An outage does not wait for procurement.`
 
 Judge-facing close: `finalist-demo-5` / `READ-ONLY REPLAY · NO NEW PAYMENT`, followed by the verified amount, recovery time, decimal budget delta, and transaction signature summary. The deck, public replay, evidence and published video use the same verified values.
 
-Public source: `https://github.com/kwakhyun/uptime402-agentic-commerce`. The repository is public and a logged-out fresh clone passed install, lint, typecheck, 178-test suite, Firestore emulator 10/10, production build, template validation, Git boundary audit, and structural readiness. Keep the deck itself URL-light; the final handoff records the exact public commit.
+Public source: `https://github.com/kwakhyun/uptime402-agentic-commerce`. The repository is public and the current gate results are recorded in `docs/BUILD_STATUS.md`: install, lint, typecheck, effective full suite, Firestore emulator 10/10, production build, template validation, Git boundary audit, and structural readiness. Keep the deck itself URL-light; the final handoff records the exact public commit.

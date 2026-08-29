@@ -1,8 +1,9 @@
 {
   "schemaVersion": "1.0",
   "artifact": "submission/Uptime402_Deck.pdf",
-  "generatedAt": "2026-08-03T22:21:38+09:00",
+  "generatedAt": "2026-08-30T07:38:36+09:00",
   "evidenceLevel": "local",
+  "sourceCommit": "1af1db5ca7ffac66927ead85167ce4a1e1d9fc93",
   "pageCount": 9,
   "pageSizePoints": {
     "width": 960,
@@ -15,8 +16,8 @@
     "pixelHeight": 900
   },
   "sha256": {
-    "pdf": "983ac8354b76f06b4e364abf5f5aa70afa1d40fd828255b4c79b09b35ef6a263",
-    "pptx": "cc5eefbb2d7c659deeedce3aa3899d6c06b7f35c422982e1aca694ffbaf68264"
+    "pdf": "aa9c5c0a892fd3399439ed5e5689929b51e6920bba4ab4a0c8d148fb01af6061",
+    "pptx": "a18662b5d680ae5646e318a3f6595913ba0197fac4cb74a25563874cb074a430"
   },
   "evidenceBindings": {
     "runId": "finalist-demo-5",
@@ -27,7 +28,7 @@
     "pptxOverflow": "passed",
     "templateFidelity": "passed",
     "sourceSlideVisualInspection": "passed",
-    "finalPdfRenderInspection": "passed",
+    "finalPdfRenderInspection": "passed-2026-08-30",
     "demo5ClaimsMatchedPaymentEvidence": true,
     "decimalBudgetBeforeAfterPresent": true,
     "evidenceAndReportHashPrefixesPresent": true,
@@ -38,6 +39,7 @@
     "javascript": false,
     "encrypted": false
   },
+  "verificationMethod": "Current PDF bytes checked with pdfinfo, rendered page-by-page with pdftoppm, and visually inspected as a 3x3 contact sheet; PPTX ZIP integrity and all nine 1600x900 source PNGs were checked.",
   "exportMethod": "Verified artifact-tool PNG renders placed full-bleed on PDF pages by scripts/export-deck-pdf.py",
   "limitations": [
     "The PDF is image-backed because the available headless LibreOffice build dropped Hangul glyphs during direct PPTX-to-PDF conversion.",

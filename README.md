@@ -11,7 +11,7 @@ Uptime402는 장애가 발생했을 때 Gemini 기반 AI SRE가 원인을 진단
 - [Live mission control](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app) — 로그인 없는 `DEVNET VERIFIED` read-only replay
 - [Demo video](https://www.youtube.com/watch?v=jwJRfs-NRZY) — 한국어 내레이션으로 전체 흐름 설명
 - [Solana Explorer transaction](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet)
-- [Payment evidence](artifacts/payment-evidence.json) · [Verification report](artifacts/verification-report.json)
+- [Payment evidence](artifacts/payment-evidence.json) · [Verification report](artifacts/verification-report.json) · [Current portfolio release verification](artifacts/local/portfolio-release-verification.json)
 - [Architecture](docs/ARCHITECTURE.md) · [Presentation deck](submission/Uptime402_Deck.pdf) · [Build status](docs/BUILD_STATUS.md)
 
 ## 검증된 결과
