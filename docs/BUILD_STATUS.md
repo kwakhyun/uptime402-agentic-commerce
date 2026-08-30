@@ -1,6 +1,6 @@
 # Uptime402 build status
 
-Last updated: `2026-08-30T10:38:03+09:00`
+Last updated: `2026-08-30T11:07:08+09:00`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
@@ -29,8 +29,8 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 | Read-only portfolio mission control | implemented | devnet | live | verified | 2026-08-30T10:20:00+09:00 | `artifacts/portfolio-deployment/manifest.json`; `apps/control-plane/components/mission-control.tsx` | P0 | logged-out evidence replay is the default; no Google login/live trigger; mutation routes fail before auth/backend initialization |
 | Current Cloud Run and IAM boundary | implemented | local | live | verified | 2026-08-30T01:54:42Z | `artifacts/portfolio-deployment/manifest.json`; owner-private raw exports | P0 | capture tool verified control/vendor public, executor private, distinct service accounts, and no current control backend role, executor invoke permission, or retired config access; public manifest exposes only the minimal attestation and source hashes |
 | Evidence hash-pinned final stage | implemented | devnet | live | verified | 2026-08-30T01:34:24Z | `artifacts/payment-evidence.json`; `artifacts/verification-report.json`; `artifacts/portfolio-deployment/manifest.json` | P0 | exact evidence/report bytes are pinned; missing or mismatched evidence cannot render `VERIFIED` |
-| Test, supply-chain and release gates | implemented | local | local | verified | 2026-08-30T10:38:03+09:00 | `.github/workflows/quality.yml`; `scripts/run-maintenance-gates.ts`; `pnpm-lock.yaml` | P0 | lint, typecheck, 185 non-emulator tests, production build, production audit, Git boundary, deployment contracts and consistency gates pass; Firestore suite is separately pinned to 10 tests |
-| Public source release | implemented | local | live | unverified | — | `https://github.com/kwakhyun/uptime402-agentic-commerce` | P0 | final maintenance commits and GitHub Actions must be pushed and observed before this row returns to `verified` |
+| Test, supply-chain and release gates | implemented | local | local | verified | 2026-08-30T11:07:08+09:00 | `.github/workflows/quality.yml`; `scripts/run-maintenance-gates.ts`; `pnpm-lock.yaml` | P0 | clean-clone lint, typecheck, 185 non-emulator tests, production build, production audit, Git boundary, deployment contracts and strict readiness pass; clean-clone Firestore suite passed 10/10. CI action runtimes use their current Node 24-compatible major versions |
+| Public source release | implemented | local | live | verified | 2026-08-30T11:07:08+09:00 | `https://github.com/kwakhyun/uptime402-agentic-commerce`; [GitHub Actions quality](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/workflows/quality.yml) | P0 | public `main` is fast-forwarded only with a raw-metadata-free squash tree; maintenance and Firestore jobs are required to pass after each push |
 | Pub/Sub, Eventarc, Workflows, BigQuery pipeline | planned | none | local | unverified | — | `docs/ARCHITECTURE.md` | P1 | production async extension; deliberately outside the proved synchronous recovery path |
 | pay.sh live-path participation | planned | none | local | unverified | — | — | P1 | not used in the verified path and not claimed |
 | AP2 canonical conformance | planned | none | local | unverified | — | — | P1 | no AP2-compliant claim |
