@@ -4,7 +4,7 @@
   "notPaymentEvidence": true,
   "snapshotScope": "initial-final-promotion-baseline",
   "snapshotStatus": "superseded-for-current-portfolio-status",
-  "currentStatusRef": "artifacts/local/portfolio-release-verification.json",
+  "currentStatusRef": "artifacts/portfolio-deployment/manifest.json",
   "capturedAt": "2026-08-03T13:50:21.000Z",
   "projectId": "uptime402-hack-260803",
   "projectNumber": "1065649463621",

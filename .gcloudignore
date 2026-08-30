@@ -24,6 +24,7 @@ credentials
 *keypair*.json
 *wallet*.json
 artifacts/local
+artifacts/portfolio-deployment
 artifacts/product-audit-current
 artifacts/product-design-receipt
 submission/*.mp4

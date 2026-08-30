@@ -7,11 +7,12 @@ exact evidence/report hash를 고정한 `DEVNET VERIFIED` read-only final replay
 Template 파일 존재만으로 live 증거가 되는 것은 아니며, 새 image build·final 배포·IAM
 변경·Secret version 추가는 매번 승인된 GCP 범위와 fresh raw export로 다시 검증합니다.
 
-현재 P0 경계는 다음과 같습니다.
+Demo5 capture 경계와 현재 portfolio replay 경계는 분리됩니다.
 
 | Service | Exposure | Service account | Secret mount |
 | --- | --- | --- | --- |
-| `control-plane` | UI/health 공개, mutation은 app auth 필요 | `uptime402-control@PROJECT_ID.iam.gserviceaccount.com` | control-plane outcome key + immutable demo-request config |
+| `control-plane` capture | UI/health 공개, mutation은 app auth 필요 | `uptime402-control@PROJECT_ID.iam.gserviceaccount.com` | control-plane outcome key + immutable demo-request/mandate config |
+| `control-plane` final replay | UI/health 공개, 모든 mutation route 404 | 같은 dedicated control identity | 없음 |
 | `payment-executor` | Cloud Run IAM private | `uptime402-executor@PROJECT_ID.iam.gserviceaccount.com` | 기존 저잔액 Devnet executor key만 |
 | `vendor-agent` | Agent Card/A2A/paid resource/health 공개 | `uptime402-vendor@PROJECT_ID.iam.gserviceaccount.com` | vendor receipt key + immutable signed offer catalog |
 
@@ -23,7 +24,10 @@ Offer catalog와 fulfillment receipt는 같은 Agent Card Ed25519 authority/key 
 ## 파일과 로컬 검증
 
 - `../cloudbuild.yaml`: 세 이미지를 build/push만 함. 배포/IAM/Secret 변경은 하지 않음.
-- `*.service.yaml.tmpl`: 세 개의 독립 Cloud Run Knative v1 template.
+- `../cloudbuild.control-plane.yaml`: portfolio maintenance에서 control replay 이미지만 build/push.
+- `control-plane.service.yaml.tmpl`: `capture` 전용 protected mutation runtime.
+- `control-plane.replay.service.yaml.tmpl`: `final` 전용 read-only runtime. Firestore, Gemini, executor, OAuth, Secret Manager mount가 없음.
+- `payment-executor.service.yaml.tmpl`, `vendor-agent.service.yaml.tmpl`: 보존된 payment service 경계.
 - `render_cloudrun.py`: 런타임 필수 env와 template 정합성, distinct identities,
   exact origins/audience, numeric secret versions를 fail-closed 검증하고 렌더링.
 
@@ -46,7 +50,9 @@ Control-plane evidence stage는 반드시 둘 중 하나입니다.
 - `UPTIME402_UI_EVIDENCE_STAGE=final`: 실제 검증이 끝난
   `artifacts/payment-evidence.json`과 `artifacts/verification-report.json` 각각의 exact
   `sha256:<lowercase hex>`를 설정해야 합니다. 하나라도 없거나 bytes가 달라지면 UI
-  request가 fail closed하며 local/capture 화면으로 fallback하지 않습니다.
+  request가 fail closed하며 local/capture 화면으로 fallback하지 않습니다. Renderer는
+  별도 replay template을 선택하고 `CONTROL_PLANE_MUTATIONS_ENABLED=false`를 고정하며
+  operator/Firestore/executor/Gemini env와 모든 control secret volume을 제거합니다.
 
 ```bash
 python3 deploy/render_cloudrun.py --env-file .env.deploy
@@ -56,14 +62,16 @@ python3 deploy/render_cloudrun.py \
 ```
 
 두 번째 명령의 출력은 검토용 임시 manifest입니다. 실제 배포 후에는 Cloud Run이
-내보낸 raw service description이 증거의 기준입니다.
+내보낸 raw service description을 owner-private 검증 기준으로 사용합니다. 개인·조직 권한
+메타데이터가 있는 원본 export는 public Git에 넣지 않습니다.
 
 ## 승인 후 GCP 준비
 
 필요 API: Cloud Run, Artifact Registry, Cloud Build, Firestore, Secret Manager,
-Vertex AI, 검증용 Cloud Asset Inventory. 세 service account를 별도로 만들고 세 계정 모두에 shared Firestore를
-사용할 최소 `roles/datastore.user`를 부여합니다. Vertex 경로를 쓰면 control-plane
-계정만 `roles/aiplatform.user`를 가집니다. Deployer에는 세 service account에 대한
+Vertex AI, 검증용 Cloud Asset Inventory. Capture에서는 세 service account를 별도로 만들고 세 계정 모두에 shared Firestore를
+사용할 최소 `roles/datastore.user`를 부여합니다. Vertex 경로를 쓰면 capture control-plane
+계정만 `roles/aiplatform.user`를 가집니다. Final portfolio replay는 Firestore와 Vertex를 호출하지 않으므로
+control identity에서 이 두 role을 제거할 수 있습니다. Deployer에는 세 service account에 대한
 `iam.serviceAccounts.actAs`가 필요합니다.
 
 Artifact Registry repository는 `ARTIFACT_REPOSITORY`와 같은 region에 만들고,
@@ -77,16 +85,31 @@ gcloud builds submit \
   .
 ```
 
+Portfolio replay만 갱신할 때는 payment 이미지를 다시 만들지 않습니다.
+
+```bash
+gcloud builds submit \
+  --config cloudbuild.control-plane.yaml \
+  --region asia-northeast3 \
+  --substitutions=_REGION=asia-northeast3,_REPOSITORY=uptime402,_IMAGE_TAG=FULL_GIT_SHA \
+  .
+```
+
 Executor/vendor final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
-Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. Control은 같은
-evidence/report pair를 포함한 exact Git SHA tag
-`62f9767593703863abdffa2bd24ccecab4cbd2cf`, regional Cloud Build
-`57a697fc-c9d3-4375-85b1-24fe52cefa1e`, digest
-`sha256:70441a196502e8d2115627dad2487e28f3148cf57d5d52f0975752bccd11a312`로
-재배포됐습니다. 후속 build도 audited source와 renderer `IMAGE_TAG`의 관계를
+Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. 현재 control replay는
+revision `uptime402-control-plane-00022-dd6`, exact source tag
+`85954e700095ddc78be0c63810e5f0de1349fd85`, regional Cloud Build
+`676d7d1f-1203-4e48-ac29-0dd101f2f083`, digest
+`sha256:51b9d80bc2a7307e4baa09f7e2394bca5ddb8dc6dcc5c0a1f6e9384cd8111436`입니다.
+Raw service, IAM, build bytes는 ignored `private/portfolio-deployment-raw/`에 두고,
+그 SHA-256과 최소 live status만 `artifacts/portfolio-deployment/manifest.json`에
+기록했습니다. 후속 build도 audited source와 renderer `IMAGE_TAG`의 관계를
 문서화해야 합니다.
 
 ## Secret Manager 계약
+
+아래 계약은 실제 결제를 수행한 `capture` runtime에만 적용됩니다. `final` portfolio replay
+manifest는 이 secret 이름, 경로, volume을 전혀 포함하지 않습니다.
 
 키를 새로 만들지 않습니다. 사용자가 이미 소유하거나 검토한 다음 여섯 파일만 각자 다른
 Secret Manager secret의 새 버전으로 올립니다.
@@ -133,12 +156,13 @@ exclusive-create합니다. `scripts/mandate-sign.ts`도 기존 operator key만 �
 operator-signed mandate attestation이 제공되기 전에는 live path를 배포 완료라고
 부를 수 없습니다.
 
-### Mission-control one-click operator trigger
+### Capture-only mission-control operator trigger
 
-`CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED`는 로컬에서 기본 `false`이고 배포 template에서
-`true`입니다. `final` evidence stage의 public root는 이 설정이 있어도 operator login과
-live trigger를 렌더링하지 않고 read-only replay만 기본으로 제공합니다. 보호된 route는
-capture/운영 audit를 위해 남지만 same-origin + Google OIDC 검사를 계속 적용합니다.
+`CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED`는 로컬에서 기본 `false`이고 capture template에서만
+`true`입니다. Capture는 `CONTROL_PLANE_MUTATIONS_ENABLED=true`를 함께 요구합니다. Final
+replay template은 두 값을 모두 `false`로 고정하고 필요한 config와 secret mount도 제거합니다.
+서버 mutation route는 runtime construction이나 인증 전에 `404 operator_mutations_disabled`로
+종료됩니다.
 Google Identity Services용 OAuth **Web** client ID를
 `CONTROL_PLANE_UI_GOOGLE_CLIENT_ID`와 `CONTROL_PLANE_OPERATOR_AUDIENCE`에 같은 값으로
 넣고, OAuth client의 Authorized JavaScript origin을 exact `CONTROL_PLANE_ORIGIN`으로

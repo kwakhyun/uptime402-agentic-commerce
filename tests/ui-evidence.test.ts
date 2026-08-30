@@ -482,6 +482,8 @@ describe("verified mission-control evidence adapter", () => {
     const source = await readMissionControlSources();
 
     expect(source).toContain("읽기 전용 · 새 결제 없음");
+    expect(source).toContain("DEVNET VERIFIED");
+    expect(source).toContain("설정된 정책 안에서 건별 승인 없이");
     expect(source).toContain("${paidAmountLabel} USDC를 자동 결제");
     expect(source).toContain("건별 승인이나 지갑 팝업 없이");
     expect(source).toContain("recoverySecondsLabel}초");
@@ -587,6 +589,13 @@ describe("verified mission-control evidence adapter", () => {
     expect(dockerfile).toContain(
       "chmod 0444 artifacts/payment-evidence.json artifacts/verification-report.json",
     );
+    expect(dockerfile).toContain(
+      "COPY artifacts/payment-evidence.json ./artifacts/payment-evidence.json",
+    );
+    expect(dockerfile).toContain(
+      "COPY artifacts/verification-report.json ./artifacts/verification-report.json",
+    );
+    expect(dockerfile).not.toContain("COPY artifacts ./artifacts");
     expect(dockerfile).not.toMatch(/chmod\s+(?:-R\s+)?0?4{3}\s+artifacts(?:\s|$)/u);
   });
 });

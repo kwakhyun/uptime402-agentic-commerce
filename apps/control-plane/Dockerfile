@@ -8,7 +8,9 @@ COPY apps/control-plane/package.json apps/control-plane/tsconfig.json apps/contr
 COPY apps/control-plane/src ./apps/control-plane/src
 COPY apps/control-plane/app ./apps/control-plane/app
 COPY apps/control-plane/components ./apps/control-plane/components
-COPY artifacts ./artifacts
+RUN mkdir -p artifacts
+COPY artifacts/payment-evidence.json ./artifacts/payment-evidence.json
+COPY artifacts/verification-report.json ./artifacts/verification-report.json
 
 # The final replay reads only these two public, hash-pinned submission files.
 # Capture creates them as owner-only locally; make the image copies readable by
@@ -27,7 +29,8 @@ ENV UPTIME402_ARTIFACT_ROOT=/workspace/artifacts
 
 COPY --from=build /workspace/apps/control-plane/.next/standalone /workspace
 COPY --from=build /workspace/apps/control-plane/.next/static /workspace/apps/control-plane/.next/static
-COPY --from=build /workspace/artifacts /workspace/artifacts
+COPY --from=build /workspace/artifacts/payment-evidence.json /workspace/artifacts/payment-evidence.json
+COPY --from=build /workspace/artifacts/verification-report.json /workspace/artifacts/verification-report.json
 
 EXPOSE 8080
 CMD ["server.js"]

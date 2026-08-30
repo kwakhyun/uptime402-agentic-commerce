@@ -11,7 +11,7 @@ Uptime402는 장애가 발생했을 때 Gemini 기반 AI SRE가 원인을 진단
 - [Live mission control](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app) — 로그인 없는 `DEVNET VERIFIED` read-only replay
 - [Demo video](https://www.youtube.com/watch?v=jwJRfs-NRZY) — 한국어 내레이션으로 전체 흐름 설명
 - [Solana Explorer transaction](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet)
-- [Payment evidence](artifacts/payment-evidence.json) · [Verification report](artifacts/verification-report.json) · [Current portfolio release verification](artifacts/local/portfolio-release-verification.json)
+- [Payment evidence](artifacts/payment-evidence.json) · [Verification report](artifacts/verification-report.json) · [Current replay deployment evidence](artifacts/portfolio-deployment/manifest.json)
 - [Architecture](docs/ARCHITECTURE.md) · [Presentation deck](submission/Uptime402_Deck.pdf) · [Build status](docs/BUILD_STATUS.md)
 
 ## 검증된 결과
@@ -70,10 +70,14 @@ Uptime402의 목표는 다음과 같습니다.
 
 ## 아키텍처
 
+아래 다이어그램은 보존된 `finalist-demo-5` capture의 결제·복구 경로입니다. 현재 공개
+control revision은 이 증거를 hash 검증해 재생하는 read-only surface이며 Gemini,
+Firestore, executor 호출과 signer secret에 접근하지 않습니다.
+
 ```mermaid
 flowchart LR
     O["Operator\none-time mandate"] --> C["Control plane\nNext.js + Gemini"]
-    C -->|"redacted telemetry\nstrict offer IDs"| G["Gemini 2.5 Flash"]
+    C -->|"redacted telemetry\nstrict offer IDs"| G["Gemini 2.5 Flash\ngemini-2.5-flash"]
     C -->|"A2A Agent Card\n2 signed offers"| V["Vendor agent\nExpress + x402"]
     C -->|"IAM ID token\ndecision envelope"| E["Private payment executor\npolicy + reserve + sign"]
     E <--> F["Firestore\nmandate + budget + idempotency"]
@@ -91,11 +95,13 @@ flowchart LR
 
 | Service | Exposure | Responsibility | Secret boundary |
 |---|---|---|---|
-| `control-plane` | public read-only replay, protected mutation routes | redaction, Gemini/A2A orchestration, receipt verification, recovery outcome | outcome-signing key only |
+| `control-plane` | public read-only replay; mutation routes return `404` | evidence verification and replay rendering | none in the current replay revision |
 | `payment-executor` | private IAM | authoritative policy recheck, atomic reservation, x402 payer signature | low-balance Devnet executor key only |
 | `vendor-agent` | public A2A/resource endpoints | signed offers, 402 challenge, replay claim, facilitator settlement, fulfillment receipt | vendor offer/receipt key only |
 
 Control plane, Gemini, browser에는 executor signer material이 없습니다. Executor는 signed payload만 반환하고, standard x402 순서에 따라 vendor/facilitator가 paid retry를 settle합니다.
+
+현재 공개 replay는 control revision `uptime402-control-plane-00022-dd6`, source commit `85954e700095ddc78be0c63810e5f0de1349fd85`, Cloud Build `676d7d1f-1203-4e48-ac29-0dd101f2f083`, image digest `sha256:51b9d80bc2a7307e4baa09f7e2394bca5ddb8dc6dcc5c0a1f6e9384cd8111436`입니다. Capture 때 필요했던 Gemini, Firestore, executor 호출, OAuth, Secret Manager 의존성과 control service account 권한은 현재 replay 경계에서 제거했습니다.
 
 ## 설계에서 중요하게 다룬 문제
 
@@ -211,7 +217,7 @@ Fresh full verification은 official Devnet RPC와 evidence가 선언한 local de
 Deployment renderer는 `capture`와 `final` 두 단계를 분리합니다.
 
 - `capture`: evidence hash 없이 배포하며 UI는 항상 `LIVE UNVERIFIED`입니다.
-- `final`: 실제 capture와 verifier가 끝난 뒤 immutable image에 evidence/report를 포함하고 두 SHA-256을 exact pin합니다.
+- `final`: 실제 capture와 verifier가 끝난 뒤 immutable image에 evidence/report를 포함하고 두 SHA-256을 exact pin합니다. 별도 replay template이 모든 mutation, OAuth, Firestore, executor, Gemini와 control secret mount를 제거합니다.
 
 ```bash
 python3 deploy/render_cloudrun.py --check-templates
@@ -221,6 +227,12 @@ python3 deploy/render_cloudrun.py \
 ```
 
 세 service account, `run.invoker`, version-pinned Secret Manager access와 raw IAM export 절차는 [deployment guide](deploy/README.md)에 있습니다. Control plane과 vendor만 public이며 executor의 unauthenticated request는 `401/403`이어야 합니다.
+
+현재 portfolio 배포는 `pnpm portfolio:verify-deployment`로 공개 deployment attestation과
+replay-only 경계를 검증합니다. 개인·조직 권한 메타데이터가 든 raw GCP export는 ignored
+`private/portfolio-deployment-raw/`에만 보관합니다. 유지보수 PR은 GitHub Actions에서 lint, typecheck, 전체 테스트,
+production build, production dependency audit, Git boundary, deploy template, 문서/evidence
+정합성, structural readiness와 Firestore Emulator suite를 실행합니다.
 
 ## Configuration and secrets
 
@@ -248,7 +260,7 @@ P0의 wallet 보장은 **application-enforced policy plus low-balance blast-radi
 - 별도 mandate-admin service가 아닌 operator-authenticated application-role separation입니다.
 - Native Fixed Delegation, MPP, AP2 conformance, passkey, gasless, KMS, Pub/Sub/Eventarc/Workflows/BigQuery pipeline은 live path에 없습니다.
 - `pay.sh` CLI/SDK/gateway/catalog를 live payment path에서 사용하지 않았으므로 pay.sh integration을 주장하지 않습니다.
-- 공개 UI는 portfolio-safe read-only evidence replay입니다. 보호된 mutation route는 유지되지만 새 결제를 체험시키는 public sandbox는 아닙니다.
+- 공개 UI는 portfolio-safe read-only evidence replay입니다. 현재 final revision의 mutation route는 인증이나 backend 초기화 전에 404로 종료되며 새 결제를 체험시키는 public sandbox가 아닙니다.
 - 이 구현은 검증 가능한 기술 실험과 포트폴리오를 위한 것이며 production financial system으로 감사받지 않았습니다.
 
 ## Project context

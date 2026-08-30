@@ -7,6 +7,11 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "pnpm": {
+    "overrides": {
+      "nanoid@3.3.16": "3.3.18"
+    }
+  },
   "scripts": {
     "build": "pnpm -r --if-present build",
     "dev": "next dev apps/control-plane --webpack --hostname 127.0.0.1 --port 3000",
@@ -29,7 +34,12 @@
     "diagnose:facilitator-verify": "node --env-file=.env.deploy.local --env-file=.env.handoff.local --conditions=react-server --import tsx scripts/diagnose-facilitator-verify.ts --verify-only",
     "ata:ensure-vendor-usdc": "node --env-file=.env.deploy.local --env-file=.env.handoff.local --import tsx scripts/ensure-devnet-vendor-usdc-ata.ts",
     "evidence:collect-denials": "node --conditions=react-server --import tsx scripts/collect-live-denials.ts",
+    "portfolio:capture-deployment": "node --import tsx scripts/portfolio-deployment-evidence.ts capture",
+    "portfolio:verify-deployment": "node --import tsx scripts/portfolio-deployment-evidence.ts verify",
     "audit:git": "python3 scripts/audit_git_boundary.py",
+    "deploy:validate": "python3 deploy/render_cloudrun.py --check-templates",
+    "docs:verify": "node --import tsx scripts/verify-document-consistency.ts",
+    "maintenance:verify": "node --import tsx scripts/run-maintenance-gates.ts",
     "ready:structural": "python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py --root . --strict"
   },
   "dependencies": {
@@ -47,7 +57,7 @@
     "express": "5.2.1",
     "google-auth-library": "11.0.0",
     "ipaddr.js": "2.4.0",
-    "next": "16.2.12",
+    "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "4.4.3"

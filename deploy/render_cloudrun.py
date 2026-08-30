@@ -15,11 +15,14 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 DEPLOY_DIR = ROOT / "deploy"
+CONTROL_PLANE_CAPTURE_TEMPLATE = DEPLOY_DIR / "control-plane.service.yaml.tmpl"
+CONTROL_PLANE_REPLAY_TEMPLATE = DEPLOY_DIR / "control-plane.replay.service.yaml.tmpl"
 TEMPLATES = {
-    "control-plane": DEPLOY_DIR / "control-plane.service.yaml.tmpl",
+    "control-plane": CONTROL_PLANE_CAPTURE_TEMPLATE,
     "payment-executor": DEPLOY_DIR / "payment-executor.service.yaml.tmpl",
     "vendor-agent": DEPLOY_DIR / "vendor-agent.service.yaml.tmpl",
 }
+ALL_TEMPLATE_PATHS = [*TEMPLATES.values(), CONTROL_PLANE_REPLAY_TEMPLATE]
 PLACEHOLDER = re.compile(r"\{\{([A-Z][A-Z0-9_]*)\}\}")
 ENV_NAME = re.compile(r"^[A-Z][A-Z0-9_]*$")
 RESOURCE_NAME = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
@@ -92,16 +95,15 @@ def deployment_stage(values: dict[str, str]) -> str:
     return stage
 
 
-def control_plane_template_for_stage(text: str, stage: str) -> str:
-    matches = list(FINAL_EVIDENCE_BLOCK.finditer(text))
-    if len(matches) != 1:
-        fail("control-plane template must contain exactly one final evidence env block")
+def control_plane_template_for_stage(stage: str) -> str:
     if stage == "capture":
+        text = CONTROL_PLANE_CAPTURE_TEMPLATE.read_text(encoding="utf-8")
+        matches = list(FINAL_EVIDENCE_BLOCK.finditer(text))
+        if len(matches) != 1:
+            fail("capture control-plane template must contain one final evidence env block")
         return FINAL_EVIDENCE_BLOCK.sub("", text)
     if stage == "final":
-        return text.replace(
-            "            # UPTIME402_FINAL_EVIDENCE_ENV_BEGIN\n", ""
-        ).replace("            # UPTIME402_FINAL_EVIDENCE_ENV_END\n", "")
+        return CONTROL_PLANE_REPLAY_TEMPLATE.read_text(encoding="utf-8")
     fail("control-plane template stage must be capture or final")
 
 
@@ -119,26 +121,70 @@ def assert_control_plane_evidence_env(text: str, stage: str) -> None:
         fail("final manifest must pin evidence and verification report hashes")
 
 
+def assert_control_plane_operational_boundary(text: str, stage: str) -> None:
+    if stage == "capture":
+        required_fragments = (
+            'name: CONTROL_PLANE_MUTATIONS_ENABLED\n              value: "true"',
+            'name: CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED\n              value: "true"',
+            "run.googleapis.com/secrets:",
+            "CONTROL_PLANE_OUTCOME_KEY_PATH",
+            "CONTROL_PLANE_UI_LIVE_REQUEST_PATH",
+        )
+        missing = [fragment for fragment in required_fragments if fragment not in text]
+        if missing:
+            fail("capture control-plane manifest is missing its protected mutation boundary")
+        return
+
+    required_fragments = (
+        'name: CONTROL_PLANE_MUTATIONS_ENABLED\n              value: "false"',
+        'name: CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED\n              value: "false"',
+        "name: UPTIME402_UI_EVIDENCE_STAGE\n              value: final",
+    )
+    if any(fragment not in text for fragment in required_fragments):
+        fail("final control-plane manifest must be an explicit replay-only runtime")
+    forbidden_fragments = (
+        "run.googleapis.com/secrets:",
+        "CONTROL_PLANE_OUTCOME_KEY_PATH",
+        "CONTROL_PLANE_OPERATOR_AUDIENCE",
+        "CONTROL_PLANE_UI_GOOGLE_CLIENT_ID",
+        "CONTROL_PLANE_UI_LIVE_REQUEST_PATH",
+        "CONTROL_PLANE_DEMO_RUN_SLOT",
+        "PAYMENT_EXECUTOR_ORIGIN",
+        "FIRESTORE_PROJECT_ID",
+        "GOOGLE_CLOUD_PROJECT",
+        "volumeMounts:",
+        "volumes:",
+    )
+    present = [fragment for fragment in forbidden_fragments if fragment in text]
+    if present:
+        fail(
+            "final replay control-plane manifest retains mutation dependency: "
+            + ", ".join(present)
+        )
+
+
 def validate_template_contract() -> None:
     env_example = parse_env_file(ROOT / ".env.example")
     all_placeholders: set[str] = set()
     rendered_env: dict[str, set[str]] = {}
-    for role, path in TEMPLATES.items():
+    for path in ALL_TEMPLATE_PATHS:
         text = path.read_text(encoding="utf-8")
         all_placeholders.update(PLACEHOLDER.findall(text))
-        rendered_env[role] = template_env_names(text)
         if "latest" in text.lower():
             fail(f"{path}: version-pinned templates must not contain 'latest'")
         if "FIRESTORE_EMULATOR_HOST" in text:
             fail(f"{path}: production manifest must not set FIRESTORE_EMULATOR_HOST")
+    rendered_env = {
+        role: template_env_names(path.read_text(encoding="utf-8"))
+        for role, path in TEMPLATES.items()
+    }
 
-    control_template = TEMPLATES["control-plane"].read_text(encoding="utf-8")
-    assert_control_plane_evidence_env(
-        control_plane_template_for_stage(control_template, "capture"), "capture"
-    )
-    assert_control_plane_evidence_env(
-        control_plane_template_for_stage(control_template, "final"), "final"
-    )
+    capture_template = control_plane_template_for_stage("capture")
+    final_template = control_plane_template_for_stage("final")
+    assert_control_plane_evidence_env(capture_template, "capture")
+    assert_control_plane_evidence_env(final_template, "final")
+    assert_control_plane_operational_boundary(capture_template, "capture")
+    assert_control_plane_operational_boundary(final_template, "final")
 
     missing_example = sorted(all_placeholders - set(env_example))
     if missing_example:
@@ -155,6 +201,7 @@ def validate_template_contract() -> None:
             {
                 "CONTROL_PLANE_OPERATOR_AUDIENCE",
                 "CONTROL_PLANE_OPERATOR_PRINCIPALS",
+                "CONTROL_PLANE_MUTATIONS_ENABLED",
                 "CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED",
                 "UPTIME402_UI_EVIDENCE_STAGE",
                 "UPTIME402_UI_EVIDENCE_SHA256",
@@ -386,9 +433,7 @@ def validate_values(values: dict[str, str], placeholders: set[str]) -> None:
 def render(values: dict[str, str], output_dir: Path) -> list[Path]:
     stage = deployment_stage(values)
     template_sources = {
-        role: control_plane_template_for_stage(
-            path.read_text(encoding="utf-8"), stage
-        )
+        role: control_plane_template_for_stage(stage)
         if role == "control-plane"
         else path.read_text(encoding="utf-8")
         for role, path in TEMPLATES.items()
@@ -411,6 +456,7 @@ def render(values: dict[str, str], output_dir: Path) -> list[Path]:
             fail(f"Unresolved placeholder in {path}")
         if role == "control-plane":
             assert_control_plane_evidence_env(rendered, stage)
+            assert_control_plane_operational_boundary(rendered, stage)
         output = output_dir / f"{role}.service.yaml"
         output.write_text(rendered, encoding="utf-8")
         outputs.append(output)

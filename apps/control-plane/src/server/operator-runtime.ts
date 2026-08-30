@@ -55,6 +55,29 @@ export type ProductionOperatorBoundaryRuntimeConfig = Readonly<{
   httpMaxResponseBytes: number;
 }>;
 
+export class OperatorMutationsDisabledError extends Error {
+  readonly status = 404;
+  readonly code = "operator_mutations_disabled";
+
+  constructor() {
+    super("operator_mutations_disabled");
+    this.name = "OperatorMutationsDisabledError";
+  }
+}
+
+/**
+ * Mutation routes are opt-in. A final portfolio replay image intentionally
+ * omits every operator, Firestore, executor, and signing configuration value,
+ * so a missing or malformed flag must fail closed before runtime construction.
+ */
+export function requireOperatorMutationsEnabled(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): void {
+  if (environment.CONTROL_PLANE_MUTATIONS_ENABLED?.trim() !== "true") {
+    throw new OperatorMutationsDisabledError();
+  }
+}
+
 export function parseProductionOperatorBoundaryRuntimeConfig(
   environment: Readonly<NodeJS.ProcessEnv>,
 ): ProductionOperatorBoundaryRuntimeConfig {
@@ -215,6 +238,7 @@ export function operatorJsonResponse(body: unknown, status = 200): Response {
 
 export function operatorErrorResponse(error: unknown): Response {
   if (
+    error instanceof OperatorMutationsDisabledError ||
     error instanceof OperatorAuthenticationError ||
     error instanceof OperatorBoundaryError ||
     error instanceof ExecutorAdministrationProxyError ||

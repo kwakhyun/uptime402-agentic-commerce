@@ -36,6 +36,7 @@ import { InMemoryOperatorActionGuard } from "../apps/control-plane/src/server/op
 import {
   parseProductionOperatorBoundaryRuntimeConfig,
   readStrictOperatorJson,
+  requireOperatorMutationsEnabled,
 } from "../apps/control-plane/src/server/operator-runtime.js";
 import type {
   LiveIncidentRequest,
@@ -726,5 +727,20 @@ describe("operator HTTP and mandate CLI safety helpers", () => {
       demoMandateId: "mandate-demo",
       executorOrigin: EXECUTOR_ORIGIN,
     });
+  });
+
+  it("keeps every operator mutation route disabled unless explicitly enabled", () => {
+    expect(() => requireOperatorMutationsEnabled({})).toThrow(
+      "operator_mutations_disabled",
+    );
+    expect(() =>
+      requireOperatorMutationsEnabled({ CONTROL_PLANE_MUTATIONS_ENABLED: "false" }),
+    ).toThrow("operator_mutations_disabled");
+    expect(() =>
+      requireOperatorMutationsEnabled({ CONTROL_PLANE_MUTATIONS_ENABLED: "invalid" }),
+    ).toThrow("operator_mutations_disabled");
+    expect(() =>
+      requireOperatorMutationsEnabled({ CONTROL_PLANE_MUTATIONS_ENABLED: "true" }),
+    ).not.toThrow();
   });
 });

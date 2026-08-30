@@ -3,6 +3,7 @@ import {
   operatorErrorResponse,
   operatorJsonResponse,
   readStrictOperatorJson,
+  requireOperatorMutationsEnabled,
 } from "../../../../../../src/server/operator-runtime";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ export async function POST(
   context: { params: Promise<{ mandateId: string }> },
 ): Promise<Response> {
   try {
+    requireOperatorMutationsEnabled();
     const boundary = getProductionOperatorBoundary();
     const identity = await boundary.authenticate(
       request.headers.get("authorization"),

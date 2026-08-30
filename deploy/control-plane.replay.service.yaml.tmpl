@@ -1,0 +1,41 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "{{CONTROL_PLANE_SERVICE_NAME}}"
+  labels:
+    cloud.googleapis.com/location: "{{GCP_REGION}}"
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      serviceAccountName: "{{CONTROL_PLANE_SERVICE_ACCOUNT}}"
+      containerConcurrency: 40
+      timeoutSeconds: 60
+      containers:
+        - image: "{{GCP_REGION}}-docker.pkg.dev/{{PROJECT_ID}}/{{ARTIFACT_REPOSITORY}}/control-plane:{{IMAGE_TAG}}"
+          ports:
+            - name: http1
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED
+              value: "false"
+            - name: CONTROL_PLANE_MUTATIONS_ENABLED
+              value: "false"
+            - name: UPTIME402_UI_EVIDENCE_STAGE
+              value: final
+            - name: UPTIME402_UI_EVIDENCE_SHA256
+              value: "{{UPTIME402_UI_EVIDENCE_SHA256}}"
+            - name: UPTIME402_UI_VERIFICATION_REPORT_SHA256
+              value: "{{UPTIME402_UI_VERIFICATION_REPORT_SHA256}}"

@@ -30,7 +30,7 @@ async function waitForReady(processHandle: ChildProcessWithoutNullStreams): Prom
       processHandle.off("exit", onExit);
     };
     const onStderr = (chunk: Buffer): void => {
-      stderr += chunk.toString("utf8");
+      stderr = `${stderr}${chunk.toString("utf8")}`.slice(-16_384);
     };
     const onError = (error: Error): void => {
       cleanup();
@@ -62,6 +62,9 @@ async function waitForReady(processHandle: ChildProcessWithoutNullStreams): Prom
     processHandle.stderr.on("data", onStderr);
     processHandle.once("error", onError);
     processHandle.once("exit", onExit);
+    if (processHandle.exitCode !== null || processHandle.signalCode !== null) {
+      onExit(processHandle.exitCode);
+    }
   });
 }
 

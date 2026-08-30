@@ -2,6 +2,7 @@ import {
   getProductionOperatorBoundary,
   operatorErrorResponse,
   operatorJsonResponse,
+  requireOperatorMutationsEnabled,
 } from "../../../../../src/server/operator-runtime";
 import {
   OperatorLiveUiHttpError,
@@ -19,6 +20,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request): Promise<Response> {
   try {
+    requireOperatorMutationsEnabled();
     const config = requireLiveOperatorUiConfig(process.env);
     assertSameOriginBodylessLiveRequest(request, config.controlPlaneOrigin);
     const boundary = getProductionOperatorBoundary();

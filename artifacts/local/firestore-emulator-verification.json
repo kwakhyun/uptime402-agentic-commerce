@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
   "mode": "firestore-emulator",
-  "verifiedAt": "2026-08-03T21:25:44+09:00",
+  "verifiedAt": "2026-08-30T10:40:54+09:00",
   "nodeRuntime": "v22.21.0",
   "command": "NODE_BIN=\"$(command -v node)\"; firebase emulators:exec --only firestore '\"${NODE_BIN}\" node_modules/vitest/vitest.mjs run tests/persistence-firestore.test.ts tests/payment-authorization-firestore.test.ts --reporter=verbose'",
   "testFiles": [

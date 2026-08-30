@@ -6,24 +6,26 @@
 
 ```mermaid
 flowchart LR
-    J["Judge / reviewer\nlogged-out read-only replay"] --> C
-    O["Operator — Google OIDC\nmandate arm + one-shot incident"] --> C["Control plane Cloud Run\nreact-62f9767 · final replay"]
-    C -->|"allowlisted / redacted telemetry"| G["Gemini 2.5 Flash\nstrict supplied offerId 선택"]
-    C -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run 00011-88p\n2 immutable signed offers"]
-    C -->|"IAM decision envelope"| E["Private executor Cloud Run 00012-2dg\nauthoritative reload + policy + reserve + sign"]
-    E -->|"PAYMENT-SIGNATURE\nno broadcast"| C
-    C -->|"paid retry"| V
-    V -->|"verify → settle → 200 resource\n+ signed receipt"| C
+    J["Judge / reviewer\nlogged-out read-only replay"] --> C["Current control Cloud Run\nfinal · no mutations or secrets"]
+    C --> P["Hash-pinned payment evidence\n+ verification report"]
+
+    O["Historical demo5 operator\nGoogle OIDC · one-shot"] --> H["Capture control runtime"]
+    H -->|"allowlisted / redacted telemetry"| G["Gemini 2.5 Flash · gemini-2.5-flash\nstrict supplied offerId 선택"]
+    H -->|"A2A Agent Card + SendMessage"| V["Vendor Cloud Run\n2 immutable signed offers"]
+    H -->|"IAM decision envelope"| E["Private executor Cloud Run\nauthoritative reload + policy + reserve + sign"]
+    E -->|"PAYMENT-SIGNATURE\nno broadcast"| H
+    H -->|"paid retry"| V
+    V -->|"verify → settle → 200 resource\n+ signed receipt"| H
     E <--> S["Managed Firestore\nreservation + authorization + claim"]
     V <--> S
-    C <--> S
+    H <--> S
 
     K["Existing low-balance wallet key path"] -. "executor process only" .-> E
-    K ~~~ C
+    K ~~~ H
     K ~~~ G
 ```
 
-세 Cloud Run service는 project `uptime402-hack-260803`, region `asia-northeast3`에서 Ready이고 latest revision에 100% traffic을 보낸다. Executor/vendor는 payment runtime Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`를 유지하고, public control만 exact Git SHA tag `62f9767593703863abdffa2bd24ccecab4cbd2cf` / digest `sha256:70441a196502e8d2115627dad2487e28f3148cf57d5d52f0975752bccd11a312`로 재배포됐다. Raw initial final service/IAM exports는 `artifacts/final-deployment/`에 있고 `artifacts/final-release.json`이 그 promotion baseline을 SHA-256으로 인덱스한다. 후속 control revision은 final evidence/report bytes와 hash env, service account, IAM, secret mounts를 변경하지 않았다. Demo5는 managed Firestore와 실제 x402 facilitator/Solana Devnet을 사용했다. key material은 control-plane/Gemini/browser로 전달되지 않는다. Public control root는 이 보존 run을 read-only로 렌더링하고 새 결제를 실행하지 않는다.
+세 Cloud Run service는 project `uptime402-hack-260803`, region `asia-northeast3`에 존재한다. Demo5를 실행한 capture runtime과 현재 portfolio replay runtime은 같은 것으로 취급하지 않는다. Raw initial promotion은 `artifacts/final-deployment/`와 `artifacts/final-release.json`에 보존된다. 현재 revision, service IAM, Cloud Build는 owner-private raw export로 검증하고, public `artifacts/portfolio-deployment/manifest.json`에는 최소 attestation과 raw SHA-256만 둔다. Current control은 final evidence/report hash와 정적 UI에 필요한 env만 가지며 mutation, OAuth, Firestore, Gemini, executor origin과 Secret Manager mount를 제거한다. Demo5 당시 vendor/executor와 managed Firestore evidence는 변경하지 않는다.
 
 ## Demo5 실제 runtime flow
 
@@ -31,7 +33,7 @@ flowchart LR
 sequenceDiagram
     actor Operator
     participant UI as Control plane / UI
-    participant Gemini as Gemini 2.5 Flash
+    participant Gemini as Gemini 2.5 Flash (gemini-2.5-flash)
     participant Vendor as Vendor A2A Cloud Run
     participant Executor as Private executor Cloud Run
     participant Store as Firestore
@@ -40,7 +42,7 @@ sequenceDiagram
 
     Operator->>UI: Google OIDC · Arm mandate once
     UI->>Executor: control-plane SA proxy · arm
-    Operator->>UI: GIS popup · ephemeral ID token · one-shot trigger
+    Operator->>UI: Google Identity Services popup · ephemeral ID token · one-shot trigger
     UI->>UI: exact-origin/bodyless route reads version-pinned server request
     UI->>Gemini: allowlisted + redacted telemetry, 2 offer IDs
     Gemini-->>UI: strict diagnosis + selectedOfferId
@@ -80,25 +82,25 @@ flowchart LR
     E --> F["final revision\nread-only DEVNET VERIFIED replay"]
 ```
 
-Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Independent report SHA-256은 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`이고 all 13 checks가 true다. Initial final promotion build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`, earlier control-only UX builds, and current portfolio build `57a697fc-c9d3-4375-85b1-24fe52cefa1e` 모두 이 exact pair를 image에 포함한다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
+Raw signer-access IAM policy artifact의 안전한 filename 변경 뒤 `artifacts/payment-evidence.json` SHA-256은 `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`다. Policy bytes와 bound artifact SHA-256 `sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8`은 바뀌지 않았다. Independent report SHA-256은 `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`이고 all 13 checks가 true다. Initial promotion과 현재 portfolio Cloud Build의 raw output/digest는 각 deployment artifact가 별도로 보존한다. Final stage는 evidence file, report file, report→evidence binding, configured hashes 중 하나라도 없거나 다르면 fail closed한다.
 
 ## Trust and identity boundaries
 
 | Boundary | Public | Identity | Secret access | Authoritative responsibility |
 |---|---:|---|---|---|
-| control-plane | yes | dedicated control SA | outcome signing key + immutable demo-request config | incident orchestration, operator OIDC, redaction, A2A/Gemini inputs, receipt verification, recovery outcome |
+| current control replay | yes | dedicated control SA | none | exact hash-pinned evidence replay; every mutation route fails closed |
+| historical capture control | yes | same dedicated control SA | outcome key + immutable demo request/mandate | incident orchestration, operator OIDC, redaction, A2A/Gemini inputs, receipt verification, recovery outcome |
 | payment-executor | no | dedicated executor SA | existing executor keypair only | mandate/policy reload, integer money math, atomic reserve, x402 payload signing |
 | vendor-agent | yes | dedicated vendor SA | receipt key + immutable signed-offer catalog | immutable offers, 402 challenge, claim/replay, facilitator verify/settle, fulfillment |
 
 P0 admin/executor separation은 별도 admin service가 아니라 operator-authenticated route를 둔 **application role separation**이다. wallet 보장은 **application-enforced policy plus low-balance blast-radius isolation**이며 cryptographic cap이 아니다.
 
-Mission-control live trigger는 Google OAuth Web client ID와 server exact audience가
-같을 때만 인증될 수 있다. Final public root는 login/trigger를 렌더링하지 않고 read-only
-evidence replay를 기본으로 제공한다. 보호된 operator route에서 browser는 ephemeral ID token만 same-origin Authorization
-header로 보내고, incident/policy body는 보내지 않는다. Server는 version-pinned
-read-only JSON을 strict parse하며 UI에는 reduced events를 `LIVE UNVERIFIED`로만
-반환한다. Hash-pinned `DEVNET VERIFIED` evidence replay와 live execution telemetry는
-서로 다른 UI surface이고 promotion verifier 전에는 합쳐지지 않는다.
+Capture 당시 mission-control trigger는 Google OAuth Web client ID와 exact audience를
+검증했고 browser는 ephemeral ID token만 same-origin Authorization header로 전송했다.
+현재 final public root는 별도 replay template을 사용해 login/trigger뿐 아니라 operator,
+Firestore, Gemini, executor와 signing 설정 자체를 배포하지 않는다. Mutation route는 인증
+시도보다 먼저 `404 operator_mutations_disabled`로 종료된다. Hash-pinned `DEVNET VERIFIED`
+replay와 과거 capture telemetry는 서로 다른 runtime 및 evidence 계층이다.
 
 Live promotion은 세 Cloud Run service description/IAM, executor signer-secret IAM뿐 아니라
 project IAM raw export도 exact bytes로 hash-bind한다. Project-level

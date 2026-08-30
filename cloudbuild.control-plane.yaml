@@ -1,0 +1,32 @@
+# Portfolio maintenance build. This publishes only the public read-only replay
+# image; it never deploys a service, changes IAM, or builds payment components.
+timeout: 1200s
+options:
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _REGION: asia-northeast3
+  _REPOSITORY: uptime402
+  _IMAGE_TAG: REQUIRED_HEX_IMAGE_TAG
+steps:
+  - id: validate-image-tag
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        if [[ ! "${_IMAGE_TAG}" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "_IMAGE_TAG must be an exact full Git commit" >&2
+          exit 2
+        fi
+  - id: build-control-plane
+    name: gcr.io/cloud-builders/docker
+    waitFor: [validate-image-tag]
+    args:
+      - build
+      - --file
+      - apps/control-plane/Dockerfile
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/control-plane:${_IMAGE_TAG}
+      - .
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/control-plane:${_IMAGE_TAG}

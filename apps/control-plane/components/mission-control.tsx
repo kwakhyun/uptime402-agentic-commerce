@@ -87,7 +87,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
         </nav>
         <span className={`header-status ${devnetVerified ? "is-verified" : "is-unverified"}`}>
           {devnetVerified ? <CheckCircle size={17} weight="fill" aria-hidden="true" /> : <WarningCircle size={17} weight="fill" aria-hidden="true" />}
-          {devnetVerified ? "복구 완료" : demoState.environmentLabel}
+          {devnetVerified ? "DEVNET VERIFIED" : demoState.environmentLabel}
         </span>
       </header>
 
@@ -104,7 +104,7 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
           </h1>
           <p className="report-summary">
             {devnetVerified
-              ? `Gemini가 두 복구 옵션을 비교하고, 설정된 정책 안에서 ${paidAmountLabel} USDC를 자동 결제해 서비스를 정상화했습니다.`
+              ? `Gemini가 두 복구 옵션을 비교하고, 설정된 정책 안에서 건별 승인 없이 ${paidAmountLabel} USDC를 자동 결제해 서비스를 정상화했습니다.`
               : "Gemini 진단, A2A 견적 비교, 정책 판정과 x402 결제 흐름을 네 단계로 확인할 수 있습니다."}
           </p>
           <div className="hero-action-group">
