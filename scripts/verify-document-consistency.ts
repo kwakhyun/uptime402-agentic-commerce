@@ -107,7 +107,8 @@ if (architecture.includes("GIS popup")) {
   throw new Error("ARCHITECTURE.md must expand Google Identity Services instead of GIS popup");
 }
 
-for (const path of ["README.md", "docs/BUILD_STATUS.md", "deploy/README.md"] as const) {
+// Release identifiers belong in operational records; README introduces the project.
+for (const path of ["docs/BUILD_STATUS.md", "deploy/README.md"] as const) {
   const source = await text(path);
   for (const required of [
     String(deployment.sourceCommit),

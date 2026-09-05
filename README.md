@@ -14,11 +14,9 @@ Uptime402는 장애가 발생하면 Gemini로 원인을 진단하고, A2A로 받
 - [Payment evidence](artifacts/payment-evidence.json) · [Verification report](artifacts/verification-report.json) · [Current replay deployment evidence](artifacts/portfolio-deployment/manifest.json)
 - [Architecture](docs/ARCHITECTURE.md) · [Presentation deck](submission/Uptime402_Deck.pdf) · [Build status](docs/BUILD_STATUS.md)
 
-2026-09-05 개선에서는 재결제 없이 후속 단계를 재개하는 기능, 동시 예약에도 정확한 예산 증거, 실제 RPC 상태 검사, 검증 범위를 명확히 보여주는 UI를 추가했습니다. 화면 개선은 공개 배포에 반영했습니다. 결제 실행 경로의 변경은 로컬에서 검증했으며, 현재 공개 서비스는 읽기 전용입니다. 구현과 검증 결과는 [개선 기록](docs/REVIEW_2026-09-05.md#개선-반영-기록)을 참고하세요. 보존된 실행의 `9.340초`는 Gemini 판단 기록부터 라우트 활성화 확인까지의 구간이며 장애 발생부터의 총 복구 시간이 아닙니다.
-
 ## 검증된 결과
 
-2026-08-03의 보존된 `finalist-demo-5` 실행에서 다음 결과를 확인했습니다.
+2026-08-03의 보존된 `finalist-demo-5` 실행에서 다음 결과를 확인했습니다. 화면에 표시된 `9.340초`는 Gemini 판단 기록부터 라우트 활성화 확인까지의 시간입니다.
 
 | Signal | Verified result |
 |---|---|
@@ -102,8 +100,6 @@ flowchart LR
 | `vendor-agent` | public A2A/resource endpoints | signed offers, 402 challenge, replay claim, facilitator settlement, fulfillment receipt | vendor offer/receipt key only |
 
 Control plane, Gemini, browser에는 executor signer material이 없습니다. Executor는 signed payload만 반환하고, standard x402 순서에 따라 vendor/facilitator가 paid retry를 settle합니다.
-
-현재 공개 replay는 control revision `uptime402-control-plane-00023-sl4`, source commit `cb3e5595e33670536e552327ebda2a27a7d48f94`, Cloud Build `9339a850-987a-4077-8067-d4ca796082ea`, image digest `sha256:dadf1d201429242f59573a9f791ea95426b07a31dc36dc08d6b4e33e57b4ce95`입니다. Capture 때 필요했던 Gemini, Firestore, executor 호출, OAuth, Secret Manager 의존성과 control service account 권한은 현재 replay 경계에서 제거했습니다.
 
 ## 설계에서 중요하게 다룬 문제
 
@@ -231,11 +227,7 @@ python3 deploy/render_cloudrun.py \
 
 세 service account, `run.invoker`, version-pinned Secret Manager access와 raw IAM export 절차는 [deployment guide](deploy/README.md)에 있습니다. Control plane과 vendor만 public이며 executor의 unauthenticated request는 `401/403`이어야 합니다.
 
-현재 portfolio 배포는 `pnpm portfolio:verify-deployment`로 공개 deployment attestation과
-replay-only 경계를 검증합니다. 개인·조직 권한 메타데이터가 든 raw GCP export는 ignored
-`private/portfolio-deployment-raw/`에만 보관합니다. 유지보수 PR은 GitHub Actions에서 lint, typecheck, 전체 테스트,
-production build, production dependency audit, Git boundary, deploy template, 문서/evidence
-정합성, structural readiness와 Firestore Emulator suite를 실행합니다.
+배포 상태와 검증 기록은 [빌드 상태 문서](docs/BUILD_STATUS.md)에서 확인할 수 있습니다.
 
 ## Configuration and secrets
 
