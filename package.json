@@ -9,7 +9,9 @@
   },
   "pnpm": {
     "overrides": {
-      "nanoid@3.3.16": "3.3.18"
+      "nanoid@3.3.16": "3.3.18",
+      "fast-uri@3.1.5": "3.1.6",
+      "qs@6.15.3": "6.16.0"
     }
   },
   "scripts": {
@@ -40,7 +42,8 @@
     "deploy:validate": "python3 deploy/render_cloudrun.py --check-templates",
     "docs:verify": "node --import tsx scripts/verify-document-consistency.ts",
     "maintenance:verify": "node --import tsx scripts/run-maintenance-gates.ts",
-    "ready:structural": "python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py --root . --strict"
+    "ready:structural": "python3 .agents/skills/ship-agentic-commerce-finalist/scripts/check_finalist_readiness.py --root . --strict",
+    "incident:resume": "node --conditions=react-server --import tsx scripts/resume-paid-incident.ts"
   },
   "dependencies": {
     "@a2a-js/sdk": "1.0.1",
@@ -71,6 +74,7 @@
     "@types/supertest": "^6.0.3",
     "concurrently": "9.2.1",
     "eslint": "9.39.1",
+    "jsdom": "26.1.0",
     "supertest": "7.2.2",
     "tsup": "8.5.1",
     "tsx": "4.23.1",

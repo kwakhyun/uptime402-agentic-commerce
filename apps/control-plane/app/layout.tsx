@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Uptime402 · AI가 자동 결제해 복구하는 서비스",
+  title: "Uptime402 · AI 자동 결제와 라우트 활성화 검증",
   description:
-    "Gemini AI SRE가 복구 옵션을 비교하고 정책 한도 안에서 Solana USDC로 자동 결제한 뒤 서비스 상태를 복구합니다.",
+    "Gemini가 복구 옵션을 비교하고 정책 한도 안에서 Solana Devnet USDC로 자동 결제한 기록과 라우트 활성화 증거를 확인하세요.",
 };
 
 export const viewport: Viewport = {

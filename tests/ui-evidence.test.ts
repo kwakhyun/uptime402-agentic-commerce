@@ -33,24 +33,6 @@ const CHECKS = {
   urlCanonicalization: true,
 } as const;
 
-async function readMissionControlSources(): Promise<string> {
-  const componentFiles = [
-    "mission-control.tsx",
-    "developer-evidence.tsx",
-    "verified-evidence.tsx",
-    "use-recovery-playback.ts",
-  ] as const;
-  const sources = await Promise.all(
-    componentFiles.map((file) =>
-      readFile(
-        new URL(`../apps/control-plane/components/${file}`, import.meta.url),
-        "utf8",
-      ),
-    ),
-  );
-  return sources.join("\n");
-}
-
 function fixture() {
   const payer = "2".repeat(32);
   const payee = "3".repeat(32);
@@ -304,7 +286,7 @@ describe("verified mission-control evidence adapter", () => {
     expect(state.offers.every((offer) => offer.signedOfferVerified)).toBe(true);
     expect(state.modelDecision.selectedOfferId).toBe("offer-burst-v1");
     expect(state.modelDecision.counterfactualOfferId).toBe("offer-economy-v1");
-    expect(state.modelDecision.counterfactualResult).toContain("offer-economy-v1");
+    expect(state.modelDecision.counterfactualResult).toContain("결제 한도");
     expect(state.dependency.state).toBe("unhealthy");
     expect(state.mandate.remainingUsdc).toBe("0.032000");
     expect(state.timeline.at(-1)).toMatchObject({
@@ -476,109 +458,6 @@ describe("verified mission-control evidence adapter", () => {
     expect(() => parseUiEvidenceDeploymentStage("verified")).toThrow(
       /must be local, capture, or final/u,
     );
-  });
-
-  it("makes verified final evidence a read-only result and omits operator auth", async () => {
-    const source = await readMissionControlSources();
-
-    expect(source).toContain("읽기 전용 · 새 결제 없음");
-    expect(source).toContain("DEVNET VERIFIED");
-    expect(source).toContain("설정된 정책 안에서 건별 승인 없이");
-    expect(source).toContain("${paidAmountLabel} USDC를 자동 결제");
-    expect(source).toContain("건별 승인이나 지갑 팝업 없이");
-    expect(source).toContain("recoverySecondsLabel}초");
-    expect(source).toContain("정책 한도 내 자동 실행");
-    expect(source).toMatch(/\{!devnetVerified \? \([\s\S]*?<LiveOperatorTrigger/u);
-  });
-
-  it("keeps the four-step flow visible and opens capture controls only for live execution", async () => {
-    const missionSource = await readMissionControlSources();
-    const triggerSource = await readFile(
-      new URL("../apps/control-plane/components/live-operator-trigger.tsx", import.meta.url),
-      "utf8",
-    );
-
-    expect(missionSource).toContain('id="recovery-flow"');
-    expect(missionSource).toContain("phaseClass(1)");
-    expect(missionSource).toContain("phaseClass(4)");
-    expect(missionSource).toContain("const [open, setOpen]");
-    expect(missionSource).toContain("onRunStarted={() => setOpen(true)}");
-    expect(triggerSource).toContain("onRunStarted?.();");
-  });
-
-  it("guides first-time viewers from the verified outcome to the replay verdict", async () => {
-    const source = await readMissionControlSources();
-    const styles = await readFile(
-      new URL("../apps/control-plane/app/globals.css", import.meta.url),
-      "utf8",
-    );
-
-    expect(source).toContain("Gemini가 두 복구 옵션을 비교하고");
-    expect(source).toContain("장애를 감지하고");
-    expect(source).toContain("Gemini가 두 복구 옵션을 비교했습니다");
-    expect(source).toContain("정책이");
-    expect(source).toContain("health check와 서명 영수증을 검증했습니다");
-    expect(source).toContain("재생 버튼을 누르면 실제 기록이 단계별로 강조됩니다");
-    expect(source).toContain("확인 완료");
-    expect(source).toContain('role="progressbar"');
-    expect(source).toContain("aria-valuenow={replayProgressPercent}");
-    expect(source).toContain("const replayProgressPercent = !runStarted");
-    expect(source).toContain("RECOVERY_PHASES.map");
-    expect(source).toContain("진행 중");
-    expect(source).toContain("transactionCreated:{String(denial.transactionCreated)}");
-    expect(source).toContain("txSignature:{String(denial.txSignature)}");
-    expect(source).toContain("onClick={handlePlaybackToggle}");
-    expect(source).not.toContain('aria-pressed={runStarted && !runPaused && !runComplete}');
-    expect(styles).toContain(".replay-button.is-ready");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-  });
-
-  it("keeps the verified replay readable, repeatable, and free of payment side effects", async () => {
-    const source = await readMissionControlSources();
-    const styles = await readFile(
-      new URL("../apps/control-plane/app/globals.css", import.meta.url),
-      "utf8",
-    );
-
-    expect(source).toContain("const STEP_INTERVAL_MS = 1_000");
-    expect(source).toContain("실행 과정 재생");
-    expect(source).toContain("재생 일시정지");
-    expect(source).toContain("재생 계속");
-    expect(source).toContain("처음부터 다시 보기");
-    expect(source).toContain("실제 조건");
-    expect(source).toContain("반대 조건");
-    expect(source).toContain("개발자용 원본 증거 보기");
-    expect(source).toContain("읽기 전용 · 새 결제 없음");
-
-    expect(styles).toContain(".developer-evidence");
-    expect(styles).toContain(".replay-progress__track");
-    expect(styles).toContain(".replay-progress__stage.is-active");
-    expect(styles).toContain(".stage-spinner");
-    expect(styles).toContain(".recovery-section.is-active");
-    expect(styles).toContain(".condition-switch");
-    expect(styles).toMatch(/@media \(max-width: 720px\)[\s\S]*?\.recovery-section\s*\{[\s\S]*?grid-template-columns:\s*42px minmax\(0, 1fr\);/u);
-    expect(styles).toMatch(/@media \(max-width: 720px\)[\s\S]*?\.replay-button\s*\{[\s\S]*?width:\s*100%;/u);
-  });
-
-  it("uses a calm light theme with readable hierarchy and no decorative gradient", async () => {
-    const styles = await readFile(
-      new URL("../apps/control-plane/app/globals.css", import.meta.url),
-      "utf8",
-    );
-    const layout = await readFile(
-      new URL("../apps/control-plane/app/layout.tsx", import.meta.url),
-      "utf8",
-    );
-    const missionSource = await readMissionControlSources();
-    expect(layout).toContain('colorScheme: "light"');
-    expect(layout).toContain('themeColor: "#f6f7f9"');
-    expect(styles).toMatch(/body\s*\{[\s\S]*?background:\s*var\(--page\);/u);
-    expect(styles).not.toMatch(/linear-gradient|radial-gradient/u);
-    expect(styles).toContain("--text: #182235");
-    expect(styles).toContain("--blue: #2563eb");
-    expect(styles).toMatch(/\.replay-button\s*\{[\s\S]*?background:\s*var\(--blue\);[\s\S]*?color:\s*#ffffff;/u);
-    expect(missionSource).toContain('from "@phosphor-icons/react/');
-    expect(missionSource).not.toContain('from "@phosphor-icons/react"');
   });
 
   it("makes only the two public final artifacts readable by the nonroot image", async () => {

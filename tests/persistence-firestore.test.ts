@@ -66,6 +66,15 @@ describe.skipIf(!emulatorEnabled)("Firestore emulator integration (a skip is not
     await expect(second.reserveBudget(winner)).resolves.toMatchObject({ kind: "existing" });
   });
 
+  it("returns the exact budget snapshots used by concurrent successful reservations", async () => {
+    const request = (index: number) => ({ ...reserveRequest(100 + index), mandateId: "mandate-snapshots", incidentId: "incident-snapshots", incidentLimitBaseUnits: "2000", dailyLimitBaseUnits: "2000" });
+    const results = await Promise.all([first.reserveBudget(request(1)), second.reserveBudget(request(2))]);
+    expect(results.every((result) => result.kind === "reserved")).toBe(true);
+    const successful = results.filter((result) => result.kind === "reserved");
+    expect(successful.map((result) => result.budgetBefore.incidentCommittedAndReservedBaseUnits).sort()).toEqual(["0", "600"]);
+    expect(successful.map((result) => result.budgetAfter.incidentCommittedAndReservedBaseUnits).sort()).toEqual(["1200", "600"]);
+  });
+
   it("returns a nonce replay before exhausted held budget", async () => {
     const held: ReserveBudgetRequest = {
       ...reserveRequest(20),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canonicalHash } from "@uptime402/domain";
+import { DEVNET_GENESIS_HASH, canonicalHash } from "@uptime402/domain";
 import {
   inspectAppliedDependencyRoute,
   type AppliedRouteReader,
@@ -21,6 +21,9 @@ const route = {
   expiresAt: "2026-08-03T00:10:00.000Z",
 };
 
+const rpcEvidence = { endpointHash: canonicalHash("endpoint"), responseHash: canonicalHash("response"), genesisHash: DEVNET_GENESIS_HASH, latencyMs: 12 };
+const probe = { probe: async () => rpcEvidence };
+
 function reader(value: unknown | null): AppliedRouteReader {
   return { read: async () => value };
 }
@@ -31,6 +34,7 @@ describe("applied dependency route health", () => {
       { incidentId: route.incidentId, activationId: route.activationId },
       reader({ schemaVersion: "1", recordHash: canonicalHash(route), value: route }),
       () => "2026-08-03T00:05:00.000Z",
+      probe,
     );
     expect(result).toEqual({
       healthy: true,
@@ -38,7 +42,8 @@ describe("applied dependency route health", () => {
         status: "healthy",
         routeActivationId: "activation-1",
         details: {
-          kind: "firestore_recovery_route",
+          kind: "solana_rpc_probe",
+          ...rpcEvidence, observedAt: "2026-08-03T00:05:00.000Z",
           state: "active",
           offerId: "offer-1",
         },
@@ -72,4 +77,12 @@ describe("applied dependency route health", () => {
       ),
     ).resolves.toEqual({ healthy: false, reason: "route_expired" });
   });
+});
+
+
+it("does not report healthy from a route document alone", async () => {
+  const input = { incidentId: route.incidentId, activationId: route.activationId };
+  const record = reader({ schemaVersion: "1", recordHash: canonicalHash(route), value: route });
+  await expect(inspectAppliedDependencyRoute(input, record, () => "2026-08-03T00:05:00.000Z")).resolves.toEqual({ healthy: false, reason: "rpc_probe_unconfigured" });
+  await expect(inspectAppliedDependencyRoute(input, record, () => "2026-08-03T00:05:00.000Z", { probe: async () => { throw new Error("RPC unavailable"); } })).rejects.toThrow("RPC unavailable");
 });

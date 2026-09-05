@@ -1,3 +1,4 @@
+import type { RecoveryRpcProbe } from "./recovery-rpc-probe.js";
 import "server-only";
 
 import {
@@ -39,7 +40,8 @@ export type DependencyRouteHealth =
         status: "healthy";
         routeActivationId: string;
         details: {
-          kind: "firestore_recovery_route";
+          kind: "solana_rpc_probe";
+          endpointHash: string; responseHash: string; genesisHash: string; latencyMs: number; observedAt: string;
           state: "active";
           offerId: string;
         };
@@ -47,18 +49,20 @@ export type DependencyRouteHealth =
     }>
   | Readonly<{
       healthy: false;
-      reason: "route_missing" | "activation_mismatch" | "route_expired";
+      reason: "route_missing" | "activation_mismatch" | "route_expired" | "rpc_probe_unconfigured";
     }>;
 
 /**
  * Reads the dependency route through an independent repository operation and
  * verifies its canonical hash, activation binding, and TTL before reporting
- * healthy. It never treats the vendor's fulfillment claim alone as health.
+ * healthy, then probes the operator-pinned RPC supplied for that paid route.
+ * A stored activation alone never proves recovery.
  */
 export async function inspectAppliedDependencyRoute(
   rawInput: unknown,
   reader: AppliedRouteReader,
   now: () => string = () => new Date().toISOString(),
+  rpcProbe?: RecoveryRpcProbe,
 ): Promise<DependencyRouteHealth> {
   const input = DependencyHealthInputSchema.parse(rawInput);
   const rawRecord = await reader.read(input.incidentId);
@@ -78,13 +82,18 @@ export async function inspectAppliedDependencyRoute(
     return { healthy: false, reason: "route_expired" };
   }
 
+  if (!rpcProbe) return { healthy: false, reason: "rpc_probe_unconfigured" };
+  const rpc = await rpcProbe.probe(record.value);
+  const observedAt = now();
+  if (Date.parse(record.value.expiresAt) <= Date.parse(observedAt)) return { healthy: false, reason: "route_expired" };
   return {
     healthy: true,
     body: {
       status: "healthy",
       routeActivationId: record.value.activationId,
       details: {
-        kind: "firestore_recovery_route",
+        kind: "solana_rpc_probe",
+        ...rpc, observedAt,
         state: "active",
         offerId: record.value.offerId,
       },

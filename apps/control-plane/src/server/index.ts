@@ -9,3 +9,5 @@ export * from "./pinned-fetch.js";
 export * from "./runtime.js";
 export * from "./strict-json.js";
 export * from "./telemetry.js";
+
+export { resumePaidIncident } from "./live-flow-finalization.js";

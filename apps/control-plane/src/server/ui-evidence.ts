@@ -1,3 +1,4 @@
+import { createVerifiedEvidenceCache } from "./verified-evidence-cache.js";
 import "server-only";
 
 import { createHash } from "node:crypto";
@@ -256,6 +257,7 @@ const UiEvidenceSchema = z
     selection: z
       .object({
         candidateOfferIds: z.array(z.string().min(1)).min(2),
+        artifactSha256: HashSchema.optional(),
         baseline: SelectionDecisionSchema,
         counterfactual: SelectionDecisionSchema,
       })
@@ -361,15 +363,19 @@ function verifiedTimeline(
   ] as const;
   return local.map((step, index) => ({
     ...step,
+    ...(index === 8 ? {
+      title: "라우트 활성화 확인",
+      summary: "서명 영수증과 Firestore 라우트 활성화 결과를 연결한 기록입니다.",
+    } : {}),
     state: "devnet-verified",
     timeLabel: isoClock(times[index]!),
     detail:
       index === 3
-        ? "실제 PAYMENT-REQUIRED와 request fingerprint가 최종 evidence verifier를 통과했습니다."
+        ? "실제 PAYMENT-REQUIRED 헤더와 요청 지문이 최종 증거 검증을 통과했습니다."
         : index === 4
-          ? "private executor가 authoritative policy를 다시 읽고 PAYMENT-SIGNATURE payload를 자동 서명했습니다. executor 선행 broadcast는 없었습니다."
+          ? "비공개 결제 실행기가 저장소의 원본 정책을 다시 읽고 PAYMENT-SIGNATURE 데이터에 자동 서명했습니다. 온체인 전송은 이후 공급자와 결제 중개자가 처리했습니다."
           : index === 7
-            ? "confirmed Devnet settlement 뒤 반환된 resource와 vendor-signed fulfillment receipt가 검증되었습니다."
+            ? "Devnet 정산 확인 후 반환된 리소스와 공급자의 서명 영수증을 검증했습니다."
             : index === 9
               ? `${replayDenial.reasonCode} 규칙이 transactionCreated:false, txSignature:null로 종료됐고 새로운 온체인 결제는 없었습니다.`
             : step.detail,
@@ -484,8 +490,8 @@ export function missionControlStateFromVerifiedEvidence(
       selectedOfferId: evidence.selection.baseline.selectedOfferId,
       counterfactualOfferId: evidence.selection.counterfactual.selectedOfferId,
       capability: "solana-rpc-health",
-      rationale: `${evidence.attestations.gemini.model} strict output가 supplied offer ${evidence.selection.baseline.selectedOfferId}를 선택했습니다. output ${compactHash(evidence.selection.baseline.modelOutputHash)}`,
-      counterfactualResult: `${compactHash(evidence.selection.counterfactual.telemetryHash)} telemetry에서 ${evidence.selection.counterfactual.selectedOfferId}로 선택이 바뀌었습니다.`,
+      rationale: `선택한 견적의 가격은 ${baseUnitsToUsdc(payment.amountBaseUnits)} USDC로, 건별 한도 ${baseUnitsToUsdc(perTransactionLimit)} USDC를 넘지 않습니다.`,
+      counterfactualResult: "장애 조건이 달라지자 Gemini가 다른 옵션을 선택했습니다. 선택한 견적에도 동일한 결제 한도를 적용합니다.",
     },
     offers: [firstOffer, secondOffer],
     timeline: verifiedTimeline(evidence),
@@ -573,6 +579,9 @@ export function missionControlStateFromVerifiedEvidence(
       outcomeArtifactHash: payment.outcome.artifactSha256,
       outcomeVerified: report.checks.recoveryOutcome,
       recoveryTimeMs: elapsed,
+      recoveryStartedAt: evidence.selection.baseline.capturedAt,
+      recoveredAt: payment.outcome.payload.recoveredAt,
+      recoveryScope: "route-activation",
       confirmedAt: payment.confirmedAt,
     },
     denials: evidence.denials.map((denial) => {
@@ -589,7 +598,7 @@ export function missionControlStateFromVerifiedEvidence(
             : replayType === "idempotencyKey"
               ? "idempotencyReplay" as const
               : "nonceReplay" as const,
-        title: overCap ? "Over-cap 자동 거절" : "Replay 자동 거절",
+        title: overCap ? "한도 초과 자동 거절" : "중복 요청 자동 거절",
         attemptedAt: denial.attemptedAt,
         requestedValue: overCap
           ? `${baseUnitsToUsdc(denial.attemptedAmountBaseUnits)} USDC`
@@ -625,8 +634,10 @@ export async function loadVerifiedMissionControlState(options: Readonly<{
   if (!SHA256.test(expectedReport)) {
     throw new TypeError("UPTIME402_UI_VERIFICATION_REPORT_SHA256 is invalid");
   }
-  const evidenceBytes = await readFile(resolve(options.artifactRoot, "payment-evidence.json"));
-  const reportBytes = await readFile(resolve(options.artifactRoot, "verification-report.json"));
+  const [evidenceBytes, reportBytes] = await Promise.all([
+    readFile(resolve(options.artifactRoot, "payment-evidence.json")),
+    readFile(resolve(options.artifactRoot, "verification-report.json")),
+  ]);
   const actual = fileHash(evidenceBytes);
   const actualReport = fileHash(reportBytes);
   if (actual !== expected) throw new Error("Pinned UI evidence hash mismatch");
@@ -640,8 +651,32 @@ export async function loadVerifiedMissionControlState(options: Readonly<{
   if (report.evidenceSha256 !== actual) {
     throw new Error("Verification report does not bind the UI evidence bytes");
   }
-  return missionControlStateFromVerifiedEvidence(evidence, report);
+  const state = missionControlStateFromVerifiedEvidence(evidence, report);
+  const parsedEvidence = UiEvidenceSchema.parse(evidence);
+  if (parsedEvidence.selection.artifactSha256) {
+    const bytes = await readFile(resolve(options.artifactRoot, "live-capture/gemini-selection-artifact.json"));
+    if (fileHash(bytes) !== parsedEvidence.selection.artifactSha256) throw new Error("Gemini selection artifact hash mismatch");
+    const telemetrySchema = z.object({
+      failureRate: z.number().min(0).max(1), latencyMs: z.number().nonnegative(),
+    });
+    const callSchema = z.object({ modelInput: z.object({
+      incident: z.object({ sanitizedTelemetry: telemetrySchema }),
+      offers: z.array(z.object({ offerId: z.string(), latencyMs: z.number().nonnegative() })),
+    }) });
+    const selection = z.object({ actualGeminiCalls: z.object({ baseline: callSchema, counterfactual: callSchema }) }).parse(parseStrictJson(new TextDecoder("utf-8", { fatal: true }).decode(bytes)));
+    const describe = (telemetry: z.infer<typeof telemetrySchema>) => `오류율 ${Math.round(telemetry.failureRate * 100)}%, 응답 지연 ${(telemetry.latencyMs / 1000).toLocaleString("ko-KR")}초`;
+    state.modelDecision.baselineConditions = describe(selection.actualGeminiCalls.baseline.modelInput.incident.sanitizedTelemetry);
+    state.modelDecision.counterfactualConditions = describe(selection.actualGeminiCalls.counterfactual.modelInput.incident.sanitizedTelemetry);
+    const withQuoteLatency = (offer: MissionControlDemoState["offers"][number]) => {
+      const latency = selection.actualGeminiCalls.baseline.modelInput.offers.find((candidate) => candidate.offerId === offer.offerId)?.latencyMs;
+      return { ...offer, ...(latency === undefined ? {} : { quotedLatencyMs: latency }) };
+    };
+    state.offers = [withQuoteLatency(state.offers[0]), withQuoteLatency(state.offers[1])];
+  }
+  return state;
 }
+
+const cachedFinalEvidence = createVerifiedEvidenceCache<MissionControlDemoState>();
 
 export async function loadMissionControlStateForDeployment(options: Readonly<{
   artifactRoot: string;
@@ -664,9 +699,9 @@ export async function loadMissionControlStateForDeployment(options: Readonly<{
   if (!expectedVerificationReportSha256) {
     throw new TypeError("Final UI stage requires UPTIME402_UI_VERIFICATION_REPORT_SHA256");
   }
-  return loadVerifiedMissionControlState({
-    artifactRoot: options.artifactRoot,
-    expectedEvidenceSha256,
-    expectedVerificationReportSha256,
-  });
+  return cachedFinalEvidence(
+    JSON.stringify([resolve(options.artifactRoot), expectedEvidenceSha256, expectedVerificationReportSha256]),
+    ["payment-evidence.json", "verification-report.json", "live-capture/gemini-selection-artifact.json"].map((file) => resolve(options.artifactRoot, file)),
+    () => loadVerifiedMissionControlState({ artifactRoot: options.artifactRoot, expectedEvidenceSha256, expectedVerificationReportSha256 }),
+  );
 }

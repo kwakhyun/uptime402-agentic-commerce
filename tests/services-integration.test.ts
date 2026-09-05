@@ -1460,3 +1460,22 @@ describe("official A2A v1 boundary", () => {
     expect(data.offers.every((offer: VendorOffer) => computeVendorOfferHash(offer).startsWith("sha256:"))).toBe(true);
   });
 });
+
+describe("atomic reservation budget evidence", () => {
+  it("reports the atomic remaining budget when another reservation wins first", async () => {
+    const fixture = await createFixture();
+    const challenge = await getChallenge(fixture);
+    const repository = fixture.repositories.executorRepository;
+    const reserve = repository.reserveBudget.bind(repository);
+    repository.reserveBudget = async (input) => {
+      await reserve({ ...input, reservationId: "review-other-reservation", paymentId: "review-other-payment", nonce: "review-other-nonce", idempotencyKey: "review-other-idempotency", requestFingerprint: HASH("e") });
+      return reserve(input);
+    };
+    const signed = await request(fixture.executor).post("/v1/payments/sign").set("authorization", "Bearer control").send(executorDecisionEnvelope(challenge));
+    expect(signed.status).toBe(201);
+    const usage = await repository.getBudgetUsage(signed.body.reservation.mandateId, signed.body.reservation.incidentId, NOW);
+    expect(usage.incidentCommittedAndReservedBaseUnits).toBe("20000");
+    expect(signed.body.budgetEvidence.remainingAfterReserveBaseUnits).toBe("30000");
+    expect(50000n - BigInt(usage.incidentCommittedAndReservedBaseUnits)).toBe(30000n);
+  });
+});

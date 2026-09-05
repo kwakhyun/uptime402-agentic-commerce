@@ -1,10 +1,14 @@
 # Uptime402 build status
 
-Last updated: `2026-08-30T11:07:08+09:00`
+Last updated: `2026-09-05T20:53:43+09:00`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
 ## 현재 체크포인트
+
+- 2026-09-05 사용자 승인 범위: 한국어 문구 개선 후 전체 변경사항 커밋, main 푸시, 기존 공개 replay 배포. 제출 마감은 없으며 문구/검증 30분, build/배포 20분, live 검증/증거 갱신 20분을 1차 계획으로 잡았다. 새 결제 실행과 capture 권한 활성화는 이번 배포에 포함하지 않는다.
+
+- 2026-09-05 검토 개선을 로컬 코드에 반영했다. 결제 후 단계 재개, 원자적 예산 증거, 실제 RPC probe, 검증 범위와 조건 비교 UI, 모듈 분리, 캐시/지연 로딩, DOM 테스트와 취약 의존성 패치를 포함한다. 아래 신규 행의 검증은 로컬 구현에 한정하며 현재 live revision과 demo5 evidence는 보존했다. 상세: `docs/REVIEW_2026-09-05.md#개선-반영-기록`.
 
 - Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00022-dd6`, exact source commit `85954e700095ddc78be0c63810e5f0de1349fd85`, Cloud Build `676d7d1f-1203-4e48-ac29-0dd101f2f083` `SUCCESS`, image digest `sha256:51b9d80bc2a7307e4baa09f7e2394bca5ddb8dc6dcc5c0a1f6e9384cd8111436`.
 - Preserved payment services: executor revision `uptime402-payment-executor-00012-2dg`, vendor revision `uptime402-vendor-agent-00011-88p`, payment runtime SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`. 이 두 service는 portfolio replay 배포에서 다시 build하거나 변경하지 않았다.
@@ -19,6 +23,10 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 | Integration | implementation | evidence | deployment | verification | lastVerifiedAt | evidenceRef | priority | Notes / blocker |
 |---|---|---|---|---|---|---|---|---|
+| Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/recovery-checkpoints-firestore.test.ts` | P0 | health/commit/audit 실패 후 추가 결제 없이 재개; original proof events 유지; 동시 예약 snapshot 검증. 새 live payment 없음 |
+| Paid-route RPC health probe | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/recovery-rpc-probe.test.ts`; `tests/dependency-health.test.ts` | P0 | pinned offer/resource/RPC, getHealth 및 Devnet genesis 확인. 실제 구매 endpoint 설정과 live 검증은 별도 필요 |
+| Evidence scope, comparison UX and replay performance | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/mission-control-dom.test.ts`; `tests/verified-evidence-cache.test.ts`; `docs/REVIEW_2026-09-05.md` | P0 | 9.340초 측정 구간 정정, local/capture 성공 표현 제거, 실제 조건 비교, 접힌 상세 지연 로딩, 최대 4개 캐시. desktop/mobile 로컬 브라우저 검증 |
+| Maintenance dependency patches | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `package.json`; `pnpm-lock.yaml`; `docs/REVIEW_2026-09-05.md` | P0 | fast-uri 3.1.6, qs 6.16.0; production audit 0 known vulnerabilities; lint/typecheck/build 및 194개 기본 테스트 통과 |
 | Standard x402 paid resource | implemented | devnet | live | verified | 2026-08-03T21:24:50+09:00 | `artifacts/payment-evidence.json`; `artifacts/verification-report.json` | P0 | `402 -> reserve -> automatic PAYMENT-SIGNATURE -> paid retry -> facilitator verify/settle -> confirmed 200 -> signed receipt`; executor did not pre-broadcast |
 | Solana Devnet USDC settlement | implemented | devnet | live | verified | 2026-08-03T20:18:06+09:00 | `artifacts/payment-evidence.json`; signature `4P7Y…KtmZ` | P0 | finalized slot `480903755`; CAIP-2 `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`; mint `4zMMC…ncDU`; distinct payer/payee; deltas `-15000/+15000` |
 | Deterministic policy and dual denial | implemented | devnet | live | verified | 2026-08-03T20:18:22+09:00 | `artifacts/live-capture/policy-denial-over-transaction-limit-artifact.json`; `artifacts/live-capture/policy-denial-replay-artifact.json` | P0 | `25000 > 20000` over-cap and primary nonce replay both have `transactionCreated:false`, `txSignature:null` |

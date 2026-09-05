@@ -591,10 +591,7 @@ export class OperatorControlPlaneBoundary {
       const primary = await flow.run(liveRequest);
       let denials: AutomaticDenialResults | null = null;
       let denialBindings: AutomaticDenialBindings | null = null;
-      if (envelope.denialRequests) {
-        if (primary.outcome !== "recovered") {
-          throw new Error("Primary recovery must succeed before automatic denial proofs");
-        }
+      if (envelope.denialRequests && primary.outcome === "recovered") {
         const overCapLiveRequest = LiveIncidentRequestSchema.parse({
           ...envelope.denialRequests.overTransactionLimit,
           vendorAgentOrigin: flow.config.vendorAgentOrigin,

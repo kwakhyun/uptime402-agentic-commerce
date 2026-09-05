@@ -1,3 +1,4 @@
+import { buildRecoveryRpcProbe } from "../../../src/server/recovery-rpc-probe";
 import {
   buildFirestoreAppliedRouteReader,
   inspectAppliedDependencyRoute,
@@ -28,6 +29,8 @@ export async function GET(request: Request): Promise<Response> {
     const result = await inspectAppliedDependencyRoute(
       { incidentId, activationId },
       reader(),
+      undefined,
+      buildRecoveryRpcProbe(),
     );
     if (!result.healthy) {
       return Response.json(

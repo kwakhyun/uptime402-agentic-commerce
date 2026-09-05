@@ -358,18 +358,46 @@ evidence이고 managed Firestore 증거가 아닙니다.
 
 Control-plane은 paid `firestore_recovery_route`를 shared Firestore에 적용한 뒤
 `CONTROL_PLANE_ORIGIN/api/dependency-health`를 pinned HTTPS fetch로 다시 호출합니다.
-이 별도 route는 Firestore를 독립적으로 다시 읽어 canonical hash, incident,
-activation ID, active state, TTL을 검사하고 다음 구조를 반환합니다.
+별도 route는 canonical hash, incident, activation ID, active state, TTL을 확인합니다.
+보존된 demo5는 여기까지 검증한 기록입니다. 외부 RPC의 실제 성공을 소급 주장하지 않습니다.
+
+2026-09-05 로컬 개선 코드로 새 capture를 실행하려면 운영자가 구매할 offer와 실제
+제공되는 RPC를 다음처럼 묶은 `RECOVERY_RPC_ROUTES_JSON`이 추가로 필요합니다.
+다음 URL은 형식 예시이며 실제 제공 endpoint로 교체해야 합니다.
 
 ```json
-{"status":"healthy","routeActivationId":"the-applied-activation-id","details":{}}
+[{"offerId":"rpc-recovery-standard","resourceUrl":"https://vendor.example/v1/recovery","rpcUrl":"https://rpc.example/devnet"}]
 ```
 
-Renderer는 `RECOVERY_HEALTH_PROBE_URL`이 정확히 이 control-plane URL인지 검사합니다.
-로컬 mutation/missing/expired tests와 demo5 managed-Firestore capture의 probe가
-통과했습니다. Final Cloud Run revision에서는 같은 evidence replay/UI binding을
-로그아웃 상태로 다시 확인했습니다. 이 probe는 paid route activation 회복을 증명하며 외부 Solana RPC
-자체의 성능 개선으로 과장하지 않습니다.
+양쪽 URL은 credential-free HTTPS여야 하며 offer ID는 중복될 수 없습니다. Production
+flow는 설정 누락을 결제 시작 전에 거절합니다. Probe는 offer와 resource URL의 exact
+binding을 확인하고 고정된 RPC에 `getHealth`, `getGenesisHash`를 실행합니다. `ok`와
+Devnet genesis가 모두 일치해야 `healthy`를 반환합니다. Endpoint/response hash,
+latency와 관측 시각을 proof에 남기고 원본 endpoint는 공개 결과에 넣지 않습니다.
+Timeout은 5초, 각 응답 제한은 16 KiB이며 redirect와 private-address 접근을 차단합니다.
+Renderer는 `RECOVERY_HEALTH_PROBE_URL`이 control-plane URL인지도 검사합니다.
+Final replay template에는 이 설정이나 capture 권한을 추가하지 않습니다.
+
+### 결제 후 남은 단계 재개
+
+Private capture identity와 기존 outcome key/서비스 설정을 가진 환경에서 실행합니다.
+현재 공개 replay identity에는 이 권한을 부여하지 않습니다.
+
+```sh
+pnpm incident:resume RESERVATION_ID
+```
+
+검증된 vendor 응답을 checkpoint에서 읽어 라우트 적용, probe, outcome, budget commit,
+최종 audit 중 남은 단계를 처리합니다. 이미 저장된 proof와 결과는 재사용합니다.
+결제 authorization을 다시 요청하거나 paid retry/settlement를 전송하지 않습니다.
+종료 코드는 완료 0, reconciliation 대기 2, 설정/저장소 오류 1입니다.
+Checkpoint 저장 전 중단이나 저장 실패는 이 명령만으로 복구할 수 없습니다. 해당
+reservation을 해제하거나 새 결제로 재시도하지 말고 기존 vendor reconciliation과
+private 감사 기록으로 처리합니다. Checkpoint collection은 private 자료로 취급합니다.
+
+로컬 probe 및 재개 테스트는 통과했지만 이 변경은 아직 배포하거나 새 결제로 검증하지
+않았습니다. [getHealth](https://solana.com/docs/rpc/http/gethealth)와
+[getGenesisHash](https://solana.com/docs/rpc/http/getgenesishash)의 공식 계약을 사용합니다.
 
 ## 배포 후 증거 수집
 

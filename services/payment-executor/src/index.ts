@@ -781,12 +781,6 @@ export function createPaymentExecutorApp(deps: PaymentExecutorDependencies): Exp
       return;
     }
 
-    const budgetEvidence = incidentBudgetEvidence({
-      limitBaseUnits: mandate!.incidentLimitBaseUnits,
-      committedAndReservedBeforeBaseUnits: budget.incidentCommittedAndReservedBaseUnits,
-      amountBaseUnits: proposal.amountBaseUnits,
-    });
-
     const reserve = await deps.reservations.reserveBudget({
       reservationId: proposal.idempotencyKey,
       incidentId: proposal.incidentId,
@@ -825,6 +819,13 @@ export function createPaymentExecutorApp(deps: PaymentExecutorDependencies): Exp
       });
       return;
     }
+
+    // Evidence must describe the counter snapshot used by the atomic reservation.
+    const budgetEvidence = incidentBudgetEvidence({
+      limitBaseUnits: mandate!.incidentLimitBaseUnits,
+      committedAndReservedBeforeBaseUnits: reserve.budgetBefore.incidentCommittedAndReservedBaseUnits,
+      amountBaseUnits: proposal.amountBaseUnits,
+    });
 
     let created: CreatedPaymentPayload;
     try {

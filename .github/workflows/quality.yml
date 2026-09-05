@@ -49,4 +49,4 @@ jobs:
         run: >-
           pnpm dlx firebase-tools@15.28.2 emulators:exec --only firestore
           "pnpm exec vitest run tests/persistence-firestore.test.ts
-          tests/payment-authorization-firestore.test.ts --reporter=verbose"
+          tests/payment-authorization-firestore.test.ts tests/recovery-checkpoints-firestore.test.ts --reporter=verbose"

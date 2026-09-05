@@ -62,7 +62,7 @@ export type ReserveBudgetRequest = {
 };
 
 export type ReserveBudgetResult =
-  | { kind: "reserved"; record: ReservationRecord }
+  | { kind: "reserved"; record: ReservationRecord; budgetBefore: BudgetUsage; budgetAfter: BudgetUsage }
   | { kind: "existing"; record: ReservationRecord }
   | {
       kind: "conflict";
@@ -427,7 +427,17 @@ export class InMemoryTransactionalRepository implements TransactionalPersistence
       this.backend.reservationByPaymentId.set(record.paymentId, record.reservationId);
       this.backend.reservationByNonce.set(record.nonce, record.reservationId);
       this.backend.reservationByIdempotencyKey.set(record.idempotencyKey, record.reservationId);
-      return { kind: "reserved", record: clone(record) };
+      return {
+        kind: "reserved", record: clone(record),
+        budgetBefore: {
+          incidentCommittedAndReservedBaseUnits: incidentUsed.toString(),
+          dailyCommittedAndReservedBaseUnits: dailyUsed.toString(),
+        },
+        budgetAfter: {
+          incidentCommittedAndReservedBaseUnits: (incidentUsed + amount).toString(),
+          dailyCommittedAndReservedBaseUnits: (dailyUsed + amount).toString(),
+        },
+      };
     });
   }
 
@@ -667,3 +677,5 @@ export class InMemoryTransactionalRepository implements TransactionalPersistence
 
 export * from "./firestore.js";
 export * from "./runtime-state.js";
+
+export * from "./recovery-checkpoints.js";

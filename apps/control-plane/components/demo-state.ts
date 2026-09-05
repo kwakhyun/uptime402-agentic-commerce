@@ -39,6 +39,7 @@ export interface ImmutableOfferView {
   priceUsdc: string;
   estimatedRecoverySeconds?: number;
   latencyP95Ms?: number;
+  quotedLatencyMs?: number;
   expiresAtLabel: string;
   signedOfferVerified: boolean;
   selected: boolean;
@@ -174,6 +175,9 @@ export interface VerifiedPaymentEvidenceView {
   outcomeArtifactHash: string;
   outcomeVerified: true;
   recoveryTimeMs: number;
+  recoveryStartedAt: string;
+  recoveredAt: string;
+  recoveryScope: "route-activation";
   confirmedAt: string;
 }
 
@@ -213,6 +217,8 @@ export interface MissionControlDemoState {
     capability: "solana-rpc-health";
     rationale: string;
     counterfactualResult: string;
+    baselineConditions?: string;
+    counterfactualConditions?: string;
   };
   offers: readonly [ImmutableOfferView, ImmutableOfferView];
   timeline: readonly MissionTimelineStep[];
@@ -226,72 +232,72 @@ const TIMELINE_COPY: ReadonlyArray<
   {
     id: "incident",
     protocolLabel: "INCIDENT",
-    title: "Primary RPC 장애",
-    summary: "health probe가 연속 실패했습니다.",
-    detail: "테스트 fixture가 unhealthy telemetry를 생성합니다. 고객 식별자와 credential은 포함하지 않습니다.",
+    title: "기본 RPC 장애",
+    summary: "상태 확인 요청이 연속으로 실패했습니다.",
+    detail: "테스트 데이터로 장애 신호를 재현합니다. 고객 식별자나 인증 정보는 포함하지 않습니다.",
   },
   {
     id: "gemini",
     protocolLabel: "GEMINI",
-    title: "진단 · capability 제안",
-    summary: "허용된 telemetry로 solana-rpc-health를 제안합니다.",
-    detail: "모델은 supplied offerId만 비교합니다. 금액 계산, 정책 변경, key 접근, raw transaction 서명 권한은 없습니다.",
+    title: "장애 진단과 필요 기능 제안",
+    summary: "허용된 장애 신호를 바탕으로 solana-rpc-health 기능을 제안합니다.",
+    detail: "모델은 제공된 offerId만 비교합니다. 금액을 계산하거나 정책을 바꿀 수 없으며, 키 접근이나 트랜잭션 서명 권한도 없습니다.",
   },
   {
     id: "a2a",
     protocolLabel: "A2A",
-    title: "Agent Card · 2 offers",
-    summary: "별도 vendor agent에서 immutable offer 두 개를 발견합니다.",
-    detail: "offer 설명은 untrusted data로 처리하며, strict schema와 signed offer 검증을 통과해야 합니다.",
+    title: "Agent Card와 두 견적 확인",
+    summary: "별도로 실행되는 공급자 에이전트에서 변경할 수 없는 서명 견적 두 개를 받습니다.",
+    detail: "견적 설명을 지시사항으로 신뢰하지 않습니다. 모든 견적은 정해진 스키마와 서명 검증을 통과해야 합니다.",
   },
   {
     id: "challenge",
     protocolLabel: "HTTP 402",
     title: "Payment Required",
-    summary: "유료 recovery resource가 x402 challenge를 반환합니다.",
-    detail: "PAYMENT-REQUIRED header와 request fingerprint를 검증합니다. 이 UI preview는 실제 challenge를 생성하지 않습니다.",
+    summary: "유료 복구 API가 x402 결제 조건을 반환합니다.",
+    detail: "PAYMENT-REQUIRED 헤더와 요청 지문을 검증하는 단계입니다. 이 미리보기에서는 실제 결제 조건을 요청하지 않습니다.",
   },
   {
     id: "policy",
     protocolLabel: "POLICY / SIGN",
-    title: "Reserve · 자동 payload 서명",
-    summary: "executor가 authoritative policy를 재확인합니다.",
-    detail: "application-enforced policy와 low-balance blast-radius isolation 아래 payment payload만 서명합니다. executor가 먼저 broadcast하지 않습니다.",
+    title: "예산 예약과 자동 결제 서명",
+    summary: "결제 실행기가 저장소의 원본 정책을 다시 확인합니다.",
+    detail: "애플리케이션 정책과 별도 저잔액 지갑으로 지출을 제한합니다. 결제 실행기는 결제 데이터에만 서명하며 온체인 전송을 먼저 실행하지 않습니다.",
   },
   {
     id: "retry",
     protocolLabel: "PAID RETRY",
     title: "PAYMENT-SIGNATURE 재요청",
     summary: "사람의 건별 승인 없이 같은 요청을 재시도합니다.",
-    detail: "운영자 wallet popup이나 결제 승인 버튼은 없습니다. 최초 mandate 경계만 적용됩니다.",
+    detail: "건별 승인이나 지갑 팝업 없이, 사전에 부여한 권한과 정책 조건에 따라 요청을 다시 보냅니다.",
   },
   {
     id: "settle",
     protocolLabel: "VERIFY / SETTLE",
-    title: "Vendor atomic claim",
-    summary: "paymentId를 원자적으로 claim하고 verify/settle합니다.",
-    detail: "confirmed settlement 전에는 resource를 반환하지 않으며 ambiguous settling은 reconcile 대상으로 유지합니다.",
+    title: "공급자의 중복 처리 방지",
+    summary: "paymentId의 처리 권한을 원자적으로 확보한 뒤 결제를 검증하고 정산합니다.",
+    detail: "정산이 확인된 뒤에만 리소스를 반환합니다. 정산 결과가 불확실하면 재결제하지 않고 기존 거래 상태를 확인합니다.",
   },
   {
     id: "resource",
     protocolLabel: "HTTP 200",
-    title: "Recovery resource 제공",
-    summary: "verified settlement 뒤 signed receipt와 함께 반환됩니다.",
-    detail: "receipt는 offer, challenge, request, transaction, response, incident를 서로 bind해야 합니다.",
+    title: "복구 리소스 제공",
+    summary: "정산 확인 후 서명 영수증과 함께 리소스를 반환합니다.",
+    detail: "영수증은 견적, 결제 조건, 요청, 트랜잭션, 응답, 장애 기록이 서로 일치함을 증명해야 합니다.",
   },
   {
     id: "recovery",
     protocolLabel: "RECOVERY",
-    title: "Dependency green",
-    summary: "복구 결과가 verified receipt에 결합됩니다.",
-    detail: "control-plane outcome signer는 vendor receipt signer와 다른 identity를 사용합니다.",
+    title: "복구 검증 단계",
+    summary: "서명 영수증과 결과를 연결하는 단계입니다. 예시 재생은 실제 복구 증거가 아닙니다.",
+    detail: "실행 결과 서명자와 공급자의 영수증 서명자는 서로 다른 계정을 사용합니다.",
   },
   {
     id: "denial",
     protocolLabel: "POLICY DENY",
-    title: "Replay 자동 거절",
-    summary: "중복 identifier를 signer 전에 차단합니다.",
-    detail: "같은 paymentId 또는 nonce replay는 transactionCreated:false, txSignature:null로 종료되고 paid retry를 보내지 않습니다.",
+    title: "중복 요청 자동 거절",
+    summary: "서명 전에 식별자의 중복 여부를 확인합니다.",
+    detail: "같은 paymentId나 nonce를 재사용하면 transactionCreated:false, txSignature:null로 거절합니다. 결제 요청을 다시 보내지 않습니다.",
   },
 ];
 
@@ -330,9 +336,9 @@ export const createLocalDemoState = (): MissionControlDemoState => ({
     counterfactualOfferId: "offer-rpc-economy-v1",
     capability: "solana-rpc-health",
     rationale:
-      "오류율 38%와 p95 2.8초 조건에서는 12초 이내 복구가 예산 범위 안의 최저 위험 선택입니다.",
+      "오류율 38%, p95 응답 시간 2.8초를 가정한 예시에서는 예산 한도 안의 빠른 복구 옵션을 선택합니다.",
     counterfactualResult:
-      "오류율이 낮고 latency 여유가 있는 fixture에서는 offer-rpc-economy-v1로 선택이 바뀝니다.",
+      "오류율이 낮고 응답 시간을 더 허용할 수 있는 예시에서는 저렴한 offer-rpc-economy-v1을 선택합니다.",
   },
   offers: [
     {
@@ -370,7 +376,7 @@ export const createLocalDemoState = (): MissionControlDemoState => ({
     {
       id: "deny-over-cap-fixture",
       rule: "perTransactionCap",
-      title: "Over-cap 자동 거절",
+      title: "한도 초과 자동 거절",
       attemptedAt: "LOCAL FIXTURE",
       requestedValue: "0.021000 USDC",
       policyValue: "≤ 0.020000 USDC",
@@ -381,7 +387,7 @@ export const createLocalDemoState = (): MissionControlDemoState => ({
     {
       id: "deny-replay-fixture",
       rule: "nonceReplay",
-      title: "Nonce replay 자동 거절",
+      title: "중복 nonce 자동 거절",
       attemptedAt: "LOCAL FIXTURE",
       requestedValue: "nonce: already-seen",
       policyValue: "nonce: unseen only",

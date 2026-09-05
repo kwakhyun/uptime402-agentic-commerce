@@ -1,3 +1,5 @@
+import { resumePaidIncident } from "../apps/control-plane/src/server/live-flow-finalization.js";
+import { InMemoryRecoveryCheckpointStore } from "@uptime402/persistence";
 import {
   DEVNET_GENESIS_HASH,
   DEVNET_USDC_MINT,
@@ -170,6 +172,8 @@ class FixtureDecisionModel implements RecoveryDecisionModel {
 
 class FixtureStore implements ControlPlaneLiveFlowStore {
   persisted = false;
+  reservation: ReservationRecord | null = null;
+  async getReservation() { return this.reservation; }
   transitions: ReservationState[] = [];
   audits: AuditEventInput[] = [];
   state: ReservationState = "reserved";
@@ -178,6 +182,7 @@ class FixtureStore implements ControlPlaneLiveFlowStore {
     { state: "reserved", at: "2026-08-03T12:00:01.000Z" },
   ];
 
+  requestFingerprint = `sha256:${"b".repeat(64)}`;
   async persistAuthoritativeContext() {
     this.persisted = true;
   }
@@ -203,14 +208,14 @@ class FixtureStore implements ControlPlaneLiveFlowStore {
       at: occurredAt,
       ...(patch.note === undefined ? {} : { note: patch.note }),
     });
-    return {
+    this.reservation = {
       reservationId,
       incidentId: "incident-0001",
       mandateId: "mandate-0001",
       paymentId: "payment-incident-0001",
       nonce: "nonce-incident-0001",
       idempotencyKey: reservationId,
-      requestFingerprint: `sha256:${"b".repeat(64)}`,
+      requestFingerprint: this.requestFingerprint,
       amountBaseUnits: "18000",
       budgetDay: "2026-08-03",
       state: nextState,
@@ -220,6 +225,7 @@ class FixtureStore implements ControlPlaneLiveFlowStore {
       stateHistory: structuredClone(this.stateHistory),
       ...patch,
     };
+    return this.reservation;
   }
 
   async recordAuditEvent(event: AuditEventInput) {
@@ -547,6 +553,7 @@ async function buildFixture() {
               checks: [],
             });
           }
+          store.requestFingerprint = decisionEnvelope.proposal.requestFingerprint;
           return jsonResponse(201, {
             schemaVersion: "1",
             correlationId: decisionEnvelope.correlationId,
@@ -697,6 +704,7 @@ async function buildFixture() {
   const dependencies: RunLiveIncidentDependencies = {
     model: new FixtureDecisionModel(),
     store,
+    checkpoints: new InMemoryRecoveryCheckpointStore(),
     fetchFactory,
     identityTokenProvider: tokenProvider,
     vendorIdentity: {
@@ -1161,5 +1169,62 @@ describe("control-plane live incident flow", () => {
     expect(() => parseStrictJson('{"status":"healthy","status":"down"}')).toThrow(
       "Duplicate JSON key",
     );
+  });
+});
+
+
+describe("durable paid continuation", () => {
+  it("preserves the original proof events when budget commit is resumed", async () => {
+    const fixture = await buildFixture();
+    const transition = fixture.store.transitionReservation.bind(fixture.store);
+    let failCommit = true;
+    fixture.store.transitionReservation = async (...args) => {
+      if (failCommit && args[2] === "committed") throw new Error("commit unavailable");
+      return transition(...args);
+    };
+    const pending = await runLiveIncident(fixture.request, fixture.dependencies);
+    expect(pending.outcome).toBe("reconciliation_required");
+    const callsBefore = structuredClone(fixture.recorded);
+    failCommit = false;
+    const resumed = await resumePaidIncident("reservation-incident-0001", {
+      ...fixture.dependencies,
+      healthProbe: { probe: async () => { throw new Error("must not probe again"); } },
+    });
+    expect(resumed.outcome).toBe("recovered");
+    expect(fixture.recorded).toEqual(callsBefore);
+    for (const kind of ["recovery_resource_applied", "health_probe_healthy", "recovery_outcome_signed"] as const) {
+      expect(resumed.events.filter((event) => event.kind === kind)).toEqual(
+        pending.events.filter((event) => event.kind === kind),
+      );
+    }
+  });
+  it("resumes a failed health probe without another payment or signing request", async () => {
+    const fixture = await buildFixture();
+    const probe = fixture.dependencies.healthProbe;
+    const deps = { ...fixture.dependencies, healthProbe: { probe: async () => { throw new Error("timeout"); } } };
+    const result = await runLiveIncident(fixture.request, deps);
+    expect(result).toMatchObject({ outcome: "reconciliation_required", reasonCode: "post_settlement_incomplete", txSignature: TX_SIGNATURE, reservationState: "fulfilled" });
+    const callsBefore = structuredClone(fixture.recorded);
+    const resumed = await resumePaidIncident("reservation-incident-0001", { ...fixture.dependencies, healthProbe: probe });
+    expect(resumed.outcome).toBe("recovered");
+    expect(fixture.store.state).toBe("committed");
+    expect(fixture.recorded).toEqual(callsBefore);
+  });
+  it("retries only the final audit after commit and reuses the stored proof", async () => {
+    const fixture = await buildFixture();
+    const recordAudit = fixture.store.recordAuditEvent.bind(fixture.store);
+    let failAudit = true;
+    fixture.store.recordAuditEvent = async (event) => {
+      if (failAudit && event.type === "control.recovery_committed") throw new Error("audit unavailable");
+      await recordAudit(event);
+    };
+    const result = await runLiveIncident(fixture.request, fixture.dependencies);
+    expect(result).toMatchObject({ outcome: "reconciliation_required", reasonCode: "audit_pending", txSignature: TX_SIGNATURE, reservationState: "committed" });
+    const callsBefore = structuredClone(fixture.recorded);
+    failAudit = false;
+    const resumed = await resumePaidIncident("reservation-incident-0001", { ...fixture.dependencies, healthProbe: { probe: async () => { throw new Error("must not probe again"); } } });
+    expect(resumed.outcome).toBe("recovered");
+    expect(fixture.recorded).toEqual(callsBefore);
+    expect(fixture.store.transitions.filter((state) => state === "committed")).toHaveLength(1);
   });
 });

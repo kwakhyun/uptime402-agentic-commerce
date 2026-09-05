@@ -11,11 +11,13 @@ COPY apps/control-plane/components ./apps/control-plane/components
 RUN mkdir -p artifacts
 COPY artifacts/payment-evidence.json ./artifacts/payment-evidence.json
 COPY artifacts/verification-report.json ./artifacts/verification-report.json
+COPY artifacts/live-capture/gemini-selection-artifact.json ./artifacts/live-capture/gemini-selection-artifact.json
 
-# The final replay reads only these two public, hash-pinned submission files.
+# The final replay reads public hash-pinned evidence and its bound selection capture.
 # Capture creates them as owner-only locally; make the image copies readable by
 # the distroless nonroot runtime without broadening any key or local-secret mode.
 RUN chmod 0444 artifacts/payment-evidence.json artifacts/verification-report.json
+RUN chmod 0444 artifacts/live-capture/gemini-selection-artifact.json
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @uptime402/control-plane build
@@ -31,6 +33,7 @@ COPY --from=build /workspace/apps/control-plane/.next/standalone /workspace
 COPY --from=build /workspace/apps/control-plane/.next/static /workspace/apps/control-plane/.next/static
 COPY --from=build /workspace/artifacts/payment-evidence.json /workspace/artifacts/payment-evidence.json
 COPY --from=build /workspace/artifacts/verification-report.json /workspace/artifacts/verification-report.json
+COPY --from=build /workspace/artifacts/live-capture/gemini-selection-artifact.json /workspace/artifacts/live-capture/gemini-selection-artifact.json
 
 EXPOSE 8080
 CMD ["server.js"]

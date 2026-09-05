@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import ipaddress
 import os
 from pathlib import Path
@@ -340,6 +341,23 @@ def validate_values(values: dict[str, str], placeholders: set[str]) -> None:
     expected_probe = f'{origins["CONTROL_PLANE_ORIGIN"]}/api/dependency-health'
     if values["RECOVERY_HEALTH_PROBE_URL"] != expected_probe:
         fail("RECOVERY_HEALTH_PROBE_URL must be CONTROL_PLANE_ORIGIN/api/dependency-health")
+
+    if stage == "capture":
+        try:
+            routes = json.loads(values["RECOVERY_RPC_ROUTES_JSON"])
+        except (ValueError, KeyError):
+            fail("RECOVERY_RPC_ROUTES_JSON must contain the paid offer RPC bindings")
+        if not isinstance(routes, list) or not 1 <= len(routes) <= 64:
+            fail("Recovery RPC bindings must be a non-empty bounded list")
+        offer_ids = set()
+        for route in routes:
+            if not isinstance(route, dict) or set(route) != {"offerId", "resourceUrl", "rpcUrl"}:
+                fail("Recovery RPC binding fields are invalid")
+            if not isinstance(route["offerId"], str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", route["offerId"]) or route["offerId"] in offer_ids:
+                fail("Recovery RPC offer IDs must be valid and distinct")
+            offer_ids.add(route["offerId"])
+            for field in ("resourceUrl", "rpcUrl"):
+                credential_free_https(route[field], field, origin_only=False)
 
     for name in ("SOLANA_RPC_URL", "X402_FACILITATOR_URL", "RECOVERY_HEALTH_PROBE_URL"):
         credential_free_https(values[name], name, origin_only=False)

@@ -69,7 +69,7 @@ sequenceDiagram
     Executor-->>UI: nonce deny, transactionCreated=false
 ```
 
-이 순서로 `finalist-demo-5`가 한 번 실행됐고 paid resource가 health를 `healthy`로 바꿨다. Evidence bundle과 co-sign-aware independent verification report는 검증을 통과했으며, 현재 final control revision은 두 exact hash를 pin해 이 prior run만 `DEVNET VERIFIED`로 렌더링한다. Capture 단계의 reduced telemetry는 `LIVE UNVERIFIED`였고, final replay로 승격된 뒤에도 operator mutation과는 별도 surface로 유지된다.
+이 순서로 `finalist-demo-5`가 한 번 실행됐고 paid resource의 Firestore 라우트 활성화가 `healthy`로 기록됐다. 당시 probe는 라우트 문서의 무결성과 활성화를 확인했으며 외부 RPC 요청 성공은 측정하지 않았다. Evidence bundle과 co-sign-aware independent verification report는 검증을 통과했으며, 현재 final control revision은 두 exact hash를 pin해 이 prior run만 `DEVNET VERIFIED`로 렌더링한다. Capture 단계의 reduced telemetry는 `LIVE UNVERIFIED`였고, final replay로 승격된 뒤에도 operator mutation과는 별도 surface로 유지된다.
 
 ## Capture에서 final로 가는 단방향 승격
 
@@ -195,3 +195,15 @@ official schema conformance를 통과한 뒤에만 추가한다.
 MPP, AP2 conformance, passkey, gasless, BigQuery, Pub/Sub/Eventarc/Workflows, KMS, native
 Fixed Delegation, second vendor deployment, and pay.sh participation stay P1 until their actual
 protocol/live paths are verified.
+
+## 2026-09-05 개선
+
+결제 흐름을 계약 정의(contracts), 실행 제어(orchestration), 검증(verification), 마무리 처리(finalization)로 분리했다. 결제 실행기의 예산 증거는 예약 트랜잭션이 실제 사용한 전후 잔액으로 계산한다.
+
+공급자의 영수증을 확인하면 비공개 Firestore 체크포인트에 검증 입력을 저장한다. 라우트 적용과 상태 검사 후에는 서명된 증거와 원래 이벤트 시각을 저장하고, 예산 사용 확정 후에는 최종 결과와 감사 이벤트를 저장한다. 실패 시 `post_settlement_incomplete` 또는 `audit_pending`을 반환하며, 비공개 `incident:resume` 명령으로 남은 단계를 재개한다. 재개할 때는 견적 조회, Gemini 호출, 결제 승인 요청, 결제 재요청, 정산을 반복하지 않는다. 체크포인트 저장 전에 프로세스가 종료되거나 저장 자체가 실패하면 이 경로로 자동 재개할 수 없다. 그 경우 공급자의 기존 거래 상태와 비공개 감사 기록을 확인해야 한다.
+
+체크포인트에는 결제자의 서명 키가 없지만 이미 발급된 결제 승인 데이터와 리소스 응답이 있으므로 공개 자료로 내보내지 않는다. 컬렉션에는 기존 비공개 Firestore IAM 권한을 적용하며 원본 데이터 대신 정제된 장애 신호만 저장한다. 먼저 저장한 체크포인트를 덮어쓰지 않고 기존 실행 맥락과 충돌하는 저장 요청은 거절한다.
+
+새 증거 수집 실행의 dependency-health는 라우트 문서를 검증한 뒤, 운영자가 `RECOVERY_RPC_ROUTES_JSON`에 연결해 둔 견적과 리소스 URL에 해당하는 RPC로 `getHealth`와 `getGenesisHash`를 호출한다. Devnet 성공 응답, 엔드포인트와 응답의 해시, 응답 시간, 관측 시각을 증거에 넣는다. 설정 누락, 연결 정보 불일치, HTTP/RPC 실패, 다른 genesis는 성공으로 판정하지 않는다. 로컬 어댑터와 Firestore 에뮬레이터로 검증했으며 새로 구매할 엔드포인트에서의 실제 동작은 아직 검증하지 않았다.
+
+공개 재생 화면은 증거와 검증 보고서의 해시, 파일 상태를 키로 사용해 검증에 성공한 결과를 최대 4개 캐시한다. 검증 도중 파일이 바뀌면 거절하고, 실패 결과는 캐시하지 않는다. 상세 증거 컴포넌트는 사용자가 펼칠 때 불러온다. 화면의 9.340초는 판단 기록부터 라우트 활성화 확인까지의 시간이다. 당시의 라우트 활성화 증거와 새 RPC 검사의 검증 범위는 구분한다.

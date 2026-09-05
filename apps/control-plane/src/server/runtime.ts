@@ -1,3 +1,5 @@
+import { buildRecoveryRpcProbe } from "./recovery-rpc-probe.js";
+import { FirestoreRecoveryCheckpointStore } from "@uptime402/persistence";
 import "server-only";
 
 import { isAbsolute, resolve } from "node:path";
@@ -264,6 +266,8 @@ export class FirestoreControlPlaneLiveFlowStore implements ControlPlaneLiveFlowS
     });
   }
 
+  async getReservation(reservationId: string) { return this.repository.getReservation(reservationId); }
+
   async transitionReservation(
     reservationId: string,
     expectedStates: readonly ReservationState[],
@@ -442,6 +446,8 @@ export async function buildProductionControlPlaneLiveFlow(
 ): Promise<ProductionControlPlaneLiveFlow> {
   const environment = options.environment ?? process.env;
   const config = parseControlPlaneLiveFlowRuntimeConfig(environment);
+  // Reject absent/malformed paid-route RPC bindings before any new payment is possible.
+  if (!options.healthProbe) buildRecoveryRpcProbe(environment);
   const gemini = createGeminiModelFromEnvironment(environment);
   if (!gemini.enabled) {
     throw new Error(`Gemini runtime is not configured: ${gemini.reason}`);
@@ -473,6 +479,7 @@ export async function buildProductionControlPlaneLiveFlow(
   const dependencies: RunLiveIncidentDependencies = {
     model: gemini.adapter,
     store: new FirestoreControlPlaneLiveFlowStore(repository),
+    checkpoints: new FirestoreRecoveryCheckpointStore(repository.firestore, repository.collectionPrefix),
     fetchFactory,
     identityTokenProvider:
       options.identityTokenProvider ?? new GoogleCloudExecutorIdentityTokenProvider(),

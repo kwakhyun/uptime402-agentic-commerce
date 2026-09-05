@@ -994,7 +994,17 @@ export class FirestoreTransactionalRepository
           transactionCreated: false,
         },
       }));
-      return { kind: "reserved", record: clone(record) };
+      return {
+        kind: "reserved", record: clone(record),
+        budgetBefore: {
+          incidentCommittedAndReservedBaseUnits: incidentUsed.toString(),
+          dailyCommittedAndReservedBaseUnits: dailyUsed.toString(),
+        },
+        budgetAfter: {
+          incidentCommittedAndReservedBaseUnits: (incidentUsed + amount).toString(),
+          dailyCommittedAndReservedBaseUnits: (dailyUsed + amount).toString(),
+        },
+      };
     }, { maxAttempts: this.transactionMaxAttempts });
   }
 

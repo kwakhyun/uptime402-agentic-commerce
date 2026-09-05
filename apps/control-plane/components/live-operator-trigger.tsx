@@ -209,25 +209,25 @@ export function LiveOperatorTrigger({
       />
       <div className="live-operator-copy">
         <p className="eyebrow">LIVE OPERATOR · GOOGLE OIDC</p>
-        <h2 id="live-operator-heading">서버 고정 incident를 한 번 실행</h2>
+        <h2 id="live-operator-heading">서버에 설정된 장애 시나리오 실행</h2>
         <span>
-          Google 인증 callback이 server-owned request를 즉시 실행합니다. 브라우저는
-          policy·금액·recipient·nonce를 보내지 않으며 ID token을 저장하지 않습니다.
+          Google 인증에 성공하면 서버에 설정된 요청을 즉시 실행합니다. 브라우저에서
+          정책, 금액, 수신자, nonce를 지정할 수 없으며 ID 토큰은 저장하지 않습니다.
         </span>
       </div>
       <div className="live-operator-action">
         <div ref={googleButtonRef} className="google-identity-button" aria-label="Google operator authentication" />
         <small>
           {run.status === "running"
-            ? "LIVE RUNNING · payment approval prompt 없음"
-            : "인증 성공 즉시 실행 · Firestore one-shot guard"}
+            ? "실행 중 / 건별 결제 승인 없음"
+            : "인증 성공 후 한 번만 실행 / Firestore로 중복 실행 차단"}
         </small>
       </div>
       <div className="live-operator-truth" role="status" aria-live="polite">
         <strong>LIVE UNVERIFIED</strong>
         <span>
-          이 응답은 실행 telemetry이며 Devnet 증거가 아닙니다. independent evidence verifier 전에는
-          Explorer, token delta, confirmed payment, verified receipt를 표시하지 않습니다.
+          이 응답은 아직 독립 검증을 거치지 않은 실행 기록입니다. 증거 검증이 끝나기 전에는
+          Explorer 링크, 토큰 잔액 변화, 결제 확정 여부와 영수증을 검증된 결과로 표시하지 않습니다.
         </span>
       </div>
       {run.status === "failed" ? (
@@ -261,7 +261,7 @@ export function LiveOperatorTrigger({
               ))}
             </ol>
           ) : (
-            <p>기존 one-shot action의 terminal summary입니다. 새 live event나 결제는 생성되지 않았습니다.</p>
+            <p>이전에 실행한 요청의 최종 결과입니다. 새 실행 기록이나 결제를 생성하지 않았습니다.</p>
           )}
           {run.response.denials ? (
             <footer>

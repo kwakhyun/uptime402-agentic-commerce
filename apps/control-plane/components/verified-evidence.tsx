@@ -75,7 +75,7 @@ export function VerifiedEvidence({ evidence }: { evidence: VerifiedPaymentEviden
       <div className="verified-evidence__summary">
         <CheckCircle size={20} weight="fill" aria-hidden="true" />
         <div>
-          <strong>Devnet 결제와 복구 결과 검증 완료</strong>
+          <strong>Devnet 결제와 라우트 활성화 검증 완료</strong>
           <span>
             receiptVerified: {String(evidence.receiptVerified)} · outcomeVerified: {String(evidence.outcomeVerified)}
           </span>
@@ -83,7 +83,7 @@ export function VerifiedEvidence({ evidence }: { evidence: VerifiedPaymentEviden
       </div>
 
       <details className="evidence-subsection">
-        <summary>온체인 결제와 계정 변화 <CaretDown size={16} aria-hidden="true" /></summary>
+        <summary>온체인 결제와 계정 잔액 변화 <CaretDown size={16} aria-hidden="true" /></summary>
         <EvidenceRows rows={paymentRows} />
         <div className="token-delta-list">
           {evidence.tokenAccountDeltas.map((delta) => (
@@ -111,7 +111,7 @@ export function VerifiedEvidence({ evidence }: { evidence: VerifiedPaymentEviden
       </details>
 
       <details className="evidence-subsection">
-        <summary>정책 reserve → commit <CaretDown size={16} aria-hidden="true" /></summary>
+        <summary>예산 예약부터 사용 확정까지 <CaretDown size={16} aria-hidden="true" /></summary>
         <EvidenceRows rows={[
           ["Reservation ID", evidence.reservationId],
           ["State history", evidence.reservationStateHistory.join(" → ")],
@@ -128,7 +128,7 @@ export function VerifiedEvidence({ evidence }: { evidence: VerifiedPaymentEviden
       </details>
 
       <details className="evidence-subsection">
-        <summary>서명 영수증과 outcome binding <CaretDown size={16} aria-hidden="true" /></summary>
+        <summary>서명 영수증과 실행 결과의 연결 <CaretDown size={16} aria-hidden="true" /></summary>
         <EvidenceRows rows={receiptRows} />
       </details>
     </div>
