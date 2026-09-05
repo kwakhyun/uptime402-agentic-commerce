@@ -1,16 +1,16 @@
 # Uptime402 build status
 
-Last updated: `2026-09-05T20:53:43+09:00`
+Last updated: `2026-09-05T21:15:40+09:00`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
 ## 현재 체크포인트
 
-- 2026-09-05 사용자 승인 범위: 한국어 문구 개선 후 전체 변경사항 커밋, main 푸시, 기존 공개 replay 배포. 제출 마감은 없으며 문구/검증 30분, build/배포 20분, live 검증/증거 갱신 20분을 1차 계획으로 잡았다. 새 결제 실행과 capture 권한 활성화는 이번 배포에 포함하지 않는다.
+- 2026-09-05 사용자 승인 범위: 한국어 문구 개선 후 전체 변경사항 커밋, main 푸시, 기존 공개 replay 배포를 완료했다. 별도 제출 마감은 없다. 새 결제 실행과 capture 권한 활성화는 이번 배포에 포함하지 않는다.
 
-- 2026-09-05 검토 개선을 로컬 코드에 반영했다. 결제 후 단계 재개, 원자적 예산 증거, 실제 RPC probe, 검증 범위와 조건 비교 UI, 모듈 분리, 캐시/지연 로딩, DOM 테스트와 취약 의존성 패치를 포함한다. 아래 신규 행의 검증은 로컬 구현에 한정하며 현재 live revision과 demo5 evidence는 보존했다. 상세: `docs/REVIEW_2026-09-05.md#개선-반영-기록`.
+- 2026-09-05 검토 개선을 로컬 코드에 반영했다. 결제 후 단계 재개, 원자적 예산 증거, 실제 RPC probe, 검증 범위와 조건 비교 UI, 모듈 분리, 캐시/지연 로딩, DOM 테스트와 취약 의존성 패치를 포함한다. 결제 실행 경로의 검증은 로컬 구현에 한정한다. UI는 새 공개 리비전에서 확인했으며 demo5 evidence와 기존 결제 서비스 리비전은 보존했다. 상세: `docs/REVIEW_2026-09-05.md#개선-반영-기록`.
 
-- Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00022-dd6`, exact source commit `85954e700095ddc78be0c63810e5f0de1349fd85`, Cloud Build `676d7d1f-1203-4e48-ac29-0dd101f2f083` `SUCCESS`, image digest `sha256:51b9d80bc2a7307e4baa09f7e2394bca5ddb8dc6dcc5c0a1f6e9384cd8111436`.
+- Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00023-sl4`, exact source commit `cb3e5595e33670536e552327ebda2a27a7d48f94`, Cloud Build `9339a850-987a-4077-8067-d4ca796082ea` `SUCCESS`, image digest `sha256:dadf1d201429242f59573a9f791ea95426b07a31dc36dc08d6b4e33e57b4ce95`.
 - Preserved payment services: executor revision `uptime402-payment-executor-00012-2dg`, vendor revision `uptime402-vendor-agent-00011-88p`, payment runtime SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`. 이 두 service는 portfolio replay 배포에서 다시 build하거나 변경하지 않았다.
 - Current replay boundary: UI stage `final`, root/health `200`, mutation route `404`, executor unauthenticated `403`, vendor health/Agent Card `200`. Logged-out desktop 1440×1024와 mobile 390×844에서 `DEVNET VERIFIED`, 핵심 무승인 결제 문구, replay controls, no horizontal overflow, no console error를 확인했다.
 - Current control identity has no executor `run.invoker`, Firestore `datastore.user`, Vertex `aiplatform.user`, or retired capture-secret access. Current replay manifest에는 OAuth, Gemini, Firestore, executor endpoint와 secret volume이 없다. 이는 현재 read-only 배포 경계이며 2026-08-03 capture 당시의 payment path IAM 증거를 소급 변경하지 않는다.
@@ -25,7 +25,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 |---|---|---|---|---|---|---|---|---|
 | Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/recovery-checkpoints-firestore.test.ts` | P0 | health/commit/audit 실패 후 추가 결제 없이 재개; original proof events 유지; 동시 예약 snapshot 검증. 새 live payment 없음 |
 | Paid-route RPC health probe | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/recovery-rpc-probe.test.ts`; `tests/dependency-health.test.ts` | P0 | pinned offer/resource/RPC, getHealth 및 Devnet genesis 확인. 실제 구매 endpoint 설정과 live 검증은 별도 필요 |
-| Evidence scope, comparison UX and replay performance | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/mission-control-dom.test.ts`; `tests/verified-evidence-cache.test.ts`; `docs/REVIEW_2026-09-05.md` | P0 | 9.340초 측정 구간 정정, local/capture 성공 표현 제거, 실제 조건 비교, 접힌 상세 지연 로딩, 최대 4개 캐시. desktop/mobile 로컬 브라우저 검증 |
+| Evidence scope, comparison UX and replay performance | implemented | local | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `tests/mission-control-dom.test.ts`; `docs/REVIEW_2026-09-05.md` | P0 | 9.340초 측정 구간 정정, 미검증 성공 표현 제거, 실제 조건 비교, 상세 지연 로딩, 최대 4개 캐시. 한국어 문구와 desktop/mobile 공개 URL 검증 |
 | Maintenance dependency patches | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `package.json`; `pnpm-lock.yaml`; `docs/REVIEW_2026-09-05.md` | P0 | fast-uri 3.1.6, qs 6.16.0; production audit 0 known vulnerabilities; lint/typecheck/build 및 194개 기본 테스트 통과 |
 | Standard x402 paid resource | implemented | devnet | live | verified | 2026-08-03T21:24:50+09:00 | `artifacts/payment-evidence.json`; `artifacts/verification-report.json` | P0 | `402 -> reserve -> automatic PAYMENT-SIGNATURE -> paid retry -> facilitator verify/settle -> confirmed 200 -> signed receipt`; executor did not pre-broadcast |
 | Solana Devnet USDC settlement | implemented | devnet | live | verified | 2026-08-03T20:18:06+09:00 | `artifacts/payment-evidence.json`; signature `4P7Y…KtmZ` | P0 | finalized slot `480903755`; CAIP-2 `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`; mint `4zMMC…ncDU`; distinct payer/payee; deltas `-15000/+15000` |
@@ -54,3 +54,12 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 ## Maintenance rule
 
 The preserved demo5 payment evidence is immutable. UX and documentation releases may update only the read-only replay image and current deployment evidence. A future payment claim requires a fresh one-shot slot, new promotion bundle, independent verification, and a newly hash-pinned final deployment.
+
+## 2026-09-05 공개 화면 배포 검증
+
+- 실행 코드: `cb3e5595e33670536e552327ebda2a27a7d48f94`. 후속 커밋은 배포 증거와 문서만 갱신한다.
+- [GitHub Actions](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/33965164971): maintenance와 Firestore Emulator 모두 성공. 기본 테스트 194개와 emulator 전용 12개를 합쳐 고유 테스트 206개 확인. 깨끗한 CI checkout의 strict structural readiness도 통과했다.
+- Cloud Build와 새 Cloud Run revision은 위 현재 체크포인트 및 `artifacts/portfolio-deployment/manifest.json`과 일치한다. 공식 URL의 UI/health 200, mutation 404, 비인증 executor 403을 재확인했다.
+- 한국어 문구, 조건 전환, 재생/일시정지/재시작, 상세 증거 열기를 공개 URL에서 확인했다. 1440px/390px 가로 넘침 없음.
+- 기존 raw Cloud Run/IAM export는 ignored private history에 보존하고 새 export로 현재 배포 증거를 갱신했다. 개인 권한 메타데이터는 공개 Git에 포함하지 않았다.
+- 기존 Devnet 결제 증거의 두 SHA-256은 유지했다. 새 결제, 지갑 변경, capture 권한 활성화는 수행하지 않았다. 결제 실행기와 공급자 이미지는 보존했으므로 그 실행 경로의 신규 기능은 아직 live 검증 대상이 아니다.
