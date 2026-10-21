@@ -1,6 +1,6 @@
 # Uptime402 architecture
 
-현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 UI는 저장된 증거를 재생하며 모델을 호출하지 않는다. 아래 기존 결제 증거와 도식의 `gemini-2.5-flash`는 당시 사용한 모델을 그대로 나타낸다.
+현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 화면의 실시간 진단은 입력한 장애 지표로 Gemini를 호출하고 A2A 공급자의 서명된 견적 두 개를 비교한다. 구매나 결제는 실행하지 않는다. 별도의 기록 재생 화면과 아래 도식의 `gemini-2.5-flash`는 과거 결제 당시 모델을 그대로 나타낸다.
 
 이 문서는 **실행 당시 P0 capture 경계**와 **현재 배포된 hash-pinned final evidence stage**를 분리한다. 상태의 최종 기준은 [BUILD_STATUS.md](BUILD_STATUS.md)다. 현재 public UI는 `final / DEVNET VERIFIED` read-only replay이며 새 incident나 결제를 생성하지 않는다.
 
@@ -213,3 +213,11 @@ protocol/live paths are verified.
 새 증거 수집 실행의 dependency-health는 라우트 문서를 검증한 뒤, 운영자가 `RECOVERY_RPC_ROUTES_JSON`에 연결해 둔 견적과 리소스 URL에 해당하는 RPC로 `getHealth`와 `getGenesisHash`를 호출한다. Devnet 성공 응답, 엔드포인트와 응답의 해시, 응답 시간, 관측 시각을 증거에 넣는다. 설정 누락, 연결 정보 불일치, HTTP/RPC 실패, 다른 genesis는 성공으로 판정하지 않는다. 로컬 어댑터와 Firestore 에뮬레이터로 검증했으며 새로 구매할 엔드포인트에서의 실제 동작은 아직 검증하지 않았다.
 
 공개 재생 화면은 증거와 검증 보고서의 해시, 파일 상태를 키로 사용해 검증에 성공한 결과를 최대 4개 캐시한다. 검증 도중 파일이 바뀌면 거절하고, 실패 결과는 캐시하지 않는다. 상세 증거 컴포넌트는 사용자가 펼칠 때 불러온다. 화면의 9.340초는 판단 기록부터 라우트 활성화 확인까지의 시간이다. 당시의 라우트 활성화 증거와 새 RPC 검사의 검증 범위는 구분한다.
+
+## 결제 없는 공개 진단
+
+`POST /api/diagnosis`는 오류율과 지연 시간만 받는다. 512바이트 제한, strict JSON, origin 검사, 인스턴스당 동시 호출 1개/15초 간격/시간당 20회 제한을 적용한다. 이 제한은 재시작 때 초기화되는 프로세스 단위 제한이며 영구적인 비용 상한이 아니다. Cloud Run 최대 인스턴스는 1개지만 배포 중 리비전이 겹칠 수 있다.
+
+고정된 A2A 공급자 origin에서 견적을 읽고 고정 공개키로 서명을 확인한다. 모델 입력은 기존 정제/허용 목록과 제공된 offerId 검증을 통과한다. 만료 견적은 참고 비교로만 표시한다. Gemini 요청은 25초 제한으로 총 한 번 시도하고 자동 재시도하지 않으며 실패를 성공/시뮬레이션으로 대체하지 않는다. 서버는 진단 결과를 저장하지 않고 결제, 예산 예약, 복구 실행을 호출하지 않는다.
+
+Control identity에는 `projects/uptime402-hack-260803/roles/uptime402GeminiPredict` custom role의 `aiplatform.endpoints.predict`만 추가한다. signer secret, Firestore, executor invoker 권한은 계속 없으며 기존 operator mutation routes는 404다. 공개 응답에는 원본 프롬프트, 공급자 오류, 인증정보를 포함하지 않고 React가 모델 텍스트를 escape한다. 과거 결제 증거 파일은 읽기 전용으로 보존한다.

@@ -12,7 +12,7 @@ Demo5 capture 경계와 현재 portfolio replay 경계는 분리됩니다.
 | Service | Exposure | Service account | Secret mount |
 | --- | --- | --- | --- |
 | `control-plane` capture | UI/health 공개, mutation은 app auth 필요 | `uptime402-control@PROJECT_ID.iam.gserviceaccount.com` | control-plane outcome key + immutable demo-request/mandate config |
-| `control-plane` final replay | UI/health 공개, 모든 mutation route 404 | 같은 dedicated control identity | 없음 |
+| `control-plane` final replay + diagnosis | UI/health/진단 공개, 결제 mutation route 404 | 같은 dedicated control identity | 없음 |
 | `payment-executor` | Cloud Run IAM private | `uptime402-executor@PROJECT_ID.iam.gserviceaccount.com` | 기존 저잔액 Devnet executor key만 |
 | `vendor-agent` | Agent Card/A2A/paid resource/health 공개 | `uptime402-vendor@PROJECT_ID.iam.gserviceaccount.com` | vendor receipt key + immutable signed offer catalog |
 
@@ -26,7 +26,7 @@ Offer catalog와 fulfillment receipt는 같은 Agent Card Ed25519 authority/key 
 - `../cloudbuild.yaml`: 세 이미지를 build/push만 함. 배포/IAM/Secret 변경은 하지 않음.
 - `../cloudbuild.control-plane.yaml`: portfolio maintenance에서 control replay 이미지만 build/push.
 - `control-plane.service.yaml.tmpl`: `capture` 전용 protected mutation runtime.
-- `control-plane.replay.service.yaml.tmpl`: `final` 전용 read-only runtime. Firestore, Gemini, executor, OAuth, Secret Manager mount가 없음.
+- `control-plane.replay.service.yaml.tmpl`: `final` 증거 재생과 결제 없는 Gemini 진단. Firestore, executor, OAuth, Secret Manager mount가 없음.
 - `payment-executor.service.yaml.tmpl`, `vendor-agent.service.yaml.tmpl`: 보존된 payment service 경계.
 - `render_cloudrun.py`: 런타임 필수 env와 template 정합성, distinct identities,
   exact origins/audience, numeric secret versions를 fail-closed 검증하고 렌더링.
@@ -445,3 +445,9 @@ exact byte hash를 각각 `UPTIME402_UI_EVIDENCE_SHA256`과
 tag로 다시 build/deploy합니다. UI adapter는 image 안 evidence와 verification report,
 두 configured hash, report의 evidence binding이 모두 일치하지 않으면 Devnet evidence를
 표시하지 않습니다. 이 최종 revision을 로그아웃 세션에서 다시 확인해야 합니다.
+
+## 공개 Gemini 진단 설정
+
+`PUBLIC_DIAGNOSIS_ENABLED=true`, `PUBLIC_DIAGNOSIS_PROJECT=uptime402-hack-260803`을 사용한다. 모델은 서버에서 `gemini-3.8-flash`로 고정하며 브라우저는 모델/공급자 URL/결제 정보를 지정할 수 없다. 기존 control identity에 예측 전용 custom role `uptime402GeminiPredict` (`aiplatform.endpoints.predict` 하나)만 부여한다. 광범위한 `roles/aiplatform.user`는 사용하지 않는다. 배포 검증은 custom role 정의와 바인딩을 확인하고 private export 해시를 manifest에 추가한다.
+
+최대 인스턴스는 1이다. 코드의 인스턴스당 호출 제한은 재시작과 리비전 교체를 넘어 유지되지 않으므로 영구적인 비용 상한으로 해석하지 않는다. 비활성화는 `PUBLIC_DIAGNOSIS_ENABLED=false`로 가능하다. 결제 증거 핀, `CONTROL_PLANE_MUTATIONS_ENABLED=false`, executor/vendor 리비전은 유지한다.

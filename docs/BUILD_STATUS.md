@@ -6,6 +6,8 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 ## 현재 체크포인트
 
+- 2026-10-22 공개 진단 승인: Gemini 3.8 Flash 실제 호출과 A2A 견적 비교를 추가한다. 새 결제와 기존 증거 변경은 금지한다. 별도 마감은 없으며, 전용 API와 입력/호출 제한, UI, 회귀 검증, 예측 전용 IAM, 배포와 브라우저 검증 순으로 진행하고 30분 단위로 점검한다.
+
 - 2026-10-22 추가 승인: 기본 모델을 Gemini 3.8 Flash로 변경하고 최신 main의 공개 Cloud Run replay를 배포한다. 별도 마감은 없으며 모델 호환성 검증, main 반영, Cloud Build와 배포, 공개 URL 확인 순으로 진행한다. 30분 단위로 진행 상태를 점검한다. 기존 결제 증거와 결제 서비스, 읽기 전용 경계는 보존한다.
 
 - 2026-10-22 사용자 승인 범위: 필수 개선점 네 가지를 수정하고 테스트한다. 별도 마감은 없다. 복구와 운영자 기록, 민감정보 제거와 의존성 패치, 전체 검증 순으로 진행했다. 검증을 30분 단위로 점검해 완료했다. 이번 변경의 상태는 `implementation=implemented`, `evidence=local`, `deployment=local`, `verification=verified`, `priority=P0`이며 `lastVerifiedAt=2026-10-22T04:06:02+09:00`이다. 근거는 아래 수정 및 검증 기록에 연결했다. 기존 `artifacts/`를 보존하며 새 결제, 지갑 변경, 배포는 수행하지 않는다.
@@ -17,7 +19,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 - Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00024-9fr`, exact source commit `82a960b1289f032c695f86fc58c18e7859321b6b`, Cloud Build `827b03a5-bc2b-4454-b47b-d8a82c4d0dd2` `SUCCESS`, image digest `sha256:972a1eefa418f4979e1dfcbcada88229bbd1aa8e6e1031dad50678fa8a8ef4d4`.
 - Preserved payment services: executor revision `uptime402-payment-executor-00012-2dg`, vendor revision `uptime402-vendor-agent-00011-88p`, payment runtime SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`. 이 두 service는 portfolio replay 배포에서 다시 build하거나 변경하지 않았다.
 - 공개 서비스 상태: UI 단계 `final`, 메인 화면과 health API `200`, 실행 API `404`, 비인증 executor `403`, vendor health/Agent Card `200`. 로그인 없이 데스크톱 1440×1024와 모바일 390×844에서 한국어 문구, 재생 버튼, 조건 전환과 상세 증거를 확인했다. 두 화면 모두 가로 넘침이 없었다.
-- Current control identity has no executor `run.invoker`, Firestore `datastore.user`, Vertex `aiplatform.user`, or retired capture-secret access. Current replay manifest에는 OAuth, Gemini, Firestore, executor endpoint와 secret volume이 없다. 이는 현재 read-only 배포 경계이며 2026-08-03 capture 당시의 payment path IAM 증거를 소급 변경하지 않는다.
+- Current control identity has no executor `run.invoker`, Firestore `datastore.user`, Vertex `aiplatform.user`, or retired capture-secret access. Current replay manifest에는 OAuth, Firestore, executor endpoint와 secret volume이 없다. 공개 진단은 별도 예측 전용 custom role과 PUBLIC_DIAGNOSIS 설정만 사용한다. 이는 현재 read-only 배포 경계이며 2026-08-03 capture 당시의 payment path IAM 증거를 소급 변경하지 않는다.
 - Current deployment authority: `artifacts/portfolio-deployment/manifest.json`. 공개 파일에는 최소 deployment attestation과 owner-private raw export의 SHA-256만 있고, 개인·조직 권한 메타데이터가 든 원본은 ignored `private/portfolio-deployment-raw/`에만 있다. 이 artifact는 `notPaymentEvidence: true`다. `artifacts/final-release.json`과 `artifacts/final-deployment/`는 initial final-promotion history다.
 - Preserved real payment: `finalist-demo-5`, `0.015 USDC` (`15000` base units), finalized signature `4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ`. 추가 Devnet payment는 실행하지 않았다.
 - Payment evidence SHA-256: `sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`. Verification report SHA-256: `sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`; independent report 13 checks are all true.
@@ -27,6 +29,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 | Integration | implementation | evidence | deployment | verification | lastVerifiedAt | evidenceRef | priority | Notes / blocker |
 |---|---|---|---|---|---|---|---|---|
+| Public payment-free diagnosis | implemented | local | local | verified | 2026-10-21T20:19:04.941408+00:00 | `tests/public-diagnosis.test.ts`; `tests/live-diagnosis-dom.test.ts` | P0 | 실제 모델 진단, 서명된 A2A 견적 비교; 결제 API 분리 |
 | Gemini 3.8 Flash default | implemented | local | local | verified | 2026-10-21T19:55:53.946Z | `docs/verification/gemini-3.8-flash.json`; `tests/control-plane.test.ts` | P0 | 실제 Vertex 응답 modelVersion 확인, standard/emergency 조건별 선택 확인. 무결제 모델 검증이며 공개 replay는 모델을 호출하지 않음 |
 | Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/payments.test.ts`; `tests/persistence-firestore.test.ts` | P0 | paid 응답과 즉시 재조회 동시 유실, facilitator 응답 유실 후 무결제 재개; 기존 health/commit/audit 복구와 예산 snapshot 유지 |
 | Paid-route RPC health probe | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/recovery-rpc-probe.test.ts`; `tests/dependency-health.test.ts` | P0 | pinned offer/resource/RPC, getHealth 및 Devnet genesis 확인. 실제 구매 endpoint 설정과 live 검증은 별도 필요 |
@@ -106,3 +109,10 @@ The preserved demo5 payment evidence is immutable. UX and documentation releases
 - 공개 UI/health 200, 실행 API 404, vendor health/Agent Card 200, 비인증 executor 403. 브라우저에서 재생 완료, 심한 장애 조건의 견적 전환, 원본 증거 지연 로딩과 receipt/outcome 검증 표시를 확인했다.
 - `implementation=implemented`, `evidence=local`, `deployment=live`, `verification=verified`, `lastVerifiedAt=2026-10-21T20:01:38.299Z`, `priority=P0`. 배포 근거: `artifacts/portfolio-deployment/manifest.json`. 공개 서비스는 읽기 전용 replay이며 Gemini를 호출하지 않는다. 모델 실제 호출은 별도 로컬 검증이다.
 - 기존 결제 증거 전체의 바이트와 두 SHA-256은 보존했다. 변경된 기존 artifact는 현재 배포 manifest 하나뿐이다. executor/vendor 리비전과 IAM, 비밀정보 설정은 유지했다. 이전 private raw 배포 export도 ignored history에 보존했다.
+
+## 2026-10-22 공개 무결제 진단
+
+- 공개 화면에서 수치 장애 지표를 입력해 실제 Gemini 3.8 Flash 진단을 실행한다. 고정 A2A 공급자의 서명된 두 견적을 비교하며 만료 여부를 표시한다. 입력 예시는 실제 수집된 장애로 주장하지 않는다.
+- API는 결제/저장소/서명 모듈을 호출하지 않는다. 기존 결제 증거 재생과 분리하며 새 결제, 예산 예약, 복구 실행, 과거 증거 갱신은 하지 않는다.
+- 입력/서명/모델 검증, 동시 호출과 시간당 호출 제한, 오류 응답 비공개, React 텍스트 escape, 결제 API 404 회귀 테스트를 추가했다. 제한은 프로세스 단위이며 인스턴스 재시작 시 초기화된다.
+- 로컬 기본 테스트 220개, lint, typecheck, 문서/배포 템플릿/Git boundary 검증을 통과했다. 실제 A2A 조회와 Gemini 3.8 응답도 새 API로 확인했다. 배포와 공개 브라우저 검증 결과는 완료 후 기록한다.

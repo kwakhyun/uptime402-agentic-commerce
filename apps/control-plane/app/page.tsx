@@ -27,6 +27,7 @@ export default async function HomePage() {
     <MissionControl
       initialState={initialState}
       liveOperatorConfig={liveOperatorConfig}
+      diagnosisEnabled={process.env.PUBLIC_DIAGNOSIS_ENABLED === "true" && Boolean(process.env.PUBLIC_DIAGNOSIS_PROJECT)}
     />
   );
 }

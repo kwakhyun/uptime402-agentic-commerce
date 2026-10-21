@@ -89,6 +89,7 @@ const SYSTEM_INSTRUCTION = [
   "You may diagnose the supplied incident and choose exactly one supplied offerId only.",
   "Do not create or change a price, recipient, URL, asset, network, mandate, policy, or payment.",
   "Use only the supplied redacted telemetry and offer evidence, and return the required JSON object.",
+  "Write the diagnosis and rationale in Korean.",
 ].join(" ");
 
 export class GoogleGenAiRecoveryDecisionModel implements RecoveryDecisionModel {

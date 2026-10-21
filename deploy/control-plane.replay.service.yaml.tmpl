@@ -10,7 +10,7 @@ spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/maxScale: "3"
+        autoscaling.knative.dev/maxScale: "1"
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/startup-cpu-boost: "true"
     spec:
@@ -29,6 +29,10 @@ spec:
           env:
             - name: NODE_ENV
               value: production
+            - name: PUBLIC_DIAGNOSIS_ENABLED
+              value: "true"
+            - name: PUBLIC_DIAGNOSIS_PROJECT
+              value: "{{PROJECT_ID}}"
             - name: CONTROL_PLANE_UI_LIVE_TRIGGER_ENABLED
               value: "false"
             - name: CONTROL_PLANE_MUTATIONS_ENABLED

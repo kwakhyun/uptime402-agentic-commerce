@@ -58,6 +58,13 @@ type PortfolioDeploymentManifest = Readonly<{
     paymentEvidenceSha256: string;
     verificationReportSha256: string;
   }>;
+  publicDiagnosis?: Readonly<{
+    model: "gemini-3.8-flash";
+    paymentEnabled: false;
+    role: string;
+    roleExportSha256: string;
+    permissions: readonly ["aiplatform.endpoints.predict"];
+  }>;
 }>;
 
 const serviceNames: Readonly<Record<ServiceRole, string>> = Object.freeze({
@@ -262,6 +269,10 @@ function validateReadyService(
       throw new Error("Replay control service retains a mutation dependency");
     }
     const annotations = exactRecord(templateMetadata.annotations ?? {}, "control annotations");
+    if (env.get("PUBLIC_DIAGNOSIS_ENABLED") === "true" &&
+        annotations["autoscaling.knative.dev/maxScale"] !== "1") {
+      throw new Error("Public diagnosis requires a single-instance deployment limit");
+    }
     if ("run.googleapis.com/secrets" in annotations) {
       throw new Error("Replay control service must not declare Secret Manager mounts");
     }
@@ -333,6 +344,7 @@ async function capture(buildId: string, sourceCommit: string): Promise<void> {
   await mkdir(privateOutputRoot, { recursive: true, mode: 0o700 });
 
   const services: ServiceEvidence[] = [];
+  let diagnosisEnabled = false;
   for (const role of Object.keys(serviceNames) as ServiceRole[]) {
     const serviceName = serviceNames[role];
     const description = await gcloudJson([
@@ -346,6 +358,12 @@ async function capture(buildId: string, sourceCommit: string): Promise<void> {
       `--region=${region}`,
     ]);
     const summary = validateReadyService(role, serviceName, description);
+    if (role === "control-plane" && serviceEnv(description).get("PUBLIC_DIAGNOSIS_ENABLED") === "true") {
+      if (serviceEnv(description).get("PUBLIC_DIAGNOSIS_PROJECT") !== projectId) {
+        throw new Error("Diagnosis project is not pinned");
+      }
+      diagnosisEnabled = true;
+    }
     validateIam(role, iamPolicy);
     services.push(Object.freeze({
       ...summary,
@@ -379,6 +397,21 @@ async function capture(buildId: string, sourceCommit: string): Promise<void> {
     }));
   }
   validateRetiredControlAccess(control.serviceAccount, projectIam, secretPolicies);
+  let publicDiagnosis: PortfolioDeploymentManifest["publicDiagnosis"];
+  if (diagnosisEnabled) {
+    const roleName = `projects/${projectId}/roles/uptime402GeminiPredict`;
+    const role = await gcloudJson(["iam", "roles", "describe", "uptime402GeminiPredict", `--project=${projectId}`]);
+    if (role.deleted === true || !Array.isArray(role.includedPermissions) ||
+        role.includedPermissions.length !== 1 || role.includedPermissions[0] !== "aiplatform.endpoints.predict" ||
+        !principalRoles(projectIam, `serviceAccount:${control.serviceAccount}`).has(roleName)) {
+      throw new Error("Public diagnosis must have prediction-only IAM");
+    }
+    publicDiagnosis = {
+      model: "gemini-3.8-flash", paymentEnabled: false, role: roleName,
+      roleExportSha256: await writePrivateRawArtifact("diagnosis-role.json", role),
+      permissions: ["aiplatform.endpoints.predict"],
+    };
+  }
   const liveChecks = Object.freeze({
     controlRootStatus: await boundedStatus(control.stableUrl),
     controlHealthStatus: await boundedStatus(`${control.stableUrl}/api/health`),
@@ -426,6 +459,7 @@ async function capture(buildId: string, sourceCommit: string): Promise<void> {
       paymentEvidenceSha256: sha256(awaitedPaymentEvidenceBytes),
       verificationReportSha256: sha256(awaitedVerificationReportBytes),
     }),
+    ...(publicDiagnosis ? { publicDiagnosis } : {}),
   });
   await writeFile(resolve(outputRoot, "manifest.json"), jsonBytes(manifest), { mode: 0o644 });
   await verify();
@@ -464,6 +498,13 @@ async function verify(): Promise<void> {
     throw new Error("Portfolio deployment digest attestation is invalid");
   }
   const assertions = manifest.replayBoundaryAssertions;
+  if (manifest.publicDiagnosis && (
+    manifest.publicDiagnosis.model !== "gemini-3.8-flash" ||
+    manifest.publicDiagnosis.paymentEnabled !== false ||
+    manifest.publicDiagnosis.role !== "projects/uptime402-hack-260803/roles/uptime402GeminiPredict" ||
+    !HASH.test(manifest.publicDiagnosis.roleExportSha256) ||
+    JSON.stringify(manifest.publicDiagnosis.permissions) !== JSON.stringify(["aiplatform.endpoints.predict"])
+  )) throw new Error("Invalid public diagnosis boundary attestation");
   if (!assertions || Object.values(assertions).some((value) => value !== true)) {
     throw new Error("Portfolio replay boundary assertions are incomplete");
   }

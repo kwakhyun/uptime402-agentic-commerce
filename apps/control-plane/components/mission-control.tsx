@@ -17,12 +17,14 @@ import { useState } from "react";
 
 import type { MissionControlDemoState } from "./demo-state";
 import { DeveloperEvidence } from "./developer-evidence";
+import { LiveDiagnosis } from "./live-diagnosis";
 import { useRecoveryPlayback } from "./use-recovery-playback";
 import type { LiveOperatorUiConfig } from "../src/live-ui-contract";
 
 interface MissionControlProps {
   initialState: MissionControlDemoState;
   liveOperatorConfig: LiveOperatorUiConfig;
+  diagnosisEnabled?: boolean;
 }
 
 const RECOVERY_PHASES = [
@@ -36,7 +38,7 @@ function compactDecimal(value: string): string {
   return value.includes(".") ? value.replace(/0+$/u, "").replace(/\.$/u, "") : value;
 }
 
-export function MissionControl({ initialState, liveOperatorConfig }: MissionControlProps) {
+export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnabled = false }: MissionControlProps) {
   const {
     completionCount,
     currentPhase,
@@ -87,17 +89,19 @@ export function MissionControl({ initialState, liveOperatorConfig }: MissionCont
           <span>Uptime402</span>
         </a>
         <nav aria-label="페이지 섹션">
+          {diagnosisEnabled && <a href="#live-diagnosis">실시간 진단</a>}
           <a href="#overview">개요</a>
           <a href="#recovery-flow">복구 과정</a>
           <a href="#developer-evidence">검증 증거</a>
         </nav>
         <span className={`header-status ${devnetVerified ? "is-verified" : "is-unverified"}`}>
           {devnetVerified ? <CheckCircle size={17} weight="fill" aria-hidden="true" /> : <WarningCircle size={17} weight="fill" aria-hidden="true" />}
-          {devnetVerified ? "DEVNET VERIFIED" : demoState.environmentLabel}
+          {devnetVerified ? (diagnosisEnabled ? "기존 DEVNET 증거" : "DEVNET VERIFIED") : demoState.environmentLabel}
         </span>
       </header>
 
       <main className="recovery-report">
+        {diagnosisEnabled && <LiveDiagnosis />}
         <section className="report-hero" id="overview" aria-labelledby="report-title">
           <h1 id="report-title">
             {devnetVerified ? (
