@@ -4,10 +4,12 @@ import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LiveDiagnosis } from "../apps/control-plane/components/live-diagnosis.js";
 
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 describe("public diagnosis form", () => {
   it("submits only numeric metrics, escapes model output and keeps payment out of the flow", async () => {
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    // Older mobile browsers have AbortController but no AbortSignal.timeout.
+    vi.stubGlobal("AbortSignal", class {});
     const fetchMock = vi.fn(async () => Response.json({
       model: "gemini-3.8-flash", modelVersion: "gemini-3.8-flash", diagnosedAt: "2026-10-22T00:00:00Z",
       diagnosis: '<script>steal()</script>', rationale: "Compare only", selectedOfferId: "rpc-recovery-standard",
@@ -34,6 +36,29 @@ describe("public diagnosis form", () => {
       await act(async () => { container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
       expect(container.querySelector('[role="alert"]')?.textContent).toContain("15초");
       expect(container.textContent).not.toContain('<script>steal()</script>');
+    } finally { await act(async () => root.unmount()); container.remove(); }
+  });
+
+  it("cancels a stalled request and restores the form without a second request", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const container = document.createElement("div"); document.body.append(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(createElement(LiveDiagnosis)));
+      await act(async () => { container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+      expect(container.querySelector("button")!.disabled).toBe(true);
+      await act(async () => { container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await act(async () => { await vi.advanceTimersByTimeAsync(45_000); });
+      expect(fetchMock.mock.calls[0]![1].signal!.aborted).toBe(true);
+      expect(container.querySelector("button")!.disabled).toBe(false);
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain("결제는 실행되지 않았습니다");
+      expect(vi.getTimerCount()).toBe(0);
     } finally { await act(async () => root.unmount()); container.remove(); }
   });
 });

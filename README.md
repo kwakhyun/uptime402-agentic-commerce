@@ -10,7 +10,7 @@ Uptime402는 장애가 발생하면 Gemini로 원인을 진단하고, A2A로 받
 
 ## 바로 보기
 
-- [Live mission control](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app) — 로그인 없이 검증된 실행 기록 재생
+- [Live mission control](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app) — 로그인 없이 실제 진단, 견적 비교와 기존 결제 기록 재생
 - [Demo video](https://www.youtube.com/watch?v=jwJRfs-NRZY) — 한국어 내레이션으로 전체 흐름 설명
 - [Solana Explorer transaction](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet)
 - [Payment evidence](artifacts/payment-evidence.json) · [Verification report](artifacts/verification-report.json) · [Current replay deployment evidence](artifacts/portfolio-deployment/manifest.json)
@@ -73,8 +73,8 @@ Uptime402의 목표는 다음과 같습니다.
 ## 아키텍처
 
 아래 다이어그램은 `finalist-demo-5` 당시의 결제와 복구 흐름입니다. 현재 공개
-화면은 해당 증거의 해시를 검증해 재생합니다. Gemini, Firestore, 결제 실행기를
-호출하거나 서명 키에 접근하지 않습니다.
+화면의 기록 재생 영역은 해당 증거의 해시를 검증합니다. 상단 실시간 진단은 Gemini와
+A2A 공급자를 호출하며, Firestore와 결제 실행기, 서명 키에는 접근하지 않습니다.
 
 ```mermaid
 flowchart LR

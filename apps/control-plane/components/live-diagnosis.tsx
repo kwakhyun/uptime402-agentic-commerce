@@ -14,11 +14,13 @@ export function LiveDiagnosis() {
     event.preventDefault();
     if (busy) return;
     setBusy(true); setError(""); setResult(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45_000);
     try {
       const response = await fetch("/api/diagnosis", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ failureRate: Number(failureRate) / 100, latencyMs: Number(latency) }),
-        signal: AbortSignal.timeout(45_000),
+        signal: controller.signal,
       });
       if (!response.ok) {
         setError(response.status === 429
@@ -29,7 +31,7 @@ export function LiveDiagnosis() {
       setResult(await response.json() as DiagnosisResult);
     } catch {
       setError("응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요. 결제는 실행되지 않았습니다.");
-    } finally { setBusy(false); }
+    } finally { clearTimeout(timeout); setBusy(false); }
   }
 
   return <section className="live-diagnosis" id="live-diagnosis" aria-labelledby="live-diagnosis-title">
@@ -38,8 +40,8 @@ export function LiveDiagnosis() {
     <p>관측한 RPC 오류율과 응답 지연을 입력하면 Gemini가 원인을 진단하고 공급자의 두 견적을 비교합니다. 아래 값은 예시이며, 서비스에 연결해 장애를 자동 수집하지는 않습니다.</p>
     <form onSubmit={event => { void diagnose(event); }}>
       <div className="live-diagnosis__inputs">
-        <label>오류율 (%)<input type="number" min="0" max="100" step="1" required value={failureRate} disabled={busy} onChange={event => setFailureRate(event.target.value)} /></label>
-        <label>응답 지연 (ms)<input type="number" min="0" max="60000" step="1" required value={latency} disabled={busy} onChange={event => setLatency(event.target.value)} /></label>
+        <label>오류율 (%)<input type="number" inputMode="numeric" min="0" max="100" step="1" required value={failureRate} disabled={busy} onChange={event => setFailureRate(event.target.value)} /></label>
+        <label>응답 지연 (ms)<input type="number" inputMode="numeric" min="0" max="60000" step="1" required value={latency} disabled={busy} onChange={event => setLatency(event.target.value)} /></label>
       </div>
       <button className="replay-button" type="submit" disabled={busy}>{busy ? "Gemini가 진단하고 있습니다…" : "진단과 견적 비교 실행"}</button>
     </form>

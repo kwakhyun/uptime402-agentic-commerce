@@ -1722,7 +1722,7 @@ code {
 .live-diagnosis__eyebrow { color: var(--blue-dark); font-weight: 700; }
 .live-diagnosis__inputs { display: flex; flex-wrap: wrap; gap: 16px; margin: 24px 0 16px; }
 .live-diagnosis label { display: flex; flex: 1 1 180px; flex-direction: column; gap: 8px; font-weight: 600; }
-.live-diagnosis input { width: 100%; padding: 12px; border: 1px solid var(--line-strong); border-radius: 8px; font: inherit; background: white; color: var(--text); }
+.live-diagnosis input { width: 100%; min-height: 48px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 8px; font: inherit; font-size: 16px; background: white; color: var(--text); }
 .live-diagnosis button:disabled { opacity: .65; cursor: wait; }
 .live-diagnosis__note { color: var(--text-soft); font-size: 13px; margin-top: 16px; }
 .live-diagnosis__result { margin-top: 24px; border-top: 1px solid var(--line-strong); padding-top: 16px; overflow-wrap: anywhere; }

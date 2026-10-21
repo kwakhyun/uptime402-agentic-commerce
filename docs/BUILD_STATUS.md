@@ -6,6 +6,8 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 ## 현재 체크포인트
 
+- 2026-10-22 모바일 검증 승인: 공개 진단과 견적 비교를 320px/390px/430px 화면에서 실행하고 호환성 문제를 수정해 재배포한다. 별도 마감은 없으며 호환성 회귀 테스트, main 반영, 배포, 모바일 결과 검증을 순서대로 진행하고 30분 단위로 점검한다. 새 결제는 기존 증거보다 검증 범위를 넓힐 때만 허용된다. 기존 demo5 원본은 보존한다.
+
 - 2026-10-22 공개 진단 승인: Gemini 3.8 Flash 실제 호출과 A2A 견적 비교를 추가한다. 새 결제와 기존 증거 변경은 금지한다. 별도 마감은 없으며, 전용 API와 입력/호출 제한, UI, 회귀 검증, 예측 전용 IAM, 배포와 브라우저 검증 순으로 진행하고 30분 단위로 점검한다.
 
 - 2026-10-22 추가 승인: 기본 모델을 Gemini 3.8 Flash로 변경하고 최신 main의 공개 Cloud Run replay를 배포한다. 별도 마감은 없으며 모델 호환성 검증, main 반영, Cloud Build와 배포, 공개 URL 확인 순으로 진행한다. 30분 단위로 진행 상태를 점검한다. 기존 결제 증거와 결제 서비스, 읽기 전용 경계는 보존한다.
@@ -120,3 +122,11 @@ The preserved demo5 payment evidence is immutable. UX and documentation releases
 - 공개 브라우저에서 5%/420ms는 standard, 100%/12000ms는 emergency를 선택했다. 두 응답 모두 `gemini-3.8-flash`이며 새 결제가 없음을 표시했다. `docs/verification/public-diagnosis.json`에 검증 범위를 기록했다.
 - 공개 UI/health 200, 결제 실행 API 404, 비인증 executor 403, vendor health/Agent Card 200. 예측 전용 IAM 정의와 바인딩, 최대 인스턴스 1, secret/Firestore/executor 접근 차단을 배포 capture에서 확인했다.
 - 기존 결제 artifact는 전부 바이트 그대로다. 현재 배포 manifest만 갱신했으며 이전 private 배포 export는 ignored history에 보존했다. 새 결제나 복구는 실행하지 않았다.
+
+## 2026-10-22 모바일 진단 개선
+
+- 수정 전 390px 공개 화면에서 5%/420ms 입력으로 실제 `gemini-3.8-flash` 응답과 standard 선택을 확인했다. 320px에서도 진단과 견적 내용의 가로 넘침은 없었다. 검증은 브라우저 뷰포트 기준이며 실제 iPhone/Android 하드웨어 검증은 아니다.
+- `AbortSignal.timeout()`이 없는 구형 모바일 환경에서는 fetch 호출 전에 실패함을 DOM 회귀 테스트로 재현했다. `AbortController`와 정리되는 45초 타이머로 교체하고, 지연 응답 취소와 입력 재활성화, 대기 중 중복 제출 차단을 검사한다. [MDN 호환성 설명](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static).
+- 숫자 키패드 힌트를 추가하고 입력 글자를 16px로 조정했다.
+- 새 결제 평가: 현재 배포는 기존 Firestore 라우트 활성화 증거까지이며, 로컬 RPC probe에 필요한 `RECOVERY_RPC_ROUTES_JSON`이 운영 설정 파일에 없다. 구매 제공 RPC의 offer/resource/endpoint 연결을 검증하지 못한 상태에서 재결제해도 실사용 성공 증거가 추가되지 않는다. 공개 Gemini 3.8 판단은 무결제 검증으로 이미 얻을 수 있으므로 새 거래 시각이나 모델 교체만을 위해 결제하지 않는다. 새 결제 0건, demo5 원본 보존.
+- 더 강한 결제 증거의 조건: 실제 구매 제공 RPC 연결 확인, private capture runtime과 현재 복구 코드 배포, 새 one-shot mandate/incident/payment ID, Gemini 3.8 선택과 실사용 RPC probe를 포함한 별도 증거 번들, 독립 검증 후 새 hash pin. 기존 demo5 번들은 덮어쓰지 않는다.
