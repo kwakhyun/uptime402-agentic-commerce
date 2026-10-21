@@ -1,6 +1,6 @@
 # Uptime402 build status
 
-Last updated: `2026-10-21T20:24:52.296Z`
+Last updated: `2026-10-21T20:51:21.661271+00:00`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
@@ -18,9 +18,9 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 - 2026-09-05 검토 개선을 로컬 코드에 반영했다. 결제 후 단계 재개, 원자적 예산 증거, 실제 RPC probe, 검증 범위와 조건 비교 UI, 모듈 분리, 캐시/지연 로딩, DOM 테스트와 취약 의존성 패치를 포함한다. 결제 실행 경로의 검증은 로컬 구현에 한정한다. UI는 새 공개 리비전에서 확인했으며 demo5 evidence와 기존 결제 서비스 리비전은 보존했다. 상세: `docs/REVIEW_2026-09-05.md#개선-반영-기록`.
 
-- Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00025-xq2`, exact source commit `53c960da0bd9102f2d29511bc707cfd0fcf956bc`, Cloud Build `af3f0fc3-83f5-46dd-9963-13bcedc5736a` `SUCCESS`, image digest `sha256:5301414c4fbeaf9f291fe6cdddf4f55f0ab733e3436176a5fed234a7c2b3c513`.
+- Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00026-bg4`, exact source commit `e0ce8092fd64025402fd80dfe2ed8d2a23b47007`, Cloud Build `5fbf5243-f658-4d81-865e-837b8aa003f4` `SUCCESS`, image digest `sha256:f8ca395a88d91124268f71a29996c8d937a251c14c3a57d4af96620e4082f99d`.
 - Preserved payment services: executor revision `uptime402-payment-executor-00012-2dg`, vendor revision `uptime402-vendor-agent-00011-88p`, payment runtime SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`. 이 두 service는 portfolio replay 배포에서 다시 build하거나 변경하지 않았다.
-- 공개 서비스 상태: UI 단계 `final`, 메인 화면과 health API `200`, 결제 실행 API `404`, 비인증 executor `403`, vendor health/Agent Card `200`. 로그인 없는 공개 화면(1280×720)에서 두 장애 조건의 실제 Gemini 진단과 견적 선택을 확인했다.
+- 공개 서비스 상태: UI 단계 `final`, 메인 화면과 health API `200`, 결제 실행 API `404`, 비인증 executor `403`, vendor health/Agent Card `200`. 로그인 없는 공개 모바일 화면(390×844, 320×740)에서 두 장애 조건의 실제 Gemini 진단과 견적 선택을 확인했다. 430×932 결과 배치도 확인했다. 실제 모바일 하드웨어는 검증하지 않았다.
 - Current control identity has no executor `run.invoker`, Firestore `datastore.user`, Vertex `aiplatform.user`, or retired capture-secret access. Current replay manifest에는 OAuth, Firestore, executor endpoint와 secret volume이 없다. 공개 진단은 별도 예측 전용 custom role과 PUBLIC_DIAGNOSIS 설정만 사용한다. 이는 현재 read-only 배포 경계이며 2026-08-03 capture 당시의 payment path IAM 증거를 소급 변경하지 않는다.
 - Current deployment authority: `artifacts/portfolio-deployment/manifest.json`. 공개 파일에는 최소 deployment attestation과 owner-private raw export의 SHA-256만 있고, 개인·조직 권한 메타데이터가 든 원본은 ignored `private/portfolio-deployment-raw/`에만 있다. 이 artifact는 `notPaymentEvidence: true`다. `artifacts/final-release.json`과 `artifacts/final-deployment/`는 initial final-promotion history다.
 - Preserved real payment: `finalist-demo-5`, `0.015 USDC` (`15000` base units), finalized signature `4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ`. 추가 Devnet payment는 실행하지 않았다.
@@ -31,8 +31,9 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 | Integration | implementation | evidence | deployment | verification | lastVerifiedAt | evidenceRef | priority | Notes / blocker |
 |---|---|---|---|---|---|---|---|---|
+| Public mobile diagnosis | implemented | local | live | verified | 2026-10-21T20:51:21.661271+00:00 | `docs/verification/mobile-diagnosis.json`; `tests/live-diagnosis-dom.test.ts` | P0 | 구형 timeout API 의존 제거, 16px 입력, 320/390/430px 화면 확인; 실제 단말 미검증 |
 | Public payment-free diagnosis | implemented | local | live | verified | 2026-10-21T20:24:52.296Z | `docs/verification/public-diagnosis.json`; `artifacts/portfolio-deployment/manifest.json`; `tests/public-diagnosis.test.ts` | P0 | 실제 모델 진단, 서명된 A2A 견적 비교; 결제 API 분리 |
-| Gemini 3.8 Flash default | implemented | local | local | verified | 2026-10-21T19:55:53.946Z | `docs/verification/gemini-3.8-flash.json`; `tests/control-plane.test.ts` | P0 | 실제 Vertex 응답 modelVersion 확인, standard/emergency 조건별 선택 확인. 무결제 모델 검증이며 공개 replay는 모델을 호출하지 않음 |
+| Gemini 3.8 Flash default | implemented | local | local | verified | 2026-10-21T19:55:53.946Z | `docs/verification/gemini-3.8-flash.json`; `tests/control-plane.test.ts` | P0 | 실제 Vertex 응답 modelVersion 확인, standard/emergency 조건별 선택 확인. 공개 진단은 모델을 호출하고 과거 결제 기록 재생은 호출하지 않음 |
 | Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/payments.test.ts`; `tests/persistence-firestore.test.ts` | P0 | paid 응답과 즉시 재조회 동시 유실, facilitator 응답 유실 후 무결제 재개; 기존 health/commit/audit 복구와 예산 snapshot 유지 |
 | Paid-route RPC health probe | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/recovery-rpc-probe.test.ts`; `tests/dependency-health.test.ts` | P0 | pinned offer/resource/RPC, getHealth 및 Devnet genesis 확인. 실제 구매 endpoint 설정과 live 검증은 별도 필요 |
 | Evidence scope, comparison UX and replay performance | implemented | local | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `tests/mission-control-dom.test.ts`; `docs/REVIEW_2026-09-05.md` | P0 | 9.340초 측정 구간 정정, 미검증 성공 표현 제거, 실제 조건 비교, 상세 지연 로딩, 최대 4개 캐시. 한국어 문구와 desktop/mobile 공개 URL 검증 |
@@ -130,3 +131,7 @@ The preserved demo5 payment evidence is immutable. UX and documentation releases
 - 숫자 키패드 힌트를 추가하고 입력 글자를 16px로 조정했다.
 - 새 결제 평가: 현재 배포는 기존 Firestore 라우트 활성화 증거까지이며, 로컬 RPC probe에 필요한 `RECOVERY_RPC_ROUTES_JSON`이 운영 설정 파일에 없다. 구매 제공 RPC의 offer/resource/endpoint 연결을 검증하지 못한 상태에서 재결제해도 실사용 성공 증거가 추가되지 않는다. 공개 Gemini 3.8 판단은 무결제 검증으로 이미 얻을 수 있으므로 새 거래 시각이나 모델 교체만을 위해 결제하지 않는다. 새 결제 0건, demo5 원본 보존.
 - 더 강한 결제 증거의 조건: 실제 구매 제공 RPC 연결 확인, private capture runtime과 현재 복구 코드 배포, 새 one-shot mandate/incident/payment ID, Gemini 3.8 선택과 실사용 RPC probe를 포함한 별도 증거 번들, 독립 검증 후 새 hash pin. 기존 demo5 번들은 덮어쓰지 않는다.
+
+- 배포 완료: 실행 소스 `e0ce8092fd64025402fd80dfe2ed8d2a23b47007`, revision `uptime402-control-plane-00026-bg4`, Cloud Build `5fbf5243-f658-4d81-865e-837b8aa003f4` 성공 및 100% 트래픽. 390px의 5%/420ms는 standard, 320px의 100%/12000ms는 emergency를 선택했다. 430px 결과 배치까지 가로 넘침 없음. `docs/verification/mobile-diagnosis.json`과 두 PNG에 기록했다.
+- [소스 GitHub Actions](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39673013954)의 maintenance와 Firestore Emulator 모두 성공. 기본 221개와 Emulator 전용 13개, 고유 테스트 234개다. 로컬 A2A 테스트는 최초 샌드박스 listen EPERM 후 네트워크 권한으로 다시 실행해 통과했다.
+- UI/health 200, 결제 실행 API 404, 비인증 executor 403, vendor health/Agent Card 200을 배포 capture로 확인했다. 이전 raw export는 private history에 보존했다. 기존 payment artifact 전체는 동일하며 현재 배포 manifest만 갱신했다. 후속 문서 커밋은 실행 소스를 변경하지 않는다.

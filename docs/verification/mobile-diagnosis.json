@@ -1,0 +1,94 @@
+{
+  "verifiedAt": "2026-10-21T20:51:21.661271+00:00",
+  "notPaymentEvidence": true,
+  "verificationMethod": "public browser form submissions at mobile viewport sizes; read-only DOM layout inspection; DOM regression tests",
+  "physicalDeviceTested": false,
+  "sourceCommit": "e0ce8092fd64025402fd80dfe2ed8d2a23b47007",
+  "revision": "uptime402-control-plane-00026-bg4",
+  "buildId": "5fbf5243-f658-4d81-865e-837b8aa003f4",
+  "imageDigest": "sha256:f8ca395a88d91124268f71a29996c8d937a251c14c3a57d4af96620e4082f99d",
+  "modelVersion": "gemini-3.8-flash",
+  "cases": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "failureRate": 0.05,
+      "latencyMs": 420,
+      "selectedOfferId": "rpc-recovery-standard",
+      "displayedAt": "2026-10-21T20:49:30Z",
+      "documentScrollWidth": 390,
+      "diagnosisOverflowElements": 0,
+      "renderedResult": "gemini-3.8-flash · 2026. 10. 22. 오전 5:49:30 · 새 결제 없음진단 결과RPC 서비스 지연 및 상위 타임아웃(UPSTREAM_TIMEOUT)으로 인한 경미한 성능 저하 상태(failureRate 0.05, latencyMs 420).견적 비교전체 장애가 아닌 부분적 지연 및 간헐적 타임아웃 상태이므로, 비용 효율적이고 적합한 성능을 제공하는 표준 복구 오퍼(rpc-recovery-standard)를 선정하고 긴급 복구 오퍼(rpc-recovery-emergency)는 제외했습니다.rpc-recovery-standard — Gemini 선택0.015000 USDC · 공급자 제시 지연 180ms유효 기한: 2026. 11. 1. 오전 9:00:00rpc-recovery-emergency0.025000 USDC · 공급자 제시 지연 30ms유효 기한: 2026. 11. 1. 오전 9:00:00이 결과는 지금 입력한 지표의 분석이며, 아래의 과거 결제 증거와는 별개입니다."
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 740
+      },
+      "failureRate": 1,
+      "latencyMs": 12000,
+      "selectedOfferId": "rpc-recovery-emergency",
+      "displayedAt": "2026-10-21T20:50:01Z",
+      "documentScrollWidth": 320,
+      "diagnosisOverflowElements": 0,
+      "renderedResult": "gemini-3.8-flash · 2026. 10. 22. 오전 5:50:01 · 새 결제 없음진단 결과업스트림 타임아웃(UPSTREAM_TIMEOUT) 및 100% 장애율(failureRate: 1)로 인해 RPC 서비스가 완전히 중단된 상태입니다.견적 비교서비스가 완전히 다운(healthBefore: down)되어 즉각적이고 지연 시간을 최소화한 복구가 요구되므로, 가장 낮은 지연 시간(30ms)을 제공하는 rpc-recovery-emergency 오퍼가 rpc-recovery-standard(180ms)보다 적합하다고 판단하여 선택하였습니다.rpc-recovery-standard0.015000 USDC · 공급자 제시 지연 180ms유효 기한: 2026. 11. 1. 오전 9:00:00rpc-recovery-emergency — Gemini 선택0.025000 USDC · 공급자 제시 지연 30ms유효 기한: 2026. 11. 1. 오전 9:00:00이 결과는 지금 입력한 지표의 분석이며, 아래의 과거 결제 증거와는 별개입니다."
+    }
+  ],
+  "additionalLayoutCheck": {
+    "viewport": {
+      "width": 430,
+      "height": 932
+    },
+    "documentScrollWidth": 430,
+    "diagnosisOverflowElements": 0,
+    "reusedResultFromWidth": 320
+  },
+  "inputCheck": {
+    "fontSizePx": 16,
+    "minimumObservedHeightPx": 50.796875,
+    "inputMode": "numeric",
+    "disabledWhilePending": true
+  },
+  "compatibilityRegression": {
+    "missingAbortSignalTimeout": "request reaches fetch and result renders",
+    "stalledRequest": "aborted after 45000 ms; inputs re-enabled; timer cleared",
+    "duplicateSubmitWhilePending": "no additional fetch"
+  },
+  "newPaymentExecuted": false,
+  "newPaymentAssessment": {
+    "decision": "not_executed",
+    "reason": "No configured offer/resource/purchased-RPC binding; another payment would not add proof of actual purchased RPC use. Gemini 3.8 comparison is independently verified without payment.",
+    "requiredConfig": "RECOVERY_RPC_ROUTES_JSON",
+    "historicalEvidencePreserved": true
+  },
+  "evidencePins": {
+    "paymentEvidenceSha256": "sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
+  },
+  "liveChecks": {
+    "controlRootStatus": 200,
+    "controlHealthStatus": 200,
+    "controlMutationStatus": 404,
+    "vendorHealthStatus": 200,
+    "vendorAgentCardStatus": 200,
+    "executorUnauthenticatedStatus": 403
+  },
+  "screenshots": [
+    {
+      "path": "docs/verification/mobile-diagnosis-390.png",
+      "sha256": "sha256:cfea2dbaffd004a69ba16adee2d21c0c713a543824cf9922a5e07cd9890b0f0c"
+    },
+    {
+      "path": "docs/verification/mobile-diagnosis-430.png",
+      "sha256": "sha256:6b543f7a201d55e7605a47ecd106e7a8c702de2ae945c34baec28afe94d7bcd2"
+    }
+  ],
+  "ci": {
+    "url": "https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39673013954",
+    "maintenance": "success",
+    "firestoreEmulator": "success",
+    "uniqueTestsPassed": 234
+  }
+}
