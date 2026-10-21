@@ -9,6 +9,7 @@ import {
   DEVNET_USDC_MINT,
   DEVNET_X402_NETWORK_ID,
   createIncidentRunBindingHash,
+  verifyRpcRecoveryProof,
 } from "@uptime402/domain";
 import { z } from "zod";
 
@@ -186,6 +187,7 @@ const PaymentSchema = z
         }).passthrough(),
       })
       .passthrough(),
+    rpcRecovery: z.object({ artifactPath: z.string(), artifactSha256: HashSchema }).strict().optional(),
     resourceResponseHash: HashSchema,
     executionPolicyHash: HashSchema,
     challengeHash: HashSchema,
@@ -673,6 +675,27 @@ export async function loadVerifiedMissionControlState(options: Readonly<{
     };
     state.offers = [withQuoteLatency(state.offers[0]), withQuoteLatency(state.offers[1])];
   }
+  const payment = parsedEvidence.payments[0]!;
+  if (payment.rpcRecovery) {
+    const bytes = await readFile(resolve(options.artifactRoot, "live-capture/rpc-recovery-proof.json"));
+    if (fileHash(bytes) !== payment.rpcRecovery.artifactSha256) throw new Error("RPC proof hash mismatch");
+    const proof = verifyRpcRecoveryProof(parseStrictJson(bytes.toString("utf8")), {
+      incidentId: payment.incidentId, paymentId: payment.paymentId, offerId: payment.offerId,
+      txSignature: payment.txSignature, resourceResponseHash: payment.resourceResponseHash,
+      resourceUrl: payment.x402.request.resourceUrl, operationId: payment.x402.request.operationId,
+      healthProbeHash: payment.outcome.payload.healthProbeHash,
+      fulfilledAt: payment.fulfillmentReceipt.payload.fulfilledAt, recoveredAt: payment.outcome.payload.recoveredAt,
+    });
+    if (state.paymentEvidence.level !== "devnet-verified") throw new Error("RPC proof requires verified payment");
+    state.paymentEvidence.recoveryScope = "rpc-probe";
+    state.paymentEvidence.rpcRecovery = { endpoint: proof.resource.rpcEndpoint,
+      genesisHash: proof.healthProbe.details.genesisHash, latencyMs: proof.healthProbe.details.latencyMs };
+    state.dependency.healthDetail = "구매한 RPC에서 getHealth와 Devnet genesis hash를 확인했습니다.";
+    state.timeline = state.timeline.map(step => step.id === "recovery" ? {
+      ...step, title: "구매한 RPC 호출과 복구 확인", summary: "getHealth=ok, Devnet genesis hash 일치",
+      detail: "주입한 장애 이후 구매한 공급자 RPC 릴레이를 호출했습니다. 응답 해시를 서명된 복구 결과에 연결했습니다.",
+    } : step);
+  }
   return state;
 }
 
@@ -701,7 +724,7 @@ export async function loadMissionControlStateForDeployment(options: Readonly<{
   }
   return cachedFinalEvidence(
     JSON.stringify([resolve(options.artifactRoot), expectedEvidenceSha256, expectedVerificationReportSha256]),
-    ["payment-evidence.json", "verification-report.json", "live-capture/gemini-selection-artifact.json"].map((file) => resolve(options.artifactRoot, file)),
+    ["payment-evidence.json", "verification-report.json", "live-capture/gemini-selection-artifact.json", "live-capture/rpc-recovery-proof.json"].map((file) => resolve(options.artifactRoot, file)),
     () => loadVerifiedMissionControlState({ artifactRoot: options.artifactRoot, expectedEvidenceSha256, expectedVerificationReportSha256 }),
   );
 }

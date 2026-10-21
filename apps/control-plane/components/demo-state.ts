@@ -177,7 +177,8 @@ export interface VerifiedPaymentEvidenceView {
   recoveryTimeMs: number;
   recoveryStartedAt: string;
   recoveredAt: string;
-  recoveryScope: "route-activation";
+  recoveryScope: "route-activation" | "rpc-probe";
+  rpcRecovery?: { endpoint: string; genesisHash: string; latencyMs: number };
   confirmedAt: string;
 }
 

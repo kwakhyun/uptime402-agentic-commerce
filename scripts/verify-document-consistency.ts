@@ -23,8 +23,15 @@ function exactRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-const evidenceBytes = await bytes("artifacts/payment-evidence.json");
-const reportBytes = await bytes("artifacts/verification-report.json");
+const deployment = exactRecord(
+  JSON.parse(await text("artifacts/portfolio-deployment/manifest.json")),
+  "portfolio deployment manifest",
+);
+const bundle = deployment.evidenceBundle;
+if (bundle !== undefined && (typeof bundle !== "string" || !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(bundle))) throw new Error("Invalid deployed evidence bundle");
+const evidenceRoot = bundle ? `artifacts/runs/${bundle}` : "artifacts";
+const evidenceBytes = await bytes(`${evidenceRoot}/payment-evidence.json`);
+const reportBytes = await bytes(`${evidenceRoot}/verification-report.json`);
 const evidenceHash = hash(evidenceBytes);
 const reportHash = hash(reportBytes);
 const evidence = exactRecord(JSON.parse(Buffer.from(evidenceBytes).toString("utf8")), "payment evidence");
@@ -33,10 +40,6 @@ if (report.evidenceSha256 !== `sha256:${evidenceHash}`) {
   throw new Error("verification-report.json does not bind payment-evidence.json");
 }
 
-const deployment = exactRecord(
-  JSON.parse(await text("artifacts/portfolio-deployment/manifest.json")),
-  "portfolio deployment manifest",
-);
 const deploymentPins = exactRecord(deployment.evidencePins, "portfolio deployment evidence pins");
 if (deployment.notPaymentEvidence !== true) {
   throw new Error("portfolio deployment manifest must be marked notPaymentEvidence");

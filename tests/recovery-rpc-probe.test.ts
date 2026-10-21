@@ -1,5 +1,5 @@
 import { DEVNET_GENESIS_HASH } from "@uptime402/domain";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PinnedRecoveryRpcProbe, buildRecoveryRpcProbe } from "../apps/control-plane/src/server/recovery-rpc-probe.js";
 import type { FirestoreRecoveryRoute } from "../apps/control-plane/src/server/live-flow-contracts.js";
 import type { OriginBoundFetchFactory } from "../apps/control-plane/src/server/pinned-fetch.js";
@@ -31,6 +31,23 @@ function fixture(health = "ok", genesis: string = DEVNET_GENESIS_HASH) {
 }
 
 describe("paid route RPC health proof", () => {
+  it("uses audience-bound IAM and the receipt-bound endpoint without recording credentials", async () => {
+    const getToken = vi.fn(async () => "private-token");
+    const requests: RequestInit[] = [];
+    const factory: OriginBoundFetchFactory = { mode: "production-pinned-https", forOrigin: () => async (_url, init) => {
+      requests.push(init!); const body = JSON.parse(String(init?.body));
+      return Response.json({ jsonrpc: "2.0", id: body.id, result: body.id === 0 ? "ok" : DEVNET_GENESIS_HASH });
+    } };
+    const probe = new PinnedRecoveryRpcProbe([{ ...routes[0], authentication: "google-iam" }], factory, getToken);
+    await expect(probe.probe(route)).rejects.toThrow("endpoint");
+    expect(getToken).not.toHaveBeenCalled();
+    const result = await probe.probe({ ...route, rpcEndpoint: routes[0]!.rpcUrl });
+    expect(getToken).toHaveBeenCalledWith("https://recovery-rpc.example");
+    expect(requests[0]!.headers).toMatchObject({ authorization: "Bearer private-token", "x-uptime402-route-activation": route.activationId });
+    expect(result).toMatchObject({ rpcEndpoint: routes[0]!.rpcUrl, authentication: "google-iam" });
+    expect(JSON.stringify(result)).not.toContain("private-token");
+    expect(JSON.parse(result.rpcResponsesJson!)).toHaveLength(2);
+  });
   it("probes health and Devnet identity through the configured paid route", async () => {
     const { calls, probe } = fixture();
     expect(await probe.probe(route)).toMatchObject({ genesisHash: DEVNET_GENESIS_HASH, endpointHash: expect.stringMatching(/^sha256:/), responseHash: expect.stringMatching(/^sha256:/) });

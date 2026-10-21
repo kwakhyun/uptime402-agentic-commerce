@@ -195,6 +195,17 @@ function deniedLiveResult(input: {
 }
 
 describe("live evidence capture", () => {
+  it("isolates a new bundle without touching historical evidence or reports", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uptime402-bundle-"));
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(resolve(root, "artifacts"));
+    for (const name of ["payment-evidence.json", "verification-report.json"]) await writeFile(resolve(root, "artifacts", name), "historical bytes");
+    const result = await captureOrPromoteLiveEvidence({ root, bundleId: "rpc-new-run", input: { schemaVersion: "1.0" } });
+    expect(result.promoted).toBe(false);
+    for (const name of ["payment-evidence.json", "verification-report.json"]) expect(await readFile(resolve(root, "artifacts", name), "utf8")).toBe("historical bytes");
+    await expect(captureOrPromoteLiveEvidence({ root, bundleId: "../../artifacts", input: {} })).rejects.toThrow("bundle ID");
+  });
+
   it("writes only labelled raw fragments and preserves final evidence when incomplete", async () => {
     const root = await mkdtemp(join(tmpdir(), "uptime402-live-capture-"));
     const finalPath = resolve(root, "artifacts/payment-evidence.json");

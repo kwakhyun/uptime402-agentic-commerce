@@ -70,6 +70,7 @@ export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnab
   const displayedOffer = demoState.offers.find((offer) => offer.offerId === displayedOfferId);
   const toBaseUnits = (value: string) => BigInt(value.split(".")[0]!) * 1_000_000n + BigInt((value.split(".")[1] ?? "").padEnd(6, "0"));
   const displayedOfferOverCap = displayedOffer ? toBaseUnits(displayedOffer.priceUsdc) > toBaseUnits(demoState.mandate.perTransactionCapUsdc) : false;
+  const rpcRecovered = verifiedEvidence?.recoveryScope === "rpc-probe";
   const evidencePrefix = devnetVerified ? "" : liveUnverified ? "검증 대기 · " : "예시 · ";
   const decisionConditions = decisionView === "baseline" ? demoState.modelDecision.baselineConditions : demoState.modelDecision.counterfactualConditions;
   const decisionStartedLabel = verifiedEvidence?.recoveryStartedAt.replace("T", " ") ?? "검증 대기";
@@ -105,7 +106,7 @@ export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnab
         <section className="report-hero" id="overview" aria-labelledby="report-title">
           <h1 id="report-title">
             {devnetVerified ? (
-              <>판단 기록 후 <strong>{recoverySecondsLabel}초</strong> 만에 라우트 활성화를 확인했습니다</>
+              <>판단 기록 후 <strong>{recoverySecondsLabel}초</strong> 만에 {rpcRecovered ? "구매한 RPC의 정상 응답을" : "라우트 활성화를"} 확인했습니다</>
             ) : liveUnverified ? (
               <>장애 복구 증거를 <strong>수집 중</strong>입니다</>
             ) : (
@@ -114,7 +115,7 @@ export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnab
           </h1>
           <p className="report-summary">
             {devnetVerified
-              ? `Gemini가 두 복구 옵션을 비교했습니다. Uptime402는 미리 설정된 정책에 따라 건별 승인 없이 ${paidAmountLabel} USDC를 결제하고 라우트 활성화 기록을 검증했습니다.`
+              ? `Gemini가 두 복구 옵션을 비교했습니다. Uptime402는 미리 설정된 정책에 따라 건별 승인 없이 ${paidAmountLabel} USDC를 결제하고 ${rpcRecovered ? "구매한 RPC의 실제 응답과 복구 결과" : "라우트 활성화 기록"}를 검증했습니다.`
               : "Gemini 진단, A2A 견적 비교, 정책 판정과 x402 결제 흐름을 네 단계로 확인할 수 있습니다."}
           </p>
           <div className="hero-action-group">
@@ -215,24 +216,24 @@ export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnab
           <div className="health-state health-state--before">
             <WarningCircle size={22} weight="fill" aria-hidden="true" />
             <div><span>장애 감지</span><strong>{demoState.dependency.label}</strong></div>
-            <small>health probe 실패</small>
+            <small>{rpcRecovered ? "주입한 장애 신호" : "health probe 실패"}</small>
           </div>
           <ArrowRight className="health-arrow" size={22} aria-hidden="true" />
           <div className={`health-state ${devnetVerified ? "health-state--after" : "health-state--pending"}`}>
             {devnetVerified ? <CheckCircle size={22} weight="fill" aria-hidden="true" /> : <WarningCircle size={22} aria-hidden="true" />}
-            <div><span>{devnetVerified ? "라우트 활성화 확인" : "복구 검증 대기"}</span><strong>{devnetVerified ? "route activation verified" : "결과 미확인"}</strong></div>
+            <div><span>{devnetVerified ? (rpcRecovered ? "RPC 정상 응답 확인" : "라우트 활성화 확인") : "복구 검증 대기"}</span><strong>{devnetVerified ? (rpcRecovered ? "getHealth = ok" : "route activation verified") : "결과 미확인"}</strong></div>
             <small>{devnetVerified ? `${recoverySecondsLabel}초` : "preview"}</small>
           </div>
           <dl className="health-timing">
             <div><dt>장애 발생 기록</dt><dd>{devnetVerified ? incidentTimeLabel : "예시 장애"}</dd></div>
             <div><dt>판단 기록</dt><dd>{decisionStartedLabel}</dd></div>
-            <div><dt>활성화 확인</dt><dd>{devnetVerified ? recoveredTimeLabel : "미확인"}</dd></div>
+            <div><dt>{rpcRecovered ? "RPC 복구 확인" : "활성화 확인"}</dt><dd>{devnetVerified ? recoveredTimeLabel : "미확인"}</dd></div>
             <div><dt>판단 후 경과 시간</dt><dd>{devnetVerified ? `${recoverySecondsLabel}초` : "검증 대기"}</dd></div>
           </dl>
         </section>
 
         <p className="evidence-scope-note">
-          {devnetVerified ? "이 기록에서 확인한 범위는 결제와 Firestore 라우트 활성화까지입니다. 당시 대체 RPC에 실제로 요청을 보내 성공했는지는 측정하지 않았습니다." : "아래는 실행 흐름 안내입니다. 결제, 라우트 활성화와 RPC 정상 여부는 아직 검증되지 않았습니다."}
+          {rpcRecovered ? "주입한 장애를 진단한 뒤 10분간 사용할 수 있는 공급자 RPC 릴레이를 Devnet USDC로 구매했습니다. 공식 Solana Devnet을 연결한 릴레이에서 getHealth와 getGenesisHash의 실제 응답을 검증했습니다." : devnetVerified ? "이 기록에서 확인한 범위는 결제와 Firestore 라우트 활성화까지입니다. 당시 대체 RPC에 실제로 요청을 보내 성공했는지는 측정하지 않았습니다." : "아래는 실행 흐름 안내입니다. 결제, 라우트 활성화와 RPC 정상 여부는 아직 검증되지 않았습니다."}
         </p>
 
         <ol className="recovery-sections" id="recovery-flow">
@@ -336,7 +337,7 @@ export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnab
             <div className="section-index" aria-hidden="true">04</div>
             <div className="section-title">
               <span>Recovery receipt</span>
-              <h2>{devnetVerified ? "서명 영수증과 라우트 활성화를 검증했습니다" : `${evidencePrefix}영수증과 라우트 검증`}</h2>
+              <h2>{devnetVerified ? (rpcRecovered ? "서명 영수증과 실제 RPC 복구를 검증했습니다" : "서명 영수증과 라우트 활성화를 검증했습니다") : `${evidencePrefix}영수증과 라우트 검증`}</h2>
             </div>
             <div className="section-content receipt-content">
               <div className="receipt-status">
@@ -344,7 +345,7 @@ export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnab
                 <div>
                   <span>Vendor-signed fulfillment receipt</span>
                   <strong>{verifiedEvidence ? "영수증 서명과 요청의 일치 여부 확인 완료" : "검증 자료 대기"}</strong>
-                  <p>{devnetVerified ? "결제 후 라우트 문서의 무결성과 활성화 상태를 확인한 기록입니다." : "결제된 리소스와 실제 적용 결과의 검증 증거를 기다립니다."}</p>
+                  <p>{devnetVerified ? (rpcRecovered ? "결제 영수증이 구매한 RPC 주소를 보증하고, 서명된 복구 결과가 정상 응답과 Devnet 연결을 보증합니다." : "결제 후 라우트 문서의 무결성과 활성화 상태를 확인한 기록입니다.") : "결제된 리소스와 실제 적용 결과의 검증 증거를 기다립니다."}</p>
                 </div>
                 {verifiedEvidence ? <CheckCircle size={22} weight="fill" aria-label="검증 완료" /> : <WarningCircle size={22} weight="fill" aria-label="검증 대기" />}
               </div>

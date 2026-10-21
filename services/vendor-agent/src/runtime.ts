@@ -32,6 +32,7 @@ import {
   verifyCanonicalEd25519Signature,
   verifySolanaSettlement,
   findExistingSvmSettlement,
+  callSolanaRpc,
   type JsonRpcOptions,
   type SupportedResponse,
 } from "@uptime402/payments";
@@ -41,6 +42,7 @@ import { address } from "@solana/kit";
 import type { Express } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
+import { RecoveryResourceSchema } from "./paid-rpc.js";
 
 import {
   buildVendorAgentCard,
@@ -62,23 +64,6 @@ export type VerifiedOfferCatalog = Readonly<{
   offers: OfferPair;
   offerEvaluations: OfferEvaluationPair;
 }>;
-
-const RecoveryResourceSchema = z
-  .object({
-    version: z.literal("1"),
-    kind: z.literal("firestore_recovery_route"),
-    activationId: z.string().min(1).max(128),
-    incidentId: z.string().min(1).max(128),
-    offerId: z.string().min(1).max(128),
-    operationId: z.string().min(1).max(128),
-    paymentId: z.string().min(1).max(128),
-    txSignature: z.string().min(64).max(96).regex(/^[1-9A-HJ-NP-Za-km-z]+$/),
-    resourceUrl: z.string().url(),
-    state: z.literal("active"),
-    activatedAt: z.string().datetime({ offset: true }),
-    expiresAt: z.string().datetime({ offset: true }),
-  })
-  .strict();
 
 const StoredEnvelopeSchema = z
   .object({
@@ -561,9 +546,10 @@ class FirestoreRecoveryResourceProvider implements RecoveryResourceProvider {
       activationId,
       ...activationBinding,
       resourceUrl: offer.payload.resourceUrl,
+      rpcEndpoint: new URL("/v1/recovery-rpc", offer.payload.resourceUrl).href,
       state: "active",
       activatedAt: input.requestedAt,
-      expiresAt: offer.payload.expiresAt,
+      expiresAt: new Date(Math.min(Date.parse(offer.payload.expiresAt), Date.parse(input.requestedAt) + 10 * 60_000)).toISOString(),
     });
     const reference = this.repository.firestore
       .collection(`${this.repository.collectionPrefix}_recovery_resources`)
@@ -579,6 +565,9 @@ class FirestoreRecoveryResourceProvider implements RecoveryResourceProvider {
         const requestedBinding: Record<string, unknown> = { ...value };
         delete existingBinding.activatedAt;
         delete requestedBinding.activatedAt;
+        // Retries reuse the first committed access window and never extend it.
+        delete existingBinding.expiresAt;
+        delete requestedBinding.expiresAt;
         if (canonicalHash(existingBinding) !== canonicalHash(requestedBinding)) {
           throw new Error("Recovery resource activation identity conflict");
         }
@@ -782,6 +771,14 @@ export async function buildProductionVendorAgentApp(
     },
     reconciliationIamVerifier: new GoogleCloudVendorIamTokenVerifier(),
     recoveryResource: new FirestoreRecoveryResourceProvider(repository, offers),
+    paidRpc: {
+      async readActivation(activationId) {
+        const snapshot = await repository.firestore.collection(`${repository.collectionPrefix}_recovery_resources`).doc(activationId).get();
+        return snapshot.exists ? snapshot.data() ?? null : null;
+      },
+      // Fixed official Devnet upstream; caller input never chooses an endpoint or arbitrary method.
+      call: method => callSolanaRpc({ rpcUrl: "https://api.devnet.solana.com", timeoutMs: 5_000, maxResponseBytes: 16_384 }, method, [], z.string()),
+    },
     receiptSigner: new CanonicalReceiptSigner(receiptSigner, config.receiptKeyId),
     onSafeDiagnostic: (event) => {
       // The event shape contains only allowlisted reason categories and a hash;

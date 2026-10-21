@@ -33,6 +33,7 @@ type PortfolioDeploymentManifest = Readonly<{
   projectId: string;
   region: string;
   sourceCommit: string;
+  evidenceBundle?: string;
   buildId: string;
   buildExportSha256: string;
   controlImageDigest: string;
@@ -333,13 +334,18 @@ async function boundedStatus(url: string, init?: RequestInit): Promise<number> {
   return response.status;
 }
 
-async function capture(buildId: string, sourceCommit: string): Promise<void> {
+function evidenceDirectory(bundle?: string): string {
+  if (bundle !== undefined && !/^[a-z0-9][a-z0-9-]{0,63}$/u.test(bundle)) throw new Error("Invalid evidence bundle");
+  return bundle ? `artifacts/runs/${bundle}` : "artifacts";
+}
+
+async function capture(buildId: string, sourceCommit: string, evidenceBundle?: string): Promise<void> {
   if (!/^[0-9a-f]{40}$/u.test(sourceCommit)) throw new TypeError("source commit must be a full Git SHA");
   if (!/^[0-9a-f-]{20,64}$/u.test(buildId)) throw new TypeError("Cloud Build ID is invalid");
   const projectId = "uptime402-hack-260803";
   const region = deploymentRegion;
-  awaitedPaymentEvidenceBytes = await readFile(resolve(root, "artifacts/payment-evidence.json"));
-  awaitedVerificationReportBytes = await readFile(resolve(root, "artifacts/verification-report.json"));
+  awaitedPaymentEvidenceBytes = await readFile(resolve(root, evidenceDirectory(evidenceBundle), "payment-evidence.json"));
+  awaitedVerificationReportBytes = await readFile(resolve(root, evidenceDirectory(evidenceBundle), "verification-report.json"));
   await mkdir(outputRoot, { recursive: true });
   await mkdir(privateOutputRoot, { recursive: true, mode: 0o700 });
 
@@ -357,6 +363,7 @@ async function capture(buildId: string, sourceCommit: string): Promise<void> {
       `--project=${projectId}`,
       `--region=${region}`,
     ]);
+    if (role === "control-plane" && evidenceBundle && serviceEnv(description).get("UPTIME402_ARTIFACT_ROOT") !== `/workspace/${evidenceDirectory(evidenceBundle)}`) throw new Error("Evidence bundle runtime path mismatch");
     const summary = validateReadyService(role, serviceName, description);
     if (role === "control-plane" && serviceEnv(description).get("PUBLIC_DIAGNOSIS_ENABLED") === "true") {
       if (serviceEnv(description).get("PUBLIC_DIAGNOSIS_PROJECT") !== projectId) {
@@ -439,6 +446,7 @@ async function capture(buildId: string, sourceCommit: string): Promise<void> {
     projectId,
     region,
     sourceCommit,
+    ...(evidenceBundle ? { evidenceBundle } : {}),
     buildId,
     buildExportSha256: await writePrivateRawArtifact("cloud-build.json", build),
     controlImageDigest: imageDigest,
@@ -467,10 +475,11 @@ async function capture(buildId: string, sourceCommit: string): Promise<void> {
 }
 
 async function verify(): Promise<void> {
-  awaitedPaymentEvidenceBytes = await readFile(resolve(root, "artifacts/payment-evidence.json"));
-  awaitedVerificationReportBytes = await readFile(resolve(root, "artifacts/verification-report.json"));
   const manifestBytes = await readFile(resolve(outputRoot, "manifest.json"));
   const manifest = exactRecord(JSON.parse(manifestBytes.toString("utf8")), "portfolio manifest") as PortfolioDeploymentManifest;
+  const evidenceBundle = manifest.evidenceBundle;
+  awaitedPaymentEvidenceBytes = await readFile(resolve(root, evidenceDirectory(evidenceBundle), "payment-evidence.json"));
+  awaitedVerificationReportBytes = await readFile(resolve(root, evidenceDirectory(evidenceBundle), "verification-report.json"));
   if (
     manifest.schemaVersion !== "1.0" ||
     manifest.artifactKind !== "portfolio-replay-deployment-evidence" ||
@@ -550,7 +559,7 @@ if (mode === "capture") {
   if (!buildId || !sourceCommit) {
     throw new TypeError("capture requires --build-id=<id> and --source-commit=<full-sha>");
   }
-  await capture(buildId, sourceCommit);
+  await capture(buildId, sourceCommit, args.find(arg => arg.startsWith("--evidence-bundle="))?.slice("--evidence-bundle=".length));
 } else if (mode === "verify") {
   await verify();
 } else {

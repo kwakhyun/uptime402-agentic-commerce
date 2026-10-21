@@ -668,6 +668,16 @@ async function holdDailyBudgetWithNonce(
 }
 
 describe("payment executor IAM and deterministic denial", () => {
+  it("authenticates paid RPC access before parsing and never accepts a transaction method", async () => {
+    const fixture = await createFixture();
+    await request(fixture.vendorA).post("/v1/recovery-rpc").sendRawJson("bad-json").expect(401);
+    for (const token of ["vendor-wrong-audience", "vendor-wrong-principal"]) {
+      await request(fixture.vendorA).post("/v1/recovery-rpc").set("authorization", `Bearer ${token}`).send({}).expect(403);
+    }
+    await request(fixture.vendorA).post("/v1/recovery-rpc").set("authorization", "Bearer vendor-control")
+      .send({ jsonrpc: "2.0", id: 0, method: "sendTransaction" }).expect(400);
+    expect(fixture.signer.calls).toBe(0);
+  });
   it("rejects an incorrect audience and an unapproved caller", async () => {
     const fixture = await createFixture();
     await request(fixture.executor)

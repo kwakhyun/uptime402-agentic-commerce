@@ -251,6 +251,7 @@ export const FirestoreRecoveryRouteSchema = z
   .object({
     version: z.literal("1"),
     kind: z.literal("firestore_recovery_route"),
+    rpcEndpoint: z.string().url().optional(),
     activationId: z.string().min(1).max(128),
     incidentId: IdentifierSchema,
     offerId: IdentifierSchema,

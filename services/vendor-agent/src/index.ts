@@ -55,6 +55,7 @@ import {
 } from "@x402/extensions/payment-identifier";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
+import { executePaidRpc, PaidRpcRequestSchema, type PaidRecoveryRpc } from "./paid-rpc.js";
 import {
   decodeStrictPaymentSignatureHeader,
   sanitizeFacilitatorVerificationFailure,
@@ -284,6 +285,7 @@ export type VendorAgentDependencies = {
   existingSettlementVerifier: VendorExistingSettlementVerifier;
   reconciliationIamVerifier: VendorIamTokenVerifier;
   recoveryResource: RecoveryResourceProvider;
+  paidRpc?: PaidRecoveryRpc;
   receiptSigner: VendorFulfillmentReceiptSigner;
   onSafeDiagnostic?: (event: VendorSafeDiagnosticEvent) => void;
   now?: () => string;
@@ -1060,10 +1062,22 @@ export function createVendorAgentApp(deps: VendorAgentDependencies): Express {
   // Authenticate the private reconciliation boundary before parsing any
   // attacker-controlled body. The public A2A/x402 routes remain unchanged.
   app.use("/v1/recovery/reconcile", authorizeReconciliation(deps));
+  app.use("/v1/recovery-rpc", authorizeReconciliation(deps));
   // This parser runs before the A2A SDK's parser as well as the x402 resource
   // route, so duplicate keys and malformed UTF-8 are rejected at the raw-byte
   // boundary instead of after SDK/schema normalization.
   app.use(strictExternalJsonParser());
+  app.post("/v1/recovery-rpc", async (request: Request, response: Response) => {
+    response.set("cache-control", "no-store");
+    const parsed = PaidRpcRequestSchema.safeParse(request.body);
+    if (!parsed.success || request.header(PAYMENT_SIGNATURE_HEADER)) {
+      response.status(400).json({ error: "invalid_rpc_request" }); return;
+    }
+    try {
+      const result = await executePaidRpc(deps, request.header("x-uptime402-route-activation") ?? "", parsed.data);
+      response.status(result.status).json(result.body);
+    } catch { response.status(503).json({ error: "rpc_unavailable" }); }
+  });
   app.get("/healthz", (_request: Request, response: Response) => {
     response.json({
       status: "ok",

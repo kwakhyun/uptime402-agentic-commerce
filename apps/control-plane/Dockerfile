@@ -9,6 +9,8 @@ COPY apps/control-plane/src ./apps/control-plane/src
 COPY apps/control-plane/app ./apps/control-plane/app
 COPY apps/control-plane/components ./apps/control-plane/components
 RUN mkdir -p artifacts
+COPY artifacts/runs ./artifacts/runs
+RUN find artifacts/runs -type f -exec chmod 0444 {} +
 COPY artifacts/payment-evidence.json ./artifacts/payment-evidence.json
 COPY artifacts/verification-report.json ./artifacts/verification-report.json
 COPY artifacts/live-capture/gemini-selection-artifact.json ./artifacts/live-capture/gemini-selection-artifact.json
@@ -34,6 +36,8 @@ COPY --from=build /workspace/apps/control-plane/.next/static /workspace/apps/con
 COPY --from=build /workspace/artifacts/payment-evidence.json /workspace/artifacts/payment-evidence.json
 COPY --from=build /workspace/artifacts/verification-report.json /workspace/artifacts/verification-report.json
 COPY --from=build /workspace/artifacts/live-capture/gemini-selection-artifact.json /workspace/artifacts/live-capture/gemini-selection-artifact.json
+
+COPY --from=build /workspace/artifacts/runs /workspace/artifacts/runs
 
 EXPOSE 8080
 CMD ["server.js"]

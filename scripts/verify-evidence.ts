@@ -27,6 +27,7 @@ import {
   createRequestFingerprint,
   normalizeHttpsUrl,
   sha256Bytes,
+  verifyRpcRecoveryProof,
 } from "@uptime402/domain";
 import {
   DEVNET_SVM_SDK_NETWORK_ID,
@@ -303,6 +304,7 @@ const PaymentSchema = z
     fulfillmentReceipt: SignedReceiptSchema,
     fulfillmentReceiptHash: Hash,
     outcome: SignedOutcomeSchema,
+    rpcRecovery: z.object({ artifactPath: SAFE_RELATIVE_PATH, artifactSha256: Hash }).strict().optional(),
   })
   .strict();
 
@@ -972,6 +974,14 @@ async function verifyReceiptAndOutcome(
   ]);
   if (Date.parse(payment.confirmedAt) > Date.parse(payment.x402.settlement.capturedAt) + 10_000) {
     throw new Error("Independent confirmation occurs implausibly after the paid response");
+  }
+  if (payment.rpcRecovery) {
+    verifyRpcRecoveryProof(await readHashedJsonArtifact(root, payment.rpcRecovery.artifactPath, payment.rpcRecovery.artifactSha256), {
+      incidentId: payment.incidentId, paymentId: payment.paymentId, offerId: payment.offerId,
+      txSignature: payment.txSignature, resourceResponseHash: payment.resourceResponseHash,
+      resourceUrl: payment.x402.request.resourceUrl, operationId: payment.x402.request.operationId,
+      healthProbeHash: outcome.payload.healthProbeHash, fulfilledAt: receipt.payload.fulfilledAt, recoveredAt: outcome.payload.recoveredAt,
+    });
   }
 }
 
@@ -1881,7 +1891,9 @@ async function readIgnoredLocalRpcEnvironment(root: string): Promise<Partial<Rec
 }
 
 async function main(): Promise<void> {
-  await safelyRemove(resolve(ROOT, "artifacts/verification-report.json"));
+  const bundleId = process.env.UPTIME402_EVIDENCE_BUNDLE;
+  if (bundleId !== undefined && !/^[a-z0-9][a-z0-9-]{0,63}$/.test(bundleId)) throw new Error("Invalid evidence bundle ID");
+  const artifactDirectory = bundleId ? `artifacts/runs/${bundleId}` : "artifacts";
   const local = await readIgnoredLocalRpcEnvironment(ROOT);
   const nonce = process.env.UPTIME402_VERIFICATION_NONCE;
   const primaryRpcUrl = process.env.SOLANA_RPC_URL ?? local.SOLANA_RPC_URL;
@@ -1893,6 +1905,8 @@ async function main(): Promise<void> {
   const report = await verifyEvidence({
     nonce,
     primaryRpcUrl,
+    evidencePath: resolve(ROOT, artifactDirectory, "payment-evidence.json"),
+    reportPath: resolve(ROOT, artifactDirectory, "verification-report.json"),
     ...(secondaryRpcUrl ? { secondaryRpcUrl } : {}),
   });
   console.error(`Verified evidence ${report.evidenceSha256}; report nonce ${report.nonce}`);

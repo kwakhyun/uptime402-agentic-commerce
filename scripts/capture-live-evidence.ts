@@ -33,6 +33,7 @@ import {
   createIncidentRunBindingHash,
   createRequestFingerprint,
   sha256Bytes,
+  verifyRpcRecoveryProof,
 } from "@uptime402/domain";
 import {
   DEVNET_SVM_SDK_NETWORK_ID,
@@ -199,6 +200,7 @@ const RecoveryResourceSchema = z
   .object({
     version: z.literal("1"),
     kind: z.literal("firestore_recovery_route"),
+    rpcEndpoint: z.string().url().optional(),
     activationId: z.string().min(1).max(128),
     incidentId: IdentifierSchema,
     offerId: IdentifierSchema,
@@ -500,6 +502,7 @@ async function writeRawFragment(
   kind: FragmentKey,
   payload: unknown,
   capturedAt: string,
+  artifactDirectory = "artifacts",
 ): Promise<string> {
   assertNoSensitiveCaptureValue(payload);
   const wrapper = {
@@ -509,7 +512,7 @@ async function writeRawFragment(
     payloadHash: canonicalHash(payload),
     payload,
   } as const;
-  const relativePath = `artifacts/live-capture/${kind}.raw.json`;
+  const relativePath = `${artifactDirectory}/live-capture/${kind}.raw.json`;
   await atomicWrite(resolve(root, relativePath), jsonBytes(wrapper));
   return relativePath;
 }
@@ -1150,6 +1153,7 @@ function offerIds(offers: readonly z.infer<typeof SignedOfferSchema>[]): string[
 
 async function buildFinalEvidence(input: {
   root: string;
+  artifactDirectory: string;
   capturedAt: string;
   recovered: z.infer<typeof RecoveredCaptureSchema>;
   settlement: z.infer<typeof VerifiedSettlementCaptureSchema>;
@@ -1232,11 +1236,11 @@ async function buildFinalEvidence(input: {
       counterfactual: selection.counterfactual,
     },
   };
-  const selectionArtifactPath = "artifacts/live-capture/gemini-selection-artifact.json";
+  const selectionArtifactPath = `${input.artifactDirectory}/live-capture/gemini-selection-artifact.json`;
   const selectionArtifactBytes = jsonBytes(selectionArtifact);
   await atomicWrite(resolve(root, selectionArtifactPath), selectionArtifactBytes);
 
-  const outcomeArtifactPath = "artifacts/live-capture/recovery-outcome-artifact.json";
+  const outcomeArtifactPath = `${input.artifactDirectory}/live-capture/recovery-outcome-artifact.json`;
   const outcomeArtifactBytes = jsonBytes(result.recoveryOutcome.payload);
   await atomicWrite(resolve(root, outcomeArtifactPath), outcomeArtifactBytes);
 
@@ -1345,7 +1349,7 @@ async function buildFinalEvidence(input: {
       ...(finalReplayProof ? { replayProof: finalReplayProof } : {}),
     } as const;
     const denialArtifactPath =
-      `artifacts/live-capture/policy-denial-${kind}-artifact.json`;
+      `${input.artifactDirectory}/live-capture/policy-denial-${kind}-artifact.json`;
     const denialArtifactBytes = jsonBytes(denialArtifactBody);
     await atomicWrite(resolve(root, denialArtifactPath), denialArtifactBytes);
     evidenceDenials.push(
@@ -1515,6 +1519,19 @@ async function buildFinalEvidence(input: {
     artifactPath: selectionArtifactPath,
     artifactSha256: hashBytes(selectionArtifactBytes),
   };
+  let rpcRecovery: { artifactPath: string; artifactSha256: string } | undefined;
+  if (result.resource.rpcEndpoint) {
+    const proof = verifyRpcRecoveryProof({ resource: result.resource, healthProbe: result.healthProbe }, {
+      incidentId: result.incident.id, paymentId: request.paymentId, offerId: selected.offerId,
+      txSignature: result.txSignature, resourceResponseHash: result.resourceResponseHash,
+      resourceUrl: selected.resourceUrl, operationId: request.operationId, healthProbeHash: result.healthProbeHash,
+      fulfilledAt: result.fulfillmentReceipt.payload.fulfilledAt, recoveredAt: result.recoveryOutcome.payload.recoveredAt,
+    });
+    const artifactPath = `${input.artifactDirectory}/live-capture/rpc-recovery-proof.json`;
+    const proofBytes = jsonBytes(proof);
+    await atomicWrite(resolve(root, artifactPath), proofBytes);
+    rpcRecovery = { artifactPath, artifactSha256: hashBytes(proofBytes) };
+  }
   const evidence = EvidenceSchema.parse({
     schemaVersion: "2.0",
     generatedAt: input.capturedAt,
@@ -1554,6 +1571,7 @@ async function buildFinalEvidence(input: {
       confirmationStatus: settlement.confirmationStatus,
       confirmedAt: settlement.confirmedAt,
       resourceResponseHash: result.resourceResponseHash,
+      ...(rpcRecovery ? { rpcRecovery } : {}),
       executionPolicyHash: request.executionPolicy.policyHash,
       challengeHash: result.challengeHash,
       requestFingerprint: result.requestFingerprint,
@@ -1881,17 +1899,20 @@ export async function captureMaterialGeminiSelection(input: {
  */
 export async function captureOrPromoteLiveEvidence(options: {
   root?: string;
+  bundleId?: string;
   input: unknown;
   now?: () => Date;
 }): Promise<CapturePromotionResult> {
   const root = resolve(options.root ?? ROOT);
+  if (options.bundleId !== undefined && !/^[a-z0-9][a-z0-9-]{0,63}$/.test(options.bundleId)) throw new Error("Invalid evidence bundle ID");
+  const artifactDirectory = options.bundleId ? `artifacts/runs/${options.bundleId}` : "artifacts";
   const capturedAt = (options.now ?? (() => new Date()))().toISOString();
   const parsed = LiveEvidencePromotionInputSchema.parse(options.input);
   const fragmentPaths: string[] = [];
   for (const key of FRAGMENT_KEYS) {
     const payload = parsed[key];
     if (payload !== undefined) {
-      fragmentPaths.push(await writeRawFragment(root, key, payload, capturedAt));
+      fragmentPaths.push(await writeRawFragment(root, key, payload, capturedAt, artifactDirectory));
     }
   }
   const missing = FRAGMENT_KEYS.filter((key) => parsed[key] === undefined);
@@ -1908,6 +1929,7 @@ export async function captureOrPromoteLiveEvidence(options: {
   const attestations = parsed.attestations!;
   const evidence = await buildFinalEvidence({
     root,
+    artifactDirectory,
     capturedAt,
     recovered,
     settlement,
@@ -1918,7 +1940,7 @@ export async function captureOrPromoteLiveEvidence(options: {
     attestations,
   });
   const bytes = jsonBytes(evidence);
-  const relativePath = "artifacts/payment-evidence.json";
+  const relativePath = `${artifactDirectory}/payment-evidence.json`;
   await atomicWrite(resolve(root, relativePath), bytes);
   return {
     promoted: true,
@@ -1947,8 +1969,10 @@ export function parseCaptureManifestArgument(args: readonly string[]): string {
 }
 
 async function main(): Promise<void> {
-  const argument = parseCaptureManifestArgument(process.argv.slice(2));
-  const result = await captureOrPromoteLiveEvidence({ input: await readManifest(resolve(argument)) });
+  const args = process.argv.slice(2);
+  const bundleId = args.find(arg => arg.startsWith("--bundle="))?.slice("--bundle=".length);
+  const argument = parseCaptureManifestArgument(args.filter(arg => !arg.startsWith("--bundle=")));
+  const result = await captureOrPromoteLiveEvidence({ input: await readManifest(resolve(argument)), ...(bundleId ? { bundleId } : {}) });
   if (!result.promoted) {
     console.error(`Captured ${result.fragmentPaths.length} raw fragment(s); missing: ${result.missing.join(", ")}`);
     process.exitCode = 2;

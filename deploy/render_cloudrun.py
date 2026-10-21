@@ -351,8 +351,10 @@ def validate_values(values: dict[str, str], placeholders: set[str]) -> None:
             fail("Recovery RPC bindings must be a non-empty bounded list")
         offer_ids = set()
         for route in routes:
-            if not isinstance(route, dict) or set(route) != {"offerId", "resourceUrl", "rpcUrl"}:
+            if not isinstance(route, dict) or set(route) not in ({"offerId", "resourceUrl", "rpcUrl"}, {"offerId", "resourceUrl", "rpcUrl", "authentication"}):
                 fail("Recovery RPC binding fields are invalid")
+            if "authentication" in route and route["authentication"] != "google-iam":
+                fail("Recovery RPC authentication must be google-iam")
             if not isinstance(route["offerId"], str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", route["offerId"]) or route["offerId"] in offer_ids:
                 fail("Recovery RPC offer IDs must be valid and distinct")
             offer_ids.add(route["offerId"])
@@ -449,6 +451,10 @@ def validate_values(values: dict[str, str], placeholders: set[str]) -> None:
 
 
 def render(values: dict[str, str], output_dir: Path) -> list[Path]:
+    bundle = values.get("UPTIME402_EVIDENCE_BUNDLE", "")
+    if bundle and not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", bundle):
+        fail("UPTIME402_EVIDENCE_BUNDLE is invalid")
+    values = {**values, "UPTIME402_ARTIFACT_ROOT": "/workspace/artifacts" + (f"/runs/{bundle}" if bundle else "")}
     stage = deployment_stage(values)
     template_sources = {
         role: control_plane_template_for_stage(stage)
