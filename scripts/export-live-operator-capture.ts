@@ -4,15 +4,14 @@ import { pathToFileURL } from "node:url";
 import { Firestore } from "@google-cloud/firestore";
 import {
   IdentifierSchema,
-  Sha256Schema,
-  TimestampSchema,
   canonicalHash,
   canonicalize,
 } from "@uptime402/domain";
-import { z } from "zod";
+import type { z } from "zod";
 
 import { OperatorRunIncidentRequestSchema } from "../apps/control-plane/src/server/operator-boundary.js";
-import { FreshRunResponseSchema } from "./mandate-run-incident.js";
+import { FirestoreOperatorIncidentCaptureStore } from "../apps/control-plane/src/server/operator-capture.js";
+export { validateStoredOperatorCapture } from "../apps/control-plane/src/server/operator-capture.js";
 import {
   readOwnerOnlyOperatorFile,
   writeNewOwnerOnlyOperatorCapture,
@@ -21,45 +20,10 @@ import { parseMandateJson } from "./mandate-json.js";
 
 const MAX_REQUEST_BYTES = 512 * 1024;
 
-const StoredCaptureEnvelopeSchema = z
-  .object({
-    schemaVersion: z.literal("1"),
-    runSlot: IdentifierSchema,
-    requestHash: Sha256Schema,
-    capturedAt: TimestampSchema,
-    responseHash: Sha256Schema,
-    value: FreshRunResponseSchema,
-  })
-  .strict();
-
 function required(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
-}
-
-function captureDocumentId(runSlot: string): string {
-  const digest = canonicalHash({ kind: "incident.capture", runSlot }).slice(
-    "sha256:".length,
-  );
-  return `capture-${digest.slice(0, 48)}`;
-}
-
-export function validateStoredOperatorCapture(input: {
-  raw: unknown;
-  expectedRunSlot: string;
-  expectedRequestHash: `sha256:${string}`;
-}) {
-  const envelope = StoredCaptureEnvelopeSchema.parse(input.raw);
-  if (
-    envelope.runSlot !== input.expectedRunSlot ||
-    envelope.requestHash !== input.expectedRequestHash ||
-    envelope.responseHash !== canonicalHash(envelope.value) ||
-    envelope.value.idempotentReplay
-  ) {
-    throw new Error("Stored operator capture failed its run/request/response binding");
-  }
-  return envelope.value;
 }
 
 export async function exportLiveOperatorCaptureFromEnvironment(): Promise<{
@@ -93,16 +57,8 @@ export async function exportLiveOperatorCaptureFromEnvironment(): Promise<{
     throw new Error("Live operator capture export refuses FIRESTORE_EMULATOR_HOST");
   }
 
-  const snapshot = await new Firestore({ projectId, databaseId })
-    .collection(`${prefix}_operator_captures`)
-    .doc(captureDocumentId(runSlot))
-    .get();
-  if (!snapshot.exists) throw new Error("Fresh operator capture does not exist");
-  const value = validateStoredOperatorCapture({
-    raw: snapshot.data(),
-    expectedRunSlot: runSlot,
-    expectedRequestHash: canonicalHash(request),
-  });
+  const captureStore = new FirestoreOperatorIncidentCaptureStore(new Firestore({ projectId, databaseId }), `${prefix}_operator_captures`);
+  const { latest: value } = await captureStore.read(runSlot, canonicalHash(request));
   const outputPath = resolve(required("INCIDENT_RUN_CAPTURE_PATH"));
   await writeNewOwnerOnlyOperatorCapture(
     outputPath,

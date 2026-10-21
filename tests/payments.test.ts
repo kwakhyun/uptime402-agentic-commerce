@@ -14,6 +14,7 @@ import {
   generateKeyPairSigner,
   getCompiledTransactionMessageDecoder,
   getTransactionEncoder,
+  getSignatureFromTransaction,
   partiallySignTransaction,
 } from "@solana/kit";
 import type { PaymentPayload, PaymentRequired } from "@x402/core/types";
@@ -60,6 +61,7 @@ import {
   safeSolanaSimulationErrorCategory,
   validateExactSvmTransactionBeforeRelease,
   verifyFacilitatorCosignedSvmTransaction,
+  findExistingSvmSettlement,
   verifyEnvelope,
   verifySolanaSettlement,
 } from "@uptime402/payments";
@@ -435,6 +437,28 @@ describe("private executor exact SVM payload", () => {
         result.paymentPayload.payload.transaction as string,
       ),
     ).rejects.toThrow(/lacks the facilitator fee-payer signature/i);
+
+    const signature = getSignatureFromTransaction(settledTransaction);
+    const lookupMethods: string[] = [];
+    let lookupTransaction = settledTransactionBase64;
+    let lookupSignature: string = signature;
+    const lookupFetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { id: number; method: string };
+      lookupMethods.push(body.method);
+      const value = body.method === "getSignaturesForAddress" ? [{ signature: lookupSignature, err: null }]
+        : { transaction: [lookupTransaction, "base64"], meta: { err: null } };
+      return Response.json({ jsonrpc: "2.0", id: body.id, result: value });
+    }) as typeof fetch;
+    const lookup = () => findExistingSvmSettlement({ rpc: { rpcUrl: "https://rpc.example", fetchImpl: lookupFetch }, paymentPayload: result.paymentPayload, payerOwner: payerSigner.address });
+    expect(await lookup()).toBe(signature);
+    lookupSignature = base58Bytes(41, 64);
+    expect(await lookup()).toBeNull(); // RPC candidate must match the transaction's first signature.
+    lookupSignature = signature;
+    lookupTransaction = result.paymentPayload.payload.transaction as string;
+    expect(await lookup()).toBeNull(); // Payer-only payload is not a settlement.
+    lookupTransaction = mutateExactSvmWireBytes({ ...result.paymentPayload, payload: { transaction: settledTransactionBase64 } }, new TextEncoder().encode(paymentId)).payload.transaction as string;
+    expect(await lookup()).toBeNull(); // Similar transfer with another message cannot satisfy the claim.
+    expect(new Set(lookupMethods)).toEqual(new Set(["getSignaturesForAddress", "getTransaction"]));
 
     const settledPayload: PaymentPayload = {
       ...structuredClone(result.paymentPayload),

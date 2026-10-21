@@ -229,6 +229,7 @@ export interface RecoveryResourceProvider {
 }
 
 export interface VendorExistingSettlementVerifier {
+  findExistingSettlement?(input: { paymentPayload: PaymentPayload; payerOwner: string }): Promise<string | null>;
   verifyExistingSettlement(input: {
     txSignature: string;
     payerOwner: string;
@@ -304,7 +305,7 @@ export type VendorSafeDiagnosticEvent =
       requestFingerprint: `sha256:${string}`;
       txSignatureHash: `sha256:${string}`;
       actorPrincipalHash: `sha256:${string}`;
-      stateBefore: "settlement_verified" | "resource_generated" | "receipt_signed";
+      stateBefore: "settling" | "settlement_verified" | "resource_generated" | "receipt_signed";
       stateAfter: "receipt_signed";
       settlementRetried: false;
     }>;
@@ -874,6 +875,7 @@ async function processPaidRecovery(
     input.paymentId,
     claim.record.version,
     (deps.now ?? (() => new Date().toISOString()))(),
+    rawPaymentSignatureHeader,
   );
   let settlement: ConfirmedSettlement;
   try {
@@ -940,7 +942,7 @@ async function processFulfillmentReconciliation(
   }
 
   const challenge = buildChallenge(deps.config, offer, input);
-  const claim = await deps.claims.getVendorPaymentClaim(
+  let claim = await deps.claims.getVendorPaymentClaim(
     deps.config.vendorTenant,
     input.paymentId,
   );
@@ -952,6 +954,30 @@ async function processFulfillmentReconciliation(
     response.status(409).json({ error: "payment_identifier_fingerprint_conflict" });
     return;
   }
+  const stateBefore = claim.state;
+  if (claim.state === "settling" && claim.settlementAttempted && claim.settlementPaymentSignature && deps.existingSettlementVerifier.findExistingSettlement) {
+    try {
+      const paymentPayload = parsePaymentPayload(claim.settlementPaymentSignature);
+      if (validatePaymentBinding(paymentPayload, challenge, input)) throw new Error("Stored payment binding mismatch");
+      const signature = await deps.existingSettlementVerifier.findExistingSettlement({ paymentPayload, payerOwner: deps.config.expectedPayerPublicKey });
+      if (signature) {
+        await deps.existingSettlementVerifier.verifyExistingSettlement({
+          txSignature: signature, payerOwner: deps.config.expectedPayerPublicKey,
+          payeeOwner: offer.payload.payee, amountBaseUnits: offer.payload.amountBaseUnits, assetMint: offer.payload.assetMint,
+        });
+        try {
+          claim = await deps.claims.transitionVendorPaymentClaim(deps.config.vendorTenant, input.paymentId,
+            "settling", claim.version, "settlement_verified", (deps.now ?? (() => new Date().toISOString()))(), { txSignature: signature });
+        } catch (error) {
+          claim = await reloadProgressedClaim(deps, claim, error);
+          if (claim.txSignature !== signature) throw new Error("Concurrent settlement identity mismatch");
+        }
+      }
+    } catch {
+      response.status(503).json({ error: "settlement_reverification_failed", settlementRetried: false });
+      return;
+    }
+  }
   if (!claim.txSignature || claim.state === "settling") {
     response.status(409).json({
       error: "settlement_not_verified",
@@ -959,7 +985,6 @@ async function processFulfillmentReconciliation(
     });
     return;
   }
-  const stateBefore = claim.state;
 
   try {
     await deps.existingSettlementVerifier.verifyExistingSettlement({

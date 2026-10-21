@@ -1,10 +1,12 @@
 # Uptime402 build status
 
-Last updated: `2026-09-05T21:15:40+09:00`
+Last updated: `2026-10-22T04:06:02+09:00`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
 ## 현재 체크포인트
+
+- 2026-10-22 사용자 승인 범위: 필수 개선점 네 가지를 수정하고 테스트한다. 별도 마감은 없다. 복구와 운영자 기록, 민감정보 제거와 의존성 패치, 전체 검증 순으로 진행했다. 검증을 30분 단위로 점검해 완료했다. 이번 변경의 상태는 `implementation=implemented`, `evidence=local`, `deployment=local`, `verification=verified`, `priority=P0`이며 `lastVerifiedAt=2026-10-22T04:06:02+09:00`이다. 근거는 아래 수정 및 검증 기록에 연결했다. 기존 `artifacts/`를 보존하며 새 결제, 지갑 변경, 배포는 수행하지 않는다.
 
 - 2026-09-05 사용자 승인 범위: 한국어 문구 개선 후 전체 변경사항 커밋, main 푸시, 기존 공개 replay 배포를 완료했다. 별도 제출 마감은 없다. 새 결제 실행과 capture 권한 활성화는 이번 배포에 포함하지 않는다.
 
@@ -23,10 +25,12 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 | Integration | implementation | evidence | deployment | verification | lastVerifiedAt | evidenceRef | priority | Notes / blocker |
 |---|---|---|---|---|---|---|---|---|
-| Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/recovery-checkpoints-firestore.test.ts` | P0 | health/commit/audit 실패 후 추가 결제 없이 재개; original proof events 유지; 동시 예약 snapshot 검증. 새 live payment 없음 |
+| Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/payments.test.ts`; `tests/persistence-firestore.test.ts` | P0 | paid 응답과 즉시 재조회 동시 유실, facilitator 응답 유실 후 무결제 재개; 기존 health/commit/audit 복구와 예산 snapshot 유지 |
 | Paid-route RPC health probe | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/recovery-rpc-probe.test.ts`; `tests/dependency-health.test.ts` | P0 | pinned offer/resource/RPC, getHealth 및 Devnet genesis 확인. 실제 구매 endpoint 설정과 live 검증은 별도 필요 |
 | Evidence scope, comparison UX and replay performance | implemented | local | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `tests/mission-control-dom.test.ts`; `docs/REVIEW_2026-09-05.md` | P0 | 9.340초 측정 구간 정정, 미검증 성공 표현 제거, 실제 조건 비교, 상세 지연 로딩, 최대 4개 캐시. 한국어 문구와 desktop/mobile 공개 URL 검증 |
-| Maintenance dependency patches | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `package.json`; `pnpm-lock.yaml`; `docs/REVIEW_2026-09-05.md` | P0 | fast-uri 3.1.6, qs 6.16.0; production audit 0 known vulnerabilities; lint/typecheck/build 및 194개 기본 테스트 통과 |
+| Maintenance dependency patches | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `package.json`; `pnpm-lock.yaml`; 아래 2026-10-22 검증 기록 | P0 | Next.js 16.3.8 및 6개 전이 의존성 패치; production audit 0건; frozen lockfile 설치, lint/typecheck/build 통과 |
+| Structured telemetry and vendor-text redaction | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane.test.ts` | P0 | 중첩 JSON 필드 허용 목록, 인증 헤더, IPv6, URL 사용자정보와 쿼리 제거; 모델 입력과 캡처에 원문이 남지 않음을 검사 |
+| Append-only operator continuation records | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/operator-boundary.test.ts`; `tests/operator-continuation.test.ts`; `tests/recovery-checkpoints-firestore.test.ts` | P0 | 원본 capture/action 보존; 동시 완료 한 번만 추가; 운영자 재조회와 export의 최신 결과 일치 |
 | Standard x402 paid resource | implemented | devnet | live | verified | 2026-08-03T21:24:50+09:00 | `artifacts/payment-evidence.json`; `artifacts/verification-report.json` | P0 | `402 -> reserve -> automatic PAYMENT-SIGNATURE -> paid retry -> facilitator verify/settle -> confirmed 200 -> signed receipt`; executor did not pre-broadcast |
 | Solana Devnet USDC settlement | implemented | devnet | live | verified | 2026-08-03T20:18:06+09:00 | `artifacts/payment-evidence.json`; signature `4P7Y…KtmZ` | P0 | finalized slot `480903755`; CAIP-2 `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`; mint `4zMMC…ncDU`; distinct payer/payee; deltas `-15000/+15000` |
 | Deterministic policy and dual denial | implemented | devnet | live | verified | 2026-08-03T20:18:22+09:00 | `artifacts/live-capture/policy-denial-over-transaction-limit-artifact.json`; `artifacts/live-capture/policy-denial-replay-artifact.json` | P0 | `25000 > 20000` over-cap and primary nonce replay both have `transactionCreated:false`, `txSignature:null` |
@@ -63,3 +67,29 @@ The preserved demo5 payment evidence is immutable. UX and documentation releases
 - 한국어 문구, 조건 전환, 재생/일시정지/재시작, 상세 증거 열기를 공개 URL에서 확인했다. 1440px/390px 가로 넘침 없음.
 - 기존 raw Cloud Run/IAM export는 ignored private history에 보존하고 새 export로 현재 배포 증거를 갱신했다. 개인 권한 메타데이터는 공개 Git에 포함하지 않았다.
 - 기존 Devnet 결제 증거의 두 SHA-256은 유지했다. 새 결제, 지갑 변경, capture 권한 활성화는 수행하지 않았다. 결제 실행기와 공급자 이미지는 보존했으므로 그 실행 경로의 신규 기능은 아직 live 검증 대상이 아니다.
+
+## 2026-10-22 필수 개선점 수정
+
+| 항목 | 변경과 검증 근거 |
+|---|---|
+| 결제 응답 유실 후 복구 | paid HTTP 전에 `request` 체크포인트를 저장한다. 공급자도 정산 시도와 기존 서명 페이로드를 원자적으로 보관한다. 재개 시 기존 거래의 메시지, payer/facilitator 서명, 거래 ID, USDC 변동을 검증한다. `tests/control-plane-live-flow.test.ts`, `tests/services-integration.test.ts`, `tests/payments.test.ts`, `tests/persistence-firestore.test.ts` |
+| 민감정보 제거 | JSON은 진단 필드만 허용하며 중첩 값과 JSON으로 감싼 문자열도 검사한다. Basic/Bearer/Digest 인증, IPv6, URL 사용자정보와 쿼리 값을 제거한다. 공급자 설명과 상태에도 같은 필터를 적용한다. `tests/control-plane.test.ts` |
+| 취약 의존성 | Next.js 16.3.8, fast-uri 3.1.9, brace-expansion 2.1.7, grpc-js 1.14.5, source-map-js 1.2.2, proxy-addr 2.0.8, sharp 0.35.5로 고정했다. production audit의 18건이 0건이 됐다. 기존 CI의 production audit gate를 유지한다. |
+| 운영자 완료 기록 | 원본 capture와 action을 수정하지 않고 해시로 연결한 완료 기록을 한 번만 추가한다. 운영자 재조회와 export가 같은 최신 결과를 읽는다. denial 증거는 새로 만들지 않는다. `tests/operator-boundary.test.ts`, `tests/operator-continuation.test.ts`, `tests/recovery-checkpoints-firestore.test.ts` |
+
+검증 결과:
+
+- 기본 테스트 205개 통과. 기본 실행에서 건너뛰는 Emulator 전용 13개는 별도로 통과했다. Emulator 실행은 공통 테스트 하나를 포함해 14개이며, 고유 테스트 합계는 218개다.
+- Firestore 재검사에서 발견한 서명 페이로드 역직렬화 누락을 수정했다. 마지막 Emulator 실행은 `--no-file-parallelism --testTimeout=60000 --hookTimeout=60000`으로 수행했고, 테스트 내부의 인스턴스 간 동시성 검증은 유지했다.
+- lint, typecheck, production audit, Git boundary, deployment template, 기존 portfolio deployment evidence, 문서 일관성 검사를 통과했다.
+- 깨끗한 임시 소스 복사본에서 `pnpm install --frozen-lockfile --offline` 성공. 같은 복사본의 strict structural 검사는 31 PASS, 2 INFO, 0 WARN, 0 FAIL이다. 개인 설정과 키 파일이 남아 있는 원래 작업 폴더는 삭제하거나 정리하지 않았다.
+- `pnpm build` 성공. 마지막 저장소 수정 후 persistence, vendor-agent, payment-executor의 ESM/DTS 재빌드도 성공했다. 최종 `pnpm typecheck`와 변경 파일 lint를 재확인했다.
+- A2A 프로세스 smoke test의 시작 대기 제한을 8초에서 60초로, 테스트 전체 제한을 12초에서 90초로 조정했다. 검증 항목과 결제 실행 경로는 그대로다.
+
+보존 범위와 운영상 한계:
+
+- `artifacts/payment-evidence.json`: `0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4`.
+- `artifacts/verification-report.json`: `b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e`.
+- 두 파일의 바이트는 작업 전과 같다. 기존 `artifacts/` 파일도 변경하지 않았다. 증거 보고서를 다시 쓰는 live verification이나 새 결제는 실행하지 않았다.
+- 새 복구 경로는 로컬 코드와 테스트로 검증했다. 현재 공개 replay와 결제 서비스의 배포 리비전은 유지했다.
+- 공급자 조회는 payer의 최근 confirmed 거래 100개로 제한한다. 이력이 없거나 조회 범위를 벗어났거나 저장된 페이로드가 없는 과거 claim은 잠긴 상태를 유지한다. 기존 실패 기록이나 demo5를 소급 변환하지 않는다. 자세한 경계는 `docs/ARCHITECTURE.md`의 결제 후 재개 설명에 기록했다.

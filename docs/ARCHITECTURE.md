@@ -200,7 +200,11 @@ protocol/live paths are verified.
 
 결제 흐름을 계약 정의(contracts), 실행 제어(orchestration), 검증(verification), 마무리 처리(finalization)로 분리했다. 결제 실행기의 예산 증거는 예약 트랜잭션이 실제 사용한 전후 잔액으로 계산한다.
 
-공급자의 영수증을 확인하면 비공개 Firestore 체크포인트에 검증 입력을 저장한다. 라우트 적용과 상태 검사 후에는 서명된 증거와 원래 이벤트 시각을 저장하고, 예산 사용 확정 후에는 최종 결과와 감사 이벤트를 저장한다. 실패 시 `post_settlement_incomplete` 또는 `audit_pending`을 반환하며, 비공개 `incident:resume` 명령으로 남은 단계를 재개한다. 재개할 때는 견적 조회, Gemini 호출, 결제 승인 요청, 결제 재요청, 정산을 반복하지 않는다. 체크포인트 저장 전에 프로세스가 종료되거나 저장 자체가 실패하면 이 경로로 자동 재개할 수 없다. 그 경우 공급자의 기존 거래 상태와 비공개 감사 기록을 확인해야 한다.
+결제 HTTP 요청 전에 비공개 Firestore `request` 체크포인트에 재개 정보를 저장한다. 저장에 실패하면 결제 요청을 보내지 않는다. 결제 응답과 즉시 재조회가 모두 유실되어도 `incident:resume`은 저장된 요청 본문으로 인증된 `/v1/recovery/reconcile`만 호출한다. 이 요청에는 결제 서명 헤더가 없다. 영수증 확인 후에는 `input`, 라우트 적용과 상태 검사 후에는 `proof`, 예산 사용 확정 후에는 `result`를 저장한다. 재개는 원래 증거와 이벤트 시각을 재사용하며 견적 조회, Gemini 호출, 결제 승인, 서명, 정산을 반복하지 않는다.
+
+공급자는 정산 시도 표시와 승인된 결제 페이로드를 하나의 원자적 기록으로 저장한다. facilitator 응답이 유실된 `settling` 상태에서는 payer의 최근 100개 confirmed 거래를 읽기 전용으로 조회한다. 원래 거래 메시지, payer 서명, facilitator 서명과 거래 ID가 모두 일치하고 기존 USDC 잔액 변동 검증도 통과해야 후속 이행을 진행한다. 조회 범위 밖이거나 RPC 이력이 없거나, 이 필드가 없는 과거 claim이면 잠금을 유지한다. 조회 실패를 재결제나 예산 해제 근거로 사용하지 않는다. RPC 계약: [getSignaturesForAddress](https://solana.com/docs/rpc/http/getsignaturesforaddress), [getTransaction](https://solana.com/docs/rpc/http/gettransaction).
+
+`incident:resume`의 `CONTROL_PLANE_DEMO_RUN_SLOT`은 원본 capture의 reservation과 일치해야 한다. 복구 완료 시 원본 capture와 action을 보존하고 `continuations/recovered` 문서를 한 번만 추가한다. 이 문서는 원본 응답과 primary 결과 해시를 포함한다. 운영자 재조회와 capture export는 같은 검증 함수를 통해 최신 결과를 읽는다. 완료 기록 저장에 실패해도 같은 명령으로 이미 저장된 결과를 다시 반영할 수 있다. 자동 denial 실행은 재개하지 않으며, 없던 denial 증거는 계속 `null`이다. 이 변경 이전에 저장된 증거를 소급 변경하지 않는다.
 
 체크포인트에는 결제자의 서명 키가 없지만 이미 발급된 결제 승인 데이터와 리소스 응답이 있으므로 공개 자료로 내보내지 않는다. 컬렉션에는 기존 비공개 Firestore IAM 권한을 적용하며 원본 데이터 대신 정제된 장애 신호만 저장한다. 먼저 저장한 체크포인트를 덮어쓰지 않고 기존 실행 맥락과 충돌하는 저장 요청은 거절한다.
 

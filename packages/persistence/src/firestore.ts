@@ -481,7 +481,7 @@ function parseVendorClaim(value: unknown): VendorPaymentClaimRecord {
     [
       "vendorTenant", "paymentId", "requestFingerprint", "state", "version", "settlementAttempted",
       "createdAt", "updatedAt", "txSignature", "resourceResponseHash", "resourceContentType",
-      "resourceBodyBase64", "fulfillmentReceipt",
+      "resourceBodyBase64", "fulfillmentReceipt", "settlementPaymentSignature",
     ],
     "vendor claim",
   );
@@ -499,6 +499,7 @@ function parseVendorClaim(value: unknown): VendorPaymentClaimRecord {
     settlementAttempted: requireBoolean(value, "settlementAttempted"),
     createdAt: requireString(value, "createdAt"),
     updatedAt: requireString(value, "updatedAt"),
+    ...(typeof value.settlementPaymentSignature === "string" ? { settlementPaymentSignature: value.settlementPaymentSignature } : {}),
     ...(typeof value.txSignature === "string" ? { txSignature: value.txSignature } : {}),
     ...(typeof value.resourceResponseHash === "string" ? { resourceResponseHash: value.resourceResponseHash } : {}),
     ...(typeof value.resourceContentType === "string" ? { resourceContentType: value.resourceContentType } : {}),
@@ -1325,10 +1326,12 @@ export class FirestoreTransactionalRepository
     paymentId: string,
     expectedVersion: number,
     occurredAt: string,
+    settlementPaymentSignature?: string,
   ): Promise<VendorPaymentClaimRecord> {
     validateIdentifier(vendorTenant, "vendorTenant");
     validateIdentifier(paymentId, "paymentId");
     validateTimestamp(occurredAt, "occurredAt");
+    if (settlementPaymentSignature !== undefined && (!settlementPaymentSignature || settlementPaymentSignature.length > 350_000)) throw new TypeError("Invalid settlement payload size");
     const reference = this.vendorClaimDocument(vendorTenant, paymentId);
     return this.firestore.runTransaction(async (transaction) => {
       const record = parseEnvelope(await transaction.get(reference), parseVendorClaim);
@@ -1342,6 +1345,7 @@ export class FirestoreTransactionalRepository
       const updated: VendorPaymentClaimRecord = {
         ...record,
         settlementAttempted: true,
+        ...(settlementPaymentSignature === undefined ? {} : { settlementPaymentSignature }),
         version: record.version + 1,
         updatedAt: occurredAt,
       };

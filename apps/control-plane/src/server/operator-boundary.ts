@@ -256,6 +256,7 @@ export type OperatorIncidentCaptureInput = Readonly<{
 
 export interface OperatorIncidentCaptureStore {
   create(input: OperatorIncidentCaptureInput): Promise<void>;
+  getContinuation?(runSlot: string, requestHash: string, originalPrimaryHash: string): Promise<FreshOperatorIncidentMutationResult | null>;
 }
 
 export type ReplayDenialBinding = Readonly<{
@@ -547,34 +548,47 @@ export class OperatorControlPlaneBoundary {
         claimed.record.state === "completed" &&
         claimed.record.summary.type === "incident_result"
       ) {
+        const continuation = await this.dependencies.incidentCaptureStore?.getContinuation?.(
+          this.config.demoRunSlot, action.requestHash, claimed.record.summary.primary.resultHash,
+        );
+        const summary = continuation ? {
+          ...claimed.record.summary,
+          primary: {
+            outcome: continuation.result.primary.outcome,
+            transactionCreated: continuation.result.primary.transactionCreated,
+            txSignature: continuation.result.primary.txSignature,
+            resultHash: canonicalHash(continuation.result.primary),
+          },
+        } : claimed.record.summary;
+        const resultHash = continuation ? canonicalHash(summary) : claimed.record.resultHash;
         return {
           schemaVersion: "1",
           separation: "application-role",
           idempotentReplay: true,
           result: {
             primary: {
-              ...claimed.record.summary.primary,
-              resultHash: claimed.record.summary.primary.resultHash as `sha256:${string}`,
+              ...summary.primary,
+              resultHash: summary.primary.resultHash as `sha256:${string}`,
             },
-            denials: claimed.record.summary.denials
+            denials: summary.denials
               ? {
                   overTransactionLimit: {
-                    ...claimed.record.summary.denials.overTransactionLimit,
-                    resultHash: claimed.record.summary.denials.overTransactionLimit
+                    ...summary.denials.overTransactionLimit,
+                    resultHash: summary.denials.overTransactionLimit
                       .resultHash as `sha256:${string}`,
-                    bindingHash: claimed.record.summary.denials.overTransactionLimit
+                    bindingHash: summary.denials.overTransactionLimit
                       .bindingHash as `sha256:${string}`,
                   },
                   replay: {
-                    ...claimed.record.summary.denials.replay,
-                    resultHash: claimed.record.summary.denials.replay
+                    ...summary.denials.replay,
+                    resultHash: summary.denials.replay
                       .resultHash as `sha256:${string}`,
-                    bindingHash: claimed.record.summary.denials.replay
+                    bindingHash: summary.denials.replay
                       .bindingHash as `sha256:${string}`,
                   },
                 }
               : null,
-            resultHash: claimed.record.resultHash as `sha256:${string}`,
+            resultHash: resultHash as `sha256:${string}`,
           },
         };
       }

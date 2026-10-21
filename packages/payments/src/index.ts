@@ -7,6 +7,7 @@ export * from "./headers.js";
 export * from "./identifiers.js";
 export * from "./rpc.js";
 export * from "./settlement.js";
+export * from "./settlement-discovery.js";
 export * from "./signer.js";
 export * from "./svm-validation.js";
 export * from "./verify-only.js";

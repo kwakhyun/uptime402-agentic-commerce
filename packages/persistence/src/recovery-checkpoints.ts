@@ -7,7 +7,7 @@ import {
 } from "@uptime402/domain";
 import type { Firestore } from "@google-cloud/firestore";
 
-export type RecoveryCheckpointStage = "input" | "proof" | "result";
+export type RecoveryCheckpointStage = "request" | "input" | "proof" | "result";
 export type RecoveryCheckpoint = { contextHash: string; value: JsonValue };
 
 /** Private continuation data. Never contains payer keys; never returned by public routes. */

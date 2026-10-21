@@ -1174,6 +1174,42 @@ describe("control-plane live incident flow", () => {
 
 
 describe("durable paid continuation", () => {
+  it("resumes after both the paid response and immediate reconciliation are lost", async () => {
+    const fixture = await buildFixture();
+    fixture.paidBehavior = "throw";
+    fixture.reconciliationBehavior = "fail";
+    const pending = await runLiveIncident(fixture.request, fixture.dependencies);
+    expect(pending).toMatchObject({ outcome: "reconciliation_required" });
+    expect(fixture.store.state).toBe("unknown");
+    expect(await fixture.dependencies.checkpoints.get("reservation-incident-0001", "input")).toBeNull();
+    const saved = await fixture.dependencies.checkpoints.get("reservation-incident-0001", "request");
+    expect(saved).not.toBeNull();
+    expect(JSON.stringify(saved)).not.toContain(fixture.request.incident.rawTelemetry.message);
+    // Another failed continuation leaves the budget locked and cannot sign or pay.
+    expect((await resumePaidIncident("reservation-incident-0001", fixture.dependencies)).outcome).toBe("reconciliation_required");
+    fixture.reconciliationBehavior = "success";
+    const resumed = await resumePaidIncident("reservation-incident-0001", fixture.dependencies);
+    expect(resumed).toMatchObject({ outcome: "recovered", txSignature: TX_SIGNATURE });
+    expect(fixture.store.state).toBe("committed");
+    expect(fixture.recorded.paidCalls).toBe(1);
+    expect(fixture.recorded.executorCalls).toBe(1);
+    expect(fixture.recorded.reconciliationCalls).toBe(3);
+    expect(fixture.recorded.reconciliationPaymentSignatures).toEqual([null, null, null]);
+    for (const body of fixture.recorded.reconciliationBodies) expect(body).toEqual(fixture.recorded.paidBodies[0]);
+  });
+  it("sends no payment if the pre-send continuation cannot be persisted", async () => {
+    const fixture = await buildFixture();
+    const checkpoints = fixture.dependencies.checkpoints;
+    await expect(runLiveIncident(fixture.request, { ...fixture.dependencies, checkpoints: {
+      get: checkpoints.get.bind(checkpoints),
+      putOnce: async (id, stage, record) => {
+        if (stage === "request") throw new Error("storage unavailable");
+        return checkpoints.putOnce(id, stage, record);
+      },
+    } })).rejects.toThrow("storage unavailable");
+    expect(fixture.recorded.paidCalls).toBe(0);
+    expect(fixture.recorded.reconciliationCalls).toBe(0);
+  });
   it("preserves the original proof events when budget commit is resumed", async () => {
     const fixture = await buildFixture();
     const transition = fixture.store.transitionReservation.bind(fixture.store);

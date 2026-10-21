@@ -194,7 +194,8 @@ describe("control-plane server-only orchestration", () => {
     expect(result.evidence.redactedInputHash).toMatch(/^sha256:[0-9a-f]{64}$/u);
     expect(result.evidence.modelOutputHash).toMatch(/^sha256:[0-9a-f]{64}$/u);
     expect(result.evidence.validatedDecisionHash).toMatch(/^sha256:[0-9a-f]{64}$/u);
-    expect(result.redactionReport.totalReplacements).toBeGreaterThanOrEqual(5);
+    // Removing a whole authorization field can remove several secrets at once.
+    expect(result.redactionReport.totalReplacements).toBeGreaterThan(0);
 
     const modelInput = JSON.stringify(model.inputs[0]);
     for (const secret of [
@@ -235,6 +236,28 @@ describe("control-plane server-only orchestration", () => {
       expect(JSON.stringify(result.incident)).not.toContain(secret);
     }
     expect(result.redactionReport.totalReplacements).toBeGreaterThanOrEqual(4);
+  });
+
+  it.each([
+    JSON.stringify({ message9384756102: "unapproved-private-value", api_key: "secret-json-value", customer_id: "customer-private-42", address: "2001:db8::1234", details: { password: "nested-secret-value", message: 'Authorization: Basic YWxwaGE6YmV0YQ==' } }),
+    'prefix "api_key": "secret-json-value", "customer_id": "customer-private-42"',
+    "Authorization: Basic YWxwaGE6YmV0YQ== from 2001:db8::1234 via https://private-user:private-password@rpc.example/path?token=private-query",
+    'Authorization: Digest username="nested-secret-value", response="private-query"',
+    'client address 2001:db8::1234.',
+    JSON.stringify({ message: JSON.stringify({ access_token: "escaped-secret-value", unexpected: "unapproved-private-value" }) }),
+  ])("removes structured and free-text secrets from model input and captured telemetry: %s", async (message) => {
+    const seeded = request(1);
+    seeded.incident.rawTelemetry.message = message;
+    seeded.offerEvaluations = structuredClone(seeded.offerEvaluations);
+    seeded.offerEvaluations[0].description = "Authorization: Basic dmVuZG9yOnNlY3JldA==";
+    const model = new FixtureDecisionModel();
+    const result = await orchestrateRecoveryDecision({ request: seeded, model, now: () => NOW });
+    for (const secret of ["secret-json-value", "customer-private-42", "2001:db8::1234", "nested-secret-value", "YWxwaGE6YmV0YQ==", "private-user", "private-password", "private-query", "escaped-secret-value", "unapproved-private-value", "dmVuZG9yOnNlY3JldA=="]) {
+      expect(JSON.stringify(model.inputs)).not.toContain(secret);
+      expect(JSON.stringify(result.geminiRun)).not.toContain(secret);
+      expect(JSON.stringify(result.incident)).not.toContain(secret);
+    }
+    expect(result.redactionReport.totalReplacements).toBeGreaterThan(0);
   });
 
   it("keeps prompt-like vendor text from changing authoritative money or recipient", async () => {

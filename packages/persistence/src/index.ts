@@ -136,6 +136,8 @@ export type VendorPaymentClaimRecord = {
   state: VendorClaimState;
   version: number;
   settlementAttempted: boolean;
+  /** Private, immutable released payload for read-only settlement discovery. */
+  settlementPaymentSignature?: string;
   createdAt: string;
   updatedAt: string;
   txSignature?: string;
@@ -178,6 +180,7 @@ export interface VendorClaimRepository {
     paymentId: string,
     expectedVersion: number,
     occurredAt: string,
+    settlementPaymentSignature?: string,
   ): Promise<VendorPaymentClaimRecord>;
   transitionVendorPaymentClaim(
     vendorTenant: string,
@@ -593,18 +596,21 @@ export class InMemoryTransactionalRepository implements TransactionalPersistence
     paymentId: string,
     expectedVersion: number,
     occurredAt: string,
+    settlementPaymentSignature?: string,
   ): Promise<VendorPaymentClaimRecord> {
     validateTimestamp(occurredAt, "occurredAt");
+    if (settlementPaymentSignature !== undefined && (!settlementPaymentSignature || settlementPaymentSignature.length > 350_000)) throw new TypeError("Invalid settlement payload size");
     return this.backend.mutex.runExclusive(() => {
       const key = vendorClaimKey(vendorTenant, paymentId);
       const record = this.backend.vendorClaims.get(key);
       if (!record) throw new Error(`Vendor claim not found: ${vendorTenant}/${paymentId}`);
-      if (record.state !== "settling" || record.version !== expectedVersion) {
+      if (record.state !== "settling" || record.version !== expectedVersion || record.settlementAttempted) {
         throw new Error("Vendor claim changed before settlement attempt");
       }
       const updated: VendorPaymentClaimRecord = {
         ...record,
         settlementAttempted: true,
+        ...(settlementPaymentSignature === undefined ? {} : { settlementPaymentSignature }),
         version: record.version + 1,
         updatedAt: occurredAt,
       };

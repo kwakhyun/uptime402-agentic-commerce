@@ -162,7 +162,13 @@ describe.skipIf(!emulatorEnabled)("Firestore emulator integration (a skip is not
       request.paymentId,
       claim!.version,
       "2026-08-03T12:05:01+09:00",
+      "synthetic-private-payment-payload",
     );
+    expect(await second.getVendorPaymentClaim(request.vendorTenant, request.paymentId)).toMatchObject({
+      settlementAttempted: true, settlementPaymentSignature: "synthetic-private-payment-payload",
+    });
+    await expect(second.markVendorSettlementAttempted(request.vendorTenant, request.paymentId,
+      attempted.version, "2026-08-03T12:05:02+09:00", "replacement-payload")).rejects.toThrow("changed before settlement attempt");
     await expect(
       second.releaseVendorClaimBeforeSubmission(request.vendorTenant, request.paymentId, attempted.version),
     ).resolves.toBe(false);

@@ -48,6 +48,8 @@ import {
   assertBase58ByteLength,
   audit,
   eventDetails,
+  exactOrigin,
+  exactUrl,
   jsonValue,
   markUnknown,
   materializeEvents,
@@ -79,6 +81,36 @@ type FinalizeVendorFulfillmentInput = Readonly<{
   drafts: EventDraft[];
   maxResponseBytes: number;
 }>;
+
+type PaidContinuation = Omit<FinalizeVendorFulfillmentInput, "deps" | "response" | "responseMode" | "startingReservationState">;
+
+function sanitizedContinuation<T extends PaidContinuation>(input: T): T {
+  // Only sanitized incident fields enter private continuation storage.
+  return {
+      ...input,
+      request: {
+        ...input.request,
+        incident: {
+          id: input.incident.id, service: input.incident.service,
+          signal: input.incident.signal, observedAt: input.incident.observedAt,
+          healthBefore: input.incident.healthBefore,
+          rawTelemetry: {
+            errorClass: input.incident.sanitizedTelemetry.errorClass,
+            ...(input.incident.sanitizedTelemetry.statusCode === undefined ? {} : { statusCode: input.incident.sanitizedTelemetry.statusCode }),
+            ...(input.incident.sanitizedTelemetry.latencyMs === undefined ? {} : { latencyMs: input.incident.sanitizedTelemetry.latencyMs }),
+            ...(input.incident.sanitizedTelemetry.failureRate === undefined ? {} : { failureRate: input.incident.sanitizedTelemetry.failureRate }),
+          },
+        },
+      },
+    };
+}
+
+export async function persistPaidContinuation(context: PaidContinuation, deps: RunLiveIncidentDependencies): Promise<void> {
+  const value = jsonValue(sanitizedContinuation(context));
+  await deps.checkpoints.putOnce(context.authorization.reservation.reservationId, "request", {
+    contextHash: canonicalHash(value), value,
+  });
+}
 
 /**
  * One verifier/finalizer for both the original paid response and a
@@ -162,25 +194,7 @@ export async function finalizeVendorFulfillment(
     knownSignature = settlement.transaction;
     const { deps: _deps, response: _response, ...savedContext } = input;
     void _deps; void _response;
-    // Raw input telemetry is never written to continuation storage.
-    const safeContext = {
-      ...savedContext,
-      request: {
-        ...input.request,
-        incident: {
-          id: input.incident.id, service: input.incident.service,
-          signal: input.incident.signal, observedAt: input.incident.observedAt,
-          healthBefore: input.incident.healthBefore,
-          rawTelemetry: {
-            errorClass: input.incident.sanitizedTelemetry.errorClass,
-            ...(input.incident.sanitizedTelemetry.statusCode === undefined ? {} : { statusCode: input.incident.sanitizedTelemetry.statusCode }),
-            ...(input.incident.sanitizedTelemetry.latencyMs === undefined ? {} : { latencyMs: input.incident.sanitizedTelemetry.latencyMs }),
-            ...(input.incident.sanitizedTelemetry.failureRate === undefined ? {} : { failureRate: input.incident.sanitizedTelemetry.failureRate }),
-          },
-        },
-      },
-      startingReservationState: input.responseMode === "paid" ? "submitted" : "unknown",
-    };
+    const safeContext = sanitizedContinuation(savedContext);
     contextHash = canonicalHash({ reservationId: input.authorization.reservation.reservationId, requestFingerprint: input.challengeBinding.requestFingerprint, fulfillmentReceiptHash });
     await input.deps.checkpoints.putOnce(input.authorization.reservation.reservationId, "input", {
       contextHash,
@@ -522,7 +536,8 @@ export async function finalizeVendorFulfillment(
 export async function resumePaidIncident(reservationId: string, deps: RunLiveIncidentDependencies) {
   const checkpoint = await deps.checkpoints.get(reservationId, "input");
   const reservation = await deps.store.getReservation(reservationId);
-  if (!checkpoint || !reservation || !["submitted", "unknown", "confirmed", "fulfilled", "committed"].includes(reservation.state)) throw new Error("Paid continuation is unavailable");
+  if (!reservation || !["submitted", "unknown", "confirmed", "fulfilled", "committed"].includes(reservation.state)) throw new Error("Paid continuation is unavailable");
+  if (!checkpoint) return reconcileSavedRequest(reservationId, deps, reservation.state);
   const saved = checkpoint.value as unknown as {
     context: Omit<FinalizeVendorFulfillmentInput, "deps" | "response">;
     responseBody: string; paymentResponseHeader: string;
@@ -537,4 +552,51 @@ export async function resumePaidIncident(reservationId: string, deps: RunLiveInc
     startingReservationState: reservation.state as FinalizeVendorFulfillmentInput["startingReservationState"],
     response: new Response(saved.responseBody, { status: 200, headers: { "content-type": "application/json", "payment-response": saved.paymentResponseHeader } }),
   });
+}
+
+async function reconcileSavedRequest(reservationId: string, deps: RunLiveIncidentDependencies, state: string) {
+  const checkpoint = await deps.checkpoints.get(reservationId, "request");
+  if (!checkpoint || !["submitted", "unknown"].includes(state) || canonicalHash(checkpoint.value) !== checkpoint.contextHash) {
+    throw new Error("Paid continuation is unavailable");
+  }
+  const context = checkpoint.value as unknown as PaidContinuation;
+  LiveIncidentRequestSchema.parse(context.request);
+  ExecutorAllowResponseSchema.parse(context.authorization);
+  const reservation = await deps.store.getReservation(reservationId);
+  if (!reservation || context.authorization.reservation.reservationId !== reservationId ||
+      context.request.idempotencyKey !== reservationId || context.request.paymentId !== reservation.paymentId ||
+      context.challengeBinding.requestFingerprint !== reservation.requestFingerprint ||
+      context.selectedOffer.signer !== deps.vendorIdentity.receiptSignerPublicKey ||
+      context.selectedOffer.keyId !== deps.vendorIdentity.receiptSignerKeyId) {
+    throw new Error("Continuation reservation binding mismatch");
+  }
+  const body = canonicalize({
+    incidentId: context.incident.id, offerId: context.selectedOffer.payload.offerId,
+    operationId: context.request.operationId, paymentId: context.request.paymentId,
+    executionPolicyHash: context.request.executionPolicy.policyHash,
+  });
+  if (sha256Bytes(new TextEncoder().encode(body)) !== context.canonicalBodyHash) throw new Error("Continuation request body mismatch");
+  const local = deps.fetchFactory.mode === "explicit-local-test";
+  if (local && process.env.NODE_ENV === "production") throw new Error("Local transport forbidden in production");
+  const origin = exactOrigin(context.request.vendorAgentOrigin, local);
+  const url = exactUrl(new URL("/v1/recovery/reconcile", origin).toString(), origin, local);
+  if (state === "submitted") {
+    await deps.store.transitionReservation(reservationId, ["submitted"], "unknown", (deps.now ?? (() => new Date().toISOString()))(), {
+      failureReason: "paid_retry_ambiguous", note: "Resume existing settlement only; no payment retry",
+    });
+  }
+  let response: Response | null = null;
+  try {
+    const token = await deps.identityTokenProvider.getIdToken(origin);
+    if (!token || token.length > 8192 || !/^[A-Za-z0-9._~-]+$/u.test(token)) throw new Error("Invalid vendor identity token");
+    response = await deps.fetchFactory.forOrigin(origin)(url, {
+      method: "POST", redirect: "error",
+      headers: { accept: "application/json", authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body,
+    });
+  } catch { /* Ambiguity remains locked; never send PAYMENT-SIGNATURE again. */ }
+  if (response?.status !== 200) return markUnknown({
+    ...context, deps, reservationId, reasonCode: "paid_retry_ambiguous", reservationState: "unknown",
+  });
+  return finalizeVendorFulfillment({ ...context, deps, response, responseMode: "reconciled", startingReservationState: "unknown" });
 }

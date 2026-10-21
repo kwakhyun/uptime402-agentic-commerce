@@ -30,6 +30,7 @@ import {
   RawTelemetrySchema,
   escapeRenderedText,
   sanitizeTelemetry,
+  redactUntrustedText,
   type TelemetryRedactionReport,
 } from "./telemetry.js";
 
@@ -129,8 +130,8 @@ function buildModelInput(
       ...(evaluation.latencyMs === undefined
         ? {}
         : { latencyMs: evaluation.latencyMs }),
-      ...(evaluation.health === undefined ? {} : { health: evaluation.health }),
-      untrustedDescription: evaluation.description,
+      ...(evaluation.health === undefined ? {} : { health: redactUntrustedText(evaluation.health) }),
+      untrustedDescription: redactUntrustedText(evaluation.description),
     };
     }),
   });
@@ -229,7 +230,7 @@ export async function orchestrateRecoveryDecision(input: {
       diagnosis: escapeRenderedText(decision.diagnosis),
       rationale: escapeRenderedText(decision.rationale),
       selectedVendorDescription: escapeRenderedText(
-        evaluations.find((entry) => entry.offerId === selectedOffer.payload.offerId)!.description,
+        redactUntrustedText(evaluations.find((entry) => entry.offerId === selectedOffer.payload.offerId)!.description),
       ),
     },
   };

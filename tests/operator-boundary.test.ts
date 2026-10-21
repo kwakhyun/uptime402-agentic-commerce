@@ -4,6 +4,7 @@ import {
   DEVNET_X402_NETWORK_ID,
   MandateUnsignedSchema,
   computeExecutionPolicyHash,
+  canonicalHash,
   computeMandateHash,
   createNetworkIdentity,
   omitKeys,
@@ -445,6 +446,36 @@ describe("one-shot authenticated incident boundary", () => {
     const liveInput = run.mock.calls[0]![0];
     expect(liveInput.vendorAgentOrigin).toBe("https://vendor.uptime402.example");
     expect(liveInput.executorOrigin).toBe(EXECUTOR_ORIGIN);
+  });
+
+  it("shows a resumed result on replay without executing the incident again", async () => {
+    const fixture = proxyFixture();
+    const original = { ...recoveredResult(), outcome: "reconciliation_required", txSignature: null } as LiveIncidentResult;
+    const run = vi.fn(async () => original);
+    let completed = false;
+    const guard = new InMemoryOperatorActionGuard();
+    const boundary = new OperatorControlPlaneBoundary({
+      auth: { audience: OPERATOR_AUDIENCE, allowedPrincipals: [OPERATOR_PRINCIPAL] },
+      demoRunSlot: "resume-slot", demoMandateId: "mandate-demo",
+    }, {
+      tokenVerifier: fixedTokenVerifier(), executorProxy: fixture.proxy, actionGuard: guard,
+      incidentCaptureStore: {
+        create: async () => undefined,
+        getContinuation: async (_slot, _requestHash, primaryHash) => {
+          expect(primaryHash).toBe(canonicalHash(original));
+          return completed ? { schemaVersion: "1", separation: "application-role", idempotentReplay: false,
+            result: { primary: recoveredResult(), denials: null, denialBindings: null, denialBindingHashes: null } } : null;
+        },
+      },
+      buildLiveFlow: async () => ({ config: { vendorAgentOrigin: "https://vendor.uptime402.example", executorOrigin: EXECUTOR_ORIGIN }, run }),
+      now: () => "2026-08-03T01:00:06.000Z",
+    });
+    await boundary.runIncident(identity, makeRunEnvelope());
+    expect((await boundary.runIncident(identity, makeRunEnvelope())).result.primary.outcome).toBe("reconciliation_required");
+    completed = true;
+    const latest = await boundary.runIncident(identity, makeRunEnvelope());
+    expect(latest).toMatchObject({ idempotentReplay: true, result: { primary: { outcome: "recovered", resultHash: canonicalHash(recoveredResult()) }, denials: null } });
+    expect(run).toHaveBeenCalledOnce();
   });
 
   it("automatically proves over-cap and nonce-replay denials after recovery in the same guarded action", async () => {

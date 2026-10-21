@@ -40,7 +40,7 @@ import {
   LiveIncidentRequestSchema,
   PaidRetryVerificationFailureSchema,
 } from "./live-flow-contracts.js";
-import { finalizeVendorFulfillment } from "./live-flow-finalization.js";
+import { finalizeVendorFulfillment, persistPaidContinuation } from "./live-flow-finalization.js";
 import {
   audit,
   decodeAndBindChallenge,
@@ -449,6 +449,16 @@ export async function runLiveIncident(
       retryCount: 1,
     }),
   });
+
+  const continuation = {
+    correlationId, request, incident, decision: orchestration.decision,
+    geminiBaseline: orchestration.geminiRun, offers, selectedOffer, challengeBinding,
+    selectedResourceUrl, paymentRequiredHeader, authorization, canonicalBodyHash,
+    drafts, maxResponseBytes,
+  };
+  // Persist before the only paid HTTP request: even both response and immediate
+  // reconciliation can be lost without losing the no-payment resume path.
+  await persistPaidContinuation(continuation, deps);
 
   const finalize = (
     response: Response,

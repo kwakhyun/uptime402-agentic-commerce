@@ -31,6 +31,7 @@ import {
   validateExactSvmPayerSignature,
   verifyCanonicalEd25519Signature,
   verifySolanaSettlement,
+  findExistingSvmSettlement,
   type JsonRpcOptions,
   type SupportedResponse,
 } from "@uptime402/payments";
@@ -761,6 +762,7 @@ export async function buildProductionVendorAgentApp(
       config.settlementConfirmationDelayMs,
     ),
     existingSettlementVerifier: {
+      findExistingSettlement: (input) => findExistingSvmSettlement({ ...input, rpc }),
       async verifyExistingSettlement(input) {
         if (input.assetMint !== DEVNET_USDC_MINT) {
           throw new Error("Reconciliation only accepts the pinned Devnet USDC mint");

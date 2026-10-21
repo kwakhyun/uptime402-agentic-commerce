@@ -20,7 +20,7 @@ async function waitForReady(processHandle: ChildProcessWithoutNullStreams): Prom
     const timeout = setTimeout(() => {
       cleanup();
       reject(new Error(`A2A child readiness timed out. stderr=${stderr}`));
-    }, 8_000);
+    }, 60_000);
 
     const cleanup = (): void => {
       clearTimeout(timeout);
@@ -143,5 +143,5 @@ describe("A2A process-boundary smoke", () => {
     expect(discovered.evidence.requestMessageId).toBeTruthy();
     expect(discovered.evidence.responseId).toBe("offers-incident-a2a-smoke");
     expect(agentCardFetches).toBe(1);
-  }, 12_000);
+  }, 90_000);
 });

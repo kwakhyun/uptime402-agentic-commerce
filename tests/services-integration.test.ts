@@ -295,6 +295,8 @@ class FixtureGateway implements VendorX402Gateway {
   readonly mode = "local-simulated" as const;
   settleCalls = 0;
   verifyCalls = 0;
+  loseSettlementResponse = false;
+  discoverableSignature: string | null = null;
   verifyResponse: VerifyResponse = { isValid: true, payer: EXECUTOR };
 
   async validateStateless({ paymentPayload }: { paymentPayload: PaymentPayload }) {
@@ -308,6 +310,7 @@ class FixtureGateway implements VendorX402Gateway {
   }
   async settle(_payload: PaymentPayload, requirements: PaymentRequired["accepts"][number]) {
     this.settleCalls += 1;
+    if (this.loseSettlementResponse) throw new Error("settlement response lost");
     await new Promise<void>((resolve) => setTimeout(resolve, 5));
     return {
       confirmed: true,
@@ -469,6 +472,7 @@ async function createFixture(perTransactionLimit = "20000") {
     },
     x402: gateway,
     existingSettlementVerifier: {
+      async findExistingSettlement() { return gateway.discoverableSignature; },
       async verifyExistingSettlement(input) {
         settlementVerificationInputs.push(structuredClone(input));
         if (
@@ -1128,6 +1132,30 @@ describe("local-simulated x402 service integration", () => {
       },
     ]);
     expect(fixture.fulfillmentInputs[0]).not.toHaveProperty("executionPolicyHash");
+  });
+
+  it("recovers a lost facilitator response across vendor instances without settling twice", async () => {
+    const fixture = await createFixture();
+    fixture.gateway.loseSettlementResponse = true;
+    const challenge = await getChallenge(fixture);
+    const signed = await request(fixture.executor).post("/v1/payments/sign")
+      .set("authorization", "Bearer control").send(executorDecisionEnvelope(challenge)).expect(201);
+    await request(fixture.vendorA).post("/v1/recovery")
+      .set("PAYMENT-SIGNATURE", signed.body.paymentSignature).send(challenge.body).expect(502);
+    const claim = await fixture.repositories.vendorRepositoryB.getVendorPaymentClaim("vendor-tenant-1", challenge.body.paymentId);
+    expect(claim).toMatchObject({ state: "settling", settlementAttempted: true, settlementPaymentSignature: signed.body.paymentSignature });
+    const reconcile = (app = fixture.vendorB) => request(app).post("/v1/recovery/reconcile")
+      .set("authorization", "Bearer vendor-control").send(challenge.body);
+    await reconcile().expect(409); // No chain proof is not permission to repay.
+    fixture.gateway.discoverableSignature = TX_SIGNATURE;
+    const responses = await Promise.all([reconcile(), reconcile(fixture.vendorA)]);
+    expect(responses.map((result) => result.status)).toEqual([200, 200]);
+    expect(responses[0]!.body.fulfillmentReceipt).toEqual(responses[1]!.body.fulfillmentReceipt);
+    expect(responses[0]!.body).toMatchObject({ reconciledFulfillment: true, settlementRetried: false, transactionCreated: false });
+    expect(fixture.gateway.settleCalls).toBe(1);
+    expect(fixture.gateway.verifyCalls).toBe(1);
+    expect(fixture.signer.calls).toBe(1);
+    expect((await fixture.repositories.vendorRepositoryB.getVendorPaymentClaim("vendor-tenant-1", challenge.body.paymentId))?.state).toBe("receipt_signed");
   });
 
   it("OIDC-authorizes fulfillment-only reconciliation without verify, settle, or payload replay", async () => {
