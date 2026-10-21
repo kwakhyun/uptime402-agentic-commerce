@@ -450,3 +450,9 @@ tag로 다시 build/deploy합니다. UI adapter는 image 안 evidence와 verific
 `PUBLIC_DIAGNOSIS_ENABLED=true`, `PUBLIC_DIAGNOSIS_PROJECT=uptime402-hack-260803`을 사용한다. 모델은 서버에서 `gemini-3.8-flash`로 고정하며 브라우저는 모델/공급자 URL/결제 정보를 지정할 수 없다. 기존 control identity에 예측 전용 custom role `uptime402GeminiPredict` (`aiplatform.endpoints.predict` 하나)만 부여한다. 광범위한 `roles/aiplatform.user`는 사용하지 않는다. 배포 검증은 custom role 정의와 바인딩을 확인하고 private export 해시를 manifest에 추가한다.
 
 최대 인스턴스는 1이다. 코드의 인스턴스당 호출 제한은 재시작과 리비전 교체를 넘어 유지되지 않으므로 영구적인 비용 상한으로 해석하지 않는다. 비활성화는 `PUBLIC_DIAGNOSIS_ENABLED=false`로 가능하다. 결제 증거 핀, `CONTROL_PLANE_MUTATIONS_ENABLED=false`, executor/vendor 리비전은 유지한다.
+
+## 2026-10-22 실제 구매 RPC 검증
+
+현재 연결은 [PAID_RPC_RUNBOOK](../docs/PAID_RPC_RUNBOOK.md)의 vendor `/v1/recovery-rpc`와 `authentication: google-iam`을 사용한다. `b2855e2a5190979ffb609d74924f484b6a667303` capture에서 실제 결제와 RPC 응답, 복구를 검증했다. 기존 2026-09-05의 미배포 설명은 당시 상태이며, 새 증거는 `artifacts/runs/rpc-recovery-2026-10-22/`에 있다. 원본 endpoint는 credential-free 공개 주소만 증거에 기록하고 IAM token은 기록하지 않는다.
+
+Final은 `UPTIME402_EVIDENCE_BUNDLE=rpc-recovery-2026-10-22`를 사용한다. Renderer가 `UPTIME402_ARTIFACT_ROOT=/workspace/artifacts/runs/rpc-recovery-2026-10-22`를 설정하며 새 evidence/report hash를 pin한다. 기존 root bundle을 덮어쓰지 않는다.

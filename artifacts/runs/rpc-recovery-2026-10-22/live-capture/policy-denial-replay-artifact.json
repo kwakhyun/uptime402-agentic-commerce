@@ -1,0 +1,25 @@
+{
+  "incidentId": "incident-rpc-20261022-a27f3f19-replay",
+  "mandateId": "mandate-rpc-20261022-a27f3f19",
+  "reasonCode": "identifier.nonce_fresh",
+  "attemptedAt": "2026-10-21T21:42:58.398Z",
+  "attemptedAmountBaseUnits": "15000",
+  "perTransactionLimitBaseUnits": "20000",
+  "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+  "transactionCreated": false,
+  "txSignature": null,
+  "replayProof": {
+    "identifierType": "nonce",
+    "identifierValue": "nonce-rpc-20261022-a27f3f19-primary",
+    "originalPaymentId": "payment-rpc-20261022-a27f3f19-primary",
+    "deniedPaymentId": "payment-rpc-20261022-a27f3f19-replay",
+    "originalIncidentId": "incident-rpc-20261022-a27f3f19-primary",
+    "deniedIncidentId": "incident-rpc-20261022-a27f3f19-replay",
+    "originalNonce": "nonce-rpc-20261022-a27f3f19-primary",
+    "deniedNonce": "nonce-rpc-20261022-a27f3f19-primary",
+    "originalIdempotencyKey": "idem-rpc-20261022-a27f3f19-primary",
+    "deniedIdempotencyKey": "idem-rpc-20261022-a27f3f19-replay",
+    "originalTxSignature": "jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS",
+    "originalExplorerUrl": "https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet"
+  }
+}

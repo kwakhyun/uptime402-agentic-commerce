@@ -1,10 +1,27 @@
 # Uptime402 architecture
 
-현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 화면의 실시간 진단은 입력한 장애 지표로 Gemini를 호출하고 A2A 공급자의 서명된 견적 두 개를 비교한다. 구매나 결제는 실행하지 않는다. 별도의 기록 재생 화면과 아래 도식의 `gemini-2.5-flash`는 과거 결제 당시 모델을 그대로 나타낸다.
+현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 화면의 실시간 진단은 입력한 장애 지표로 Gemini를 호출하고 A2A 공급자의 서명된 견적 두 개를 비교한다. 구매나 결제는 실행하지 않는다. 새 구매 RPC 증거도 Gemini 3.8 Flash로 생성했다. `gemini-2.5-flash`가 표시된 demo5 기록과 도식은 과거 실행을 설명한다.
 
 이 문서는 **실행 당시 P0 capture 경계**와 **현재 배포된 hash-pinned final evidence stage**를 분리한다. 상태의 최종 기준은 [BUILD_STATUS.md](BUILD_STATUS.md)다. 현재 public UI는 `final / DEVNET VERIFIED` read-only replay이며 새 incident나 결제를 생성하지 않는다.
 
-## 현재 구현·배포된 경계
+## 2026-10-22 구매 RPC 검증
+
+Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택했고, 기존 지갑에서 `0.015 USDC`(`15000` base units)를 결제했다. 구매한 RPC에서 `getHealth=ok`와 Devnet genesis 일치를 확인하고 서명된 복구 결과와 예산 commit까지 완료했다. 판단 기록부터 복구까지 **7.026초**, 실제 두 RPC 호출은 **314.6ms**였다.
+
+공식 Solana Devnet을 upstream으로 사용하는 자체 공급자 RPC 릴레이의 10분 접근권이다. 허용 메서드는 `getHealth`, `getGenesisHash`이며 입력 장애는 주입한 시나리오다. 운영 환경 전체 장애나 외부 상용 RPC 구독을 검증한 것으로 설명하지 않는다.
+
+- 성공 거래: `jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS` — [Solana Explorer](https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet)
+- 정산: `finalized`, slot `513662003`, payer `-15000`, payee `+15000` base units.
+- 한도 초과 `25000 > 20000`과 nonce 재사용을 자동 거절했다. 두 요청 모두 추가 거래가 없다.
+- 새 evidence SHA-256: `c3524b10e841f57f9ab4bcbe32cbfccbce74b7081c8e5ba4d9cdcb1a9627781f`
+- 새 verification report SHA-256: `10c9fcf7b2206039960fb14281a99cec1afa0f8de2e973905147a60dd8d0441d`
+- 기존 demo5 원본 두 파일과 과거 결제 증거는 그대로 보존했다.
+
+첫 검증 거래도 0.015 Devnet USDC로 정산됐으나, 접근권 만료와 견적 만료를 같아야 한다고 검사하는 오류로 복구 단계가 거절됐다. 해당 기록을 보존하고 만료 검사를 수정한 뒤 별도 실행에서 위 결과를 얻었다. **이번 작업의 새 Devnet 결제는 총 2건, 0.030 USDC**다. 첫 거래를 재결제하거나 실패를 성공으로 표시하지 않았다.
+
+상세 증거와 실패 경위는 [검증 기록](RPC_RECOVERY_2026-10-22.md)에서 확인한다.
+
+## 보존된 demo5 실행 경계
 
 ```mermaid
 flowchart LR
@@ -27,7 +44,7 @@ flowchart LR
     K ~~~ G
 ```
 
-세 Cloud Run service는 project `uptime402-hack-260803`, region `asia-northeast3`에 존재한다. Demo5를 실행한 capture runtime과 현재 portfolio replay runtime은 같은 것으로 취급하지 않는다. Raw initial promotion은 `artifacts/final-deployment/`와 `artifacts/final-release.json`에 보존된다. 현재 revision, service IAM, Cloud Build는 owner-private raw export로 검증하고, public `artifacts/portfolio-deployment/manifest.json`에는 최소 attestation과 raw SHA-256만 둔다. Current control은 final evidence/report hash와 정적 UI에 필요한 env만 가지며 mutation, OAuth, Firestore, Gemini, executor origin과 Secret Manager mount를 제거한다. Demo5 당시 vendor/executor와 managed Firestore evidence는 변경하지 않는다.
+세 Cloud Run service는 project `uptime402-hack-260803`, region `asia-northeast3`에 존재한다. Demo5를 실행한 capture runtime과 현재 portfolio replay runtime은 같은 것으로 취급하지 않는다. Raw initial promotion은 `artifacts/final-deployment/`와 `artifacts/final-release.json`에 보존된다. 현재 revision, service IAM, Cloud Build는 owner-private raw export로 검증하고, public `artifacts/portfolio-deployment/manifest.json`에는 최소 attestation과 raw SHA-256만 둔다. Current control은 final evidence/report hash와 정적 UI에 필요한 env만 가지며 mutation, OAuth, Firestore, executor origin과 Secret Manager mount를 제거한다. 공개 진단에는 별도 Gemini predict 최소 권한을 사용한다. Demo5 당시 vendor/executor와 managed Firestore evidence는 변경하지 않는다.
 
 ## Demo5 실제 runtime flow
 
@@ -221,3 +238,23 @@ protocol/live paths are verified.
 고정된 A2A 공급자 origin에서 견적을 읽고 고정 공개키로 서명을 확인한다. 모델 입력은 기존 정제/허용 목록과 제공된 offerId 검증을 통과한다. 만료 견적은 참고 비교로만 표시한다. Gemini 요청은 25초 제한으로 총 한 번 시도하고 자동 재시도하지 않으며 실패를 성공/시뮬레이션으로 대체하지 않는다. 서버는 진단 결과를 저장하지 않고 결제, 예산 예약, 복구 실행을 호출하지 않는다.
 
 Control identity에는 `projects/uptime402-hack-260803/roles/uptime402GeminiPredict` custom role의 `aiplatform.endpoints.predict`만 추가한다. signer secret, Firestore, executor invoker 권한은 계속 없으며 기존 operator mutation routes는 404다. 공개 응답에는 원본 프롬프트, 공급자 오류, 인증정보를 포함하지 않고 React가 모델 텍스트를 escape한다. 과거 결제 증거 파일은 읽기 전용으로 보존한다.
+
+## 현재 구매 RPC 전달 경로
+
+서명 영수증의 resource hash에 `rpcEndpoint`를 포함한다. Vendor는 Google IAM audience와 control identity를 확인하고, 해당 activation의 `receipt_signed` claim과 영수증 서명을 검증한 후에만 고정 Devnet upstream을 호출한다. 접근권 만료는 견적 만료 이하이면서 활성화 이후여야 한다. 견적 만료와 같을 필요는 없다. 재시도로 최초 10분 접근권을 연장하지 않는다.
+
+```mermaid
+sequenceDiagram
+    participant C as Capture control
+    participant V as Paid RPC vendor
+    participant F as Firestore
+    participant S as Solana Devnet RPC
+    C->>V: IAM token + paid activation + getHealth/getGenesisHash
+    V->>F: Read paid claim and signed receipt
+    V->>V: Verify signature, payment and endpoint binding, expiry
+    V->>S: Fixed read-only RPC methods
+    S-->>V: ok + Devnet genesis
+    V-->>C: Actual JSON-RPC responses
+    C->>C: Bind response hash to signed outcome
+    C->>F: Commit reserved budget
+```

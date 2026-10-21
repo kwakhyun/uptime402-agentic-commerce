@@ -1,0 +1,566 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "denials",
+  "capturedAt": "2026-10-21T21:44:10.961Z",
+  "payloadHash": "sha256:c046a8a0d173f35dba72b4dac8b0a50e6c539e1f1e18de69433af82ddfa48d3d",
+  "payload": {
+    "overTransactionLimit": {
+      "request": {
+        "incidentId": "incident-rpc-20261022-a27f3f19-overcap",
+        "requiredCapability": "solana-rpc-health",
+        "mandateId": "mandate-rpc-20261022-a27f3f19",
+        "subject": "service:primary-solana-rpc",
+        "operationId": "operation-rpc-20261022-a27f3f19-overcap",
+        "paymentId": "payment-rpc-20261022-a27f3f19-overcap",
+        "nonce": "nonce-rpc-20261022-a27f3f19-overcap",
+        "idempotencyKey": "idem-rpc-20261022-a27f3f19-overcap",
+        "executionPolicy": {
+          "id": "policy-finalist-demo-1",
+          "version": 1,
+          "network": {
+            "clusterLabel": "devnet",
+            "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+            "x402NetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "sdkNetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "assetDecimals": 6,
+          "executorPublicKey": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+          "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+          "maxNetworkFeeLamports": "100000",
+          "allowedProgramIds": [
+            "ComputeBudget111111111111111111111111111111",
+            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+          ],
+          "allowedAccountRules": [
+            "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+            "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+            "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J"
+          ],
+          "allowedFacilitatorOrigins": [
+            "https://x402.org"
+          ],
+          "maxResponseBytes": 1048576,
+          "policyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+        }
+      },
+      "result": {
+        "outcome": "denied",
+        "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+        "reasonCode": "amount.per_transaction_limit",
+        "transactionCreated": false,
+        "txSignature": null,
+        "incident": {
+          "id": "incident-rpc-20261022-a27f3f19-overcap",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-10-21T21:42:36.394Z",
+          "healthBefore": "down",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_OUTAGE",
+            "statusCode": 503,
+            "latencyMs": 12000,
+            "failureRate": 1,
+            "redactedMessage": "Injected Devnet RPC outage scenario"
+          },
+          "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+        },
+        "decision": {
+          "diagnosis": "주 Solana RPC 서비스에서 503 상태 코드, 100% 실패율 및 12,000ms의 극단적인 지연 시간을 동반한 완전한 업스트림 장애(UPSTREAM_OUTAGE)가 발생하여 서비스가 중단되었습니다.",
+          "requiredCapability": "solana-rpc-health",
+          "selectedOfferId": "rpc-recovery-emergency",
+          "rejectedOfferIds": [
+            "rpc-recovery-standard"
+          ],
+          "evidenceRefs": [
+            "incident.sanitizedTelemetry.errorClass",
+            "incident.sanitizedTelemetry.statusCode",
+            "incident.sanitizedTelemetry.failureRate",
+            "incident.sanitizedTelemetry.latencyMs",
+            "incident.healthBefore"
+          ],
+          "rationale": "서비스 상태가 'down'이고 실패율이 1.0(100%)에 달하는 심각한 업스트림 장애 상황이므로, 지연 시간이 가장 짧고(30ms) 긴급 복구에 최적화된 rpc-recovery-emergency 오퍼를 선정했습니다. rpc-recovery-standard는 지연 시간(180ms)이 상대적으로 길어 긴급 복구 상황에 부적합하므로 제외되었습니다.",
+          "confidence": 0.95
+        },
+        "geminiBaseline": {
+          "modelInput": {
+            "incident": {
+              "id": "incident-rpc-20261022-a27f3f19-overcap",
+              "service": "primary-solana-rpc",
+              "signal": "dependency-degraded",
+              "observedAt": "2026-10-21T21:42:36.394Z",
+              "healthBefore": "down",
+              "sanitizedTelemetry": {
+                "errorClass": "UPSTREAM_OUTAGE",
+                "statusCode": 503,
+                "latencyMs": 12000,
+                "failureRate": 1,
+                "redactedMessage": "Injected Devnet RPC outage scenario"
+              },
+              "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+            },
+            "offers": [
+              {
+                "offerId": "rpc-recovery-standard",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "15000",
+                "latencyMs": 180,
+                "health": "available",
+                "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+              },
+              {
+                "offerId": "rpc-recovery-emergency",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "25000",
+                "latencyMs": 30,
+                "health": "available",
+                "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+              }
+            ]
+          },
+          "generation": {
+            "mode": "live-gemini",
+            "provider": "google-genai",
+            "requestedModel": "gemini-3.8-flash",
+            "modelVersion": "gemini-3.8-flash",
+            "responseId": "2jHZaqTzJf6Lx9gPucfTiQs",
+            "rawText": "{\n  \"diagnosis\": \"주 Solana RPC 서비스에서 503 상태 코드, 100% 실패율 및 12,000ms의 극단적인 지연 시간을 동반한 완전한 업스트림 장애(UPSTREAM_OUTAGE)가 발생하여 서비스가 중단되었습니다.\",\n  \"requiredCapability\": \"solana-rpc-health\",\n  \"selectedOfferId\": \"rpc-recovery-emergency\",\n  \"rejectedOfferIds\": [\"rpc-recovery-standard\"],\n  \"evidenceRefs\": [\n    \"incident.sanitizedTelemetry.errorClass\",\n    \"incident.sanitizedTelemetry.statusCode\",\n    \"incident.sanitizedTelemetry.failureRate\",\n    \"incident.sanitizedTelemetry.latencyMs\",\n    \"incident.healthBefore\"\n  ],\n  \"rationale\": \"서비스 상태가 'down'이고 실패율이 1.0(100%)에 달하는 심각한 업스트림 장애 상황이므로, 지연 시간이 가장 짧고(30ms) 긴급 복구에 최적화된 rpc-recovery-emergency 오퍼를 선정했습니다. rpc-recovery-standard는 지연 시간(180ms)이 상대적으로 길어 긴급 복구 상황에 부적합하므로 제외되었습니다.\",\n  \"confidence\": 0.95\n}"
+          },
+          "decision": {
+            "diagnosis": "주 Solana RPC 서비스에서 503 상태 코드, 100% 실패율 및 12,000ms의 극단적인 지연 시간을 동반한 완전한 업스트림 장애(UPSTREAM_OUTAGE)가 발생하여 서비스가 중단되었습니다.",
+            "requiredCapability": "solana-rpc-health",
+            "selectedOfferId": "rpc-recovery-emergency",
+            "rejectedOfferIds": [
+              "rpc-recovery-standard"
+            ],
+            "evidenceRefs": [
+              "incident.sanitizedTelemetry.errorClass",
+              "incident.sanitizedTelemetry.statusCode",
+              "incident.sanitizedTelemetry.failureRate",
+              "incident.sanitizedTelemetry.latencyMs",
+              "incident.healthBefore"
+            ],
+            "rationale": "서비스 상태가 'down'이고 실패율이 1.0(100%)에 달하는 심각한 업스트림 장애 상황이므로, 지연 시간이 가장 짧고(30ms) 긴급 복구에 최적화된 rpc-recovery-emergency 오퍼를 선정했습니다. rpc-recovery-standard는 지연 시간(180ms)이 상대적으로 길어 긴급 복구 상황에 부적합하므로 제외되었습니다.",
+            "confidence": 0.95
+          },
+          "capturedAt": "2026-10-21T21:42:54.470Z"
+        },
+        "selectedOffer": {
+          "payload": {
+            "offerId": "rpc-recovery-emergency",
+            "providerAgentId": "uptime402-owned-vendor",
+            "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+            "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+            "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+            "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "asset": "USDC",
+            "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "amountBaseUnits": "25000",
+            "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "expiresAt": "2026-11-01T00:00:00.000Z",
+            "capability": "solana-rpc-health",
+            "method": "POST"
+          },
+          "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+          "keyId": "uptime402-vendor-v1",
+          "signature": "5aZvyWuHtuXNwz7u1L2GNkN6u64nL8DoFPiNb5eU6EyE3sJiZhzS9G2p7EPkqj2M5yctBM34JXAxBgz2hrNd9w3a"
+        },
+        "events": [
+          {
+            "sequence": 1,
+            "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+            "kind": "incident_sanitized",
+            "occurredAt": "2026-10-21T21:42:36.394Z",
+            "protocolLabel": "Telemetry allowlist",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "incidentId": "incident-rpc-20261022-a27f3f19-overcap",
+              "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+            }
+          },
+          {
+            "sequence": 2,
+            "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+            "kind": "a2a_offers_discovered",
+            "occurredAt": "2026-10-21T21:42:54.470Z",
+            "protocolLabel": "A2A JSONRPC",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "agentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+              "candidateOfferIds": [
+                "rpc-recovery-standard",
+                "rpc-recovery-emergency"
+              ],
+              "signaturesVerified": true
+            }
+          },
+          {
+            "sequence": 3,
+            "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+            "kind": "gemini_offer_selected",
+            "occurredAt": "2026-10-21T21:42:54.470Z",
+            "protocolLabel": "Gemini structured output",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "modelOutputHash": "sha256:f12727893a420b4dda717181c746daf24e553b508fceefdee084f79d625c85af",
+              "modelVersion": "gemini-3.8-flash",
+              "selectedOfferId": "rpc-recovery-emergency"
+            }
+          },
+          {
+            "sequence": 4,
+            "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+            "kind": "x402_402_received",
+            "occurredAt": "2026-10-21T21:42:54.524Z",
+            "protocolLabel": "HTTP 402 · PAYMENT-REQUIRED",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "challengeHash": "sha256:7fc32d36e0a08d4b881b6610fbf3ac239ce561ca5321eebf23341ef6076addd2",
+              "paymentId": "payment-rpc-20261022-a27f3f19-overcap",
+              "requestFingerprint": "sha256:8bb635130772db029e89a429427d974a373da44667a54897253a42b156d7cd6a"
+            }
+          },
+          {
+            "sequence": 5,
+            "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+            "kind": "authoritative_context_persisted",
+            "occurredAt": "2026-10-21T21:42:54.526Z",
+            "protocolLabel": "Firestore immutable context",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "contextHash": "sha256:887eb2094d94b4d76b47e0c9f1a261cc08bbfbbb85e46d11368986a84689d533",
+              "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+              "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+            }
+          },
+          {
+            "sequence": 6,
+            "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+            "kind": "policy_denied",
+            "occurredAt": "2026-10-21T21:42:55.163Z",
+            "protocolLabel": "Deterministic policy deny",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "correlationId": "corr-eb1cfe51-357a-49e0-9a0f-983f95e458da",
+              "decisionEnvelopeHash": "sha256:d07499600462a0fea95700d3dd3a932803752ad2db78b025e5425053774798d6",
+              "reasonCode": "amount.per_transaction_limit",
+              "transactionCreated": false,
+              "txSignature": null
+            }
+          }
+        ],
+        "evidence": {
+          "level": "live-unverified",
+          "explorerUrl": null,
+          "tokenDeltas": []
+        }
+      },
+      "attemptedAt": "2026-10-21T21:42:55.163Z",
+      "perTransactionLimitBaseUnits": "20000"
+    },
+    "replay": {
+      "request": {
+        "incidentId": "incident-rpc-20261022-a27f3f19-replay",
+        "requiredCapability": "solana-rpc-health",
+        "mandateId": "mandate-rpc-20261022-a27f3f19",
+        "subject": "service:primary-solana-rpc",
+        "operationId": "operation-rpc-20261022-a27f3f19-replay",
+        "paymentId": "payment-rpc-20261022-a27f3f19-replay",
+        "nonce": "nonce-rpc-20261022-a27f3f19-primary",
+        "idempotencyKey": "idem-rpc-20261022-a27f3f19-replay",
+        "executionPolicy": {
+          "id": "policy-finalist-demo-1",
+          "version": 1,
+          "network": {
+            "clusterLabel": "devnet",
+            "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+            "x402NetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "sdkNetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+          },
+          "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "assetDecimals": 6,
+          "executorPublicKey": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+          "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+          "maxNetworkFeeLamports": "100000",
+          "allowedProgramIds": [
+            "ComputeBudget111111111111111111111111111111",
+            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+          ],
+          "allowedAccountRules": [
+            "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+            "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+            "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J"
+          ],
+          "allowedFacilitatorOrigins": [
+            "https://x402.org"
+          ],
+          "maxResponseBytes": 1048576,
+          "policyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+        }
+      },
+      "result": {
+        "outcome": "denied",
+        "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+        "reasonCode": "identifier.nonce_fresh",
+        "transactionCreated": false,
+        "txSignature": null,
+        "incident": {
+          "id": "incident-rpc-20261022-a27f3f19-replay",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-10-21T21:42:36.394Z",
+          "healthBefore": "degraded",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_TIMEOUT",
+            "statusCode": 503,
+            "latencyMs": 1800,
+            "failureRate": 0.45,
+            "redactedMessage": "Injected Devnet RPC degradation scenario"
+          },
+          "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+        },
+        "decision": {
+          "diagnosis": "주 솔라나 RPC 노드의 응답 지연(1800ms) 및 타임아웃 오류(503, 실패율 45%)로 인한 서비스 저하 현상입니다.",
+          "requiredCapability": "solana-rpc-health",
+          "selectedOfferId": "rpc-recovery-standard",
+          "rejectedOfferIds": [
+            "rpc-recovery-emergency"
+          ],
+          "evidenceRefs": [
+            "incident.sanitizedTelemetry.errorClass:UPSTREAM_TIMEOUT",
+            "incident.sanitizedTelemetry.statusCode:503",
+            "incident.sanitizedTelemetry.failureRate:0.45",
+            "incident.sanitizedTelemetry.latencyMs:1800"
+          ],
+          "rationale": "완전 중단이 아닌 지연 및 간헐적 오류에 대응하기 위해 비용 효율적이고 안정적인 rpc-recovery-standard 오퍼를 선택하였으며, 긴급 복구 전용인 rpc-recovery-emergency 오퍼는 과도하여 제외했습니다.",
+          "confidence": 0.95
+        },
+        "geminiBaseline": {
+          "modelInput": {
+            "incident": {
+              "id": "incident-rpc-20261022-a27f3f19-replay",
+              "service": "primary-solana-rpc",
+              "signal": "dependency-degraded",
+              "observedAt": "2026-10-21T21:42:36.394Z",
+              "healthBefore": "degraded",
+              "sanitizedTelemetry": {
+                "errorClass": "UPSTREAM_TIMEOUT",
+                "statusCode": 503,
+                "latencyMs": 1800,
+                "failureRate": 0.45,
+                "redactedMessage": "Injected Devnet RPC degradation scenario"
+              },
+              "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+            },
+            "offers": [
+              {
+                "offerId": "rpc-recovery-standard",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "15000",
+                "latencyMs": 180,
+                "health": "available",
+                "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+              },
+              {
+                "offerId": "rpc-recovery-emergency",
+                "capability": "solana-rpc-health",
+                "priceBaseUnits": "25000",
+                "latencyMs": 30,
+                "health": "available",
+                "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+              }
+            ]
+          },
+          "generation": {
+            "mode": "live-gemini",
+            "provider": "google-genai",
+            "requestedModel": "gemini-3.8-flash",
+            "modelVersion": "gemini-3.8-flash",
+            "responseId": "3zHZavy4FtKNx9gP572E4AM",
+            "rawText": "{\"diagnosis\":\"주 솔라나 RPC 노드의 응답 지연(1800ms) 및 타임아웃 오류(503, 실패율 45%)로 인한 서비스 저하 현상입니다.\",\"requiredCapability\":\"solana-rpc-health\",\"selectedOfferId\":\"rpc-recovery-standard\",\"rejectedOfferIds\":[\"rpc-recovery-emergency\"],\"evidenceRefs\":[\"incident.sanitizedTelemetry.errorClass:UPSTREAM_TIMEOUT\",\"incident.sanitizedTelemetry.statusCode:503\",\"incident.sanitizedTelemetry.failureRate:0.45\",\"incident.sanitizedTelemetry.latencyMs:1800\"],\"rationale\":\"완전 중단이 아닌 지연 및 간헐적 오류에 대응하기 위해 비용 효율적이고 안정적인 rpc-recovery-standard 오퍼를 선택하였으며, 긴급 복구 전용인 rpc-recovery-emergency 오퍼는 과도하여 제외했습니다.\",\"confidence\":0.95}"
+          },
+          "decision": {
+            "diagnosis": "주 솔라나 RPC 노드의 응답 지연(1800ms) 및 타임아웃 오류(503, 실패율 45%)로 인한 서비스 저하 현상입니다.",
+            "requiredCapability": "solana-rpc-health",
+            "selectedOfferId": "rpc-recovery-standard",
+            "rejectedOfferIds": [
+              "rpc-recovery-emergency"
+            ],
+            "evidenceRefs": [
+              "incident.sanitizedTelemetry.errorClass:UPSTREAM_TIMEOUT",
+              "incident.sanitizedTelemetry.statusCode:503",
+              "incident.sanitizedTelemetry.failureRate:0.45",
+              "incident.sanitizedTelemetry.latencyMs:1800"
+            ],
+            "rationale": "완전 중단이 아닌 지연 및 간헐적 오류에 대응하기 위해 비용 효율적이고 안정적인 rpc-recovery-standard 오퍼를 선택하였으며, 긴급 복구 전용인 rpc-recovery-emergency 오퍼는 과도하여 제외했습니다.",
+            "confidence": 0.95
+          },
+          "capturedAt": "2026-10-21T21:42:57.916Z"
+        },
+        "selectedOffer": {
+          "payload": {
+            "offerId": "rpc-recovery-standard",
+            "providerAgentId": "uptime402-owned-vendor",
+            "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+            "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+            "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+            "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "asset": "USDC",
+            "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "amountBaseUnits": "15000",
+            "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "expiresAt": "2026-11-01T00:00:00.000Z",
+            "capability": "solana-rpc-health",
+            "method": "POST"
+          },
+          "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+          "keyId": "uptime402-vendor-v1",
+          "signature": "GtXomwYnDmMHjqLBGigmqaqF5QQo48sGoA9sqmzM7e9CTmQTnx7mQavbNK7dpvumqhhPCysk1u5eC27pP8FzCZS"
+        },
+        "events": [
+          {
+            "sequence": 1,
+            "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+            "kind": "incident_sanitized",
+            "occurredAt": "2026-10-21T21:42:36.394Z",
+            "protocolLabel": "Telemetry allowlist",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "incidentId": "incident-rpc-20261022-a27f3f19-replay",
+              "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+            }
+          },
+          {
+            "sequence": 2,
+            "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+            "kind": "a2a_offers_discovered",
+            "occurredAt": "2026-10-21T21:42:57.916Z",
+            "protocolLabel": "A2A JSONRPC",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "agentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+              "candidateOfferIds": [
+                "rpc-recovery-standard",
+                "rpc-recovery-emergency"
+              ],
+              "signaturesVerified": true
+            }
+          },
+          {
+            "sequence": 3,
+            "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+            "kind": "gemini_offer_selected",
+            "occurredAt": "2026-10-21T21:42:57.916Z",
+            "protocolLabel": "Gemini structured output",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "modelOutputHash": "sha256:83d84b0181fcf71d5cb30f37cb5c4b6d8d1f258b0f45bd2c2c220cb3b9104679",
+              "modelVersion": "gemini-3.8-flash",
+              "selectedOfferId": "rpc-recovery-standard"
+            }
+          },
+          {
+            "sequence": 4,
+            "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+            "kind": "x402_402_received",
+            "occurredAt": "2026-10-21T21:42:57.969Z",
+            "protocolLabel": "HTTP 402 · PAYMENT-REQUIRED",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "challengeHash": "sha256:74a46ec12d2a6d0ff27f9f27927a41064d27deda9426b74d820badf5e9c5fa3d",
+              "paymentId": "payment-rpc-20261022-a27f3f19-replay",
+              "requestFingerprint": "sha256:d6050cb8e44c115bb2d2219d1f3c765516b5997614c1e11af180d895fb5219ee"
+            }
+          },
+          {
+            "sequence": 5,
+            "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+            "kind": "authoritative_context_persisted",
+            "occurredAt": "2026-10-21T21:42:57.971Z",
+            "protocolLabel": "Firestore immutable context",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "contextHash": "sha256:fbfe83ae36de17abfc248d3944527cadf7906734bb5a8736c06bc0f0094a1d94",
+              "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+              "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+            }
+          },
+          {
+            "sequence": 6,
+            "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+            "kind": "policy_denied",
+            "occurredAt": "2026-10-21T21:42:58.398Z",
+            "protocolLabel": "Deterministic policy deny",
+            "evidenceLevel": "live-unverified",
+            "transactionCreated": false,
+            "txSignature": null,
+            "details": {
+              "correlationId": "corr-8ff2d658-7d48-423b-8557-4966bd960934",
+              "decisionEnvelopeHash": "sha256:69f62c2c03382c30e69c58ea70f087bbc954582cecba388eb22beb52322289c8",
+              "reasonCode": "identifier.nonce_fresh",
+              "transactionCreated": false,
+              "txSignature": null
+            }
+          }
+        ],
+        "evidence": {
+          "level": "live-unverified",
+          "explorerUrl": null,
+          "tokenDeltas": []
+        }
+      },
+      "attemptedAt": "2026-10-21T21:42:58.398Z",
+      "perTransactionLimitBaseUnits": "20000",
+      "replayProof": {
+        "denialBinding": {
+          "identifierType": "nonce",
+          "mandateId": "mandate-rpc-20261022-a27f3f19",
+          "originalPaymentId": "payment-rpc-20261022-a27f3f19-primary",
+          "deniedPaymentId": "payment-rpc-20261022-a27f3f19-replay",
+          "originalIncidentId": "incident-rpc-20261022-a27f3f19-primary",
+          "deniedIncidentId": "incident-rpc-20261022-a27f3f19-replay",
+          "originalNonce": "nonce-rpc-20261022-a27f3f19-primary",
+          "deniedNonce": "nonce-rpc-20261022-a27f3f19-primary",
+          "originalIdempotencyKey": "idem-rpc-20261022-a27f3f19-primary",
+          "deniedIdempotencyKey": "idem-rpc-20261022-a27f3f19-replay",
+          "reasonCode": "identifier.nonce_fresh",
+          "transactionCreated": false,
+          "txSignature": null
+        },
+        "denialBindingHash": "sha256:4ba52e4fbdc31cd43599e29172610c4767234e878af5fdcc8c7e37bb1435d984",
+        "originalTxSignature": "jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS",
+        "originalExplorerUrl": "https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet"
+      }
+    }
+  }
+}

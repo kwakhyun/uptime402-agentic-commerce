@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1",
+  "service": "uptime402-control-plane",
+  "humanApprovalPerPayment": false,
+  "automaticSigning": true,
+  "verificationMethods": [
+    {
+      "id": "uptime402-outcome-v1",
+      "publicKeyBase58": "FrgE93V2ZzZPN45zZLB252Eb4hnQLLtoutMfTcXdrHzC"
+    }
+  ],
+  "executorAudience": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app"
+}

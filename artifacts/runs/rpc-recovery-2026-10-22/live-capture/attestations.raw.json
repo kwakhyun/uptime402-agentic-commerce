@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "attestations",
+  "capturedAt": "2026-10-21T21:44:10.961Z",
+  "payloadHash": "sha256:6282adfb37aad580b491ee2847a9ab2e3a22474244cf918d1c29ce1656d91d87",
+  "payload": {
+    "gemini": {
+      "implemented": true,
+      "sourcePaths": [
+        "apps/control-plane/src/server/gemini.ts",
+        "apps/control-plane/src/server/gemini-evidence.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/gemini-runtime.json",
+      "runtimeArtifactSha256": "sha256:b0f33d294c4ed04e5f71159a23f927f40c11a55a230f1b1e6d8175380db970c0",
+      "model": "gemini-3.8-flash"
+    },
+    "a2a": {
+      "implemented": true,
+      "sourcePaths": [
+        "services/vendor-agent/src/index.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/vendor-agent-card.json",
+      "runtimeArtifactSha256": "sha256:96625d208ac42b27975c8cdaddf437affe8ffbaffce30c003d4c7d2d47e54b4b",
+      "separateService": true,
+      "agentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+      "verificationKeyId": "uptime402-vendor-v1",
+      "verificationPublicKey": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+      "agentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32"
+    },
+    "autonomy": {
+      "implemented": true,
+      "sourcePaths": [
+        "apps/control-plane/src/server/operator-boundary.ts",
+        "services/payment-executor/src/index.ts",
+        "apps/control-plane/src/server/recovery-rpc-probe.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/autonomy-runtime.json",
+      "runtimeArtifactSha256": "sha256:2cc0010fdd043cd0b72211257b005861b4b4acab90e8969fb0f4fa2a127bf1c3",
+      "humanApprovalPerPayment": false,
+      "automaticSigning": true,
+      "verificationKeyId": "uptime402-outcome-v1",
+      "verificationPublicKey": "FrgE93V2ZzZPN45zZLB252Eb4hnQLLtoutMfTcXdrHzC"
+    },
+    "policy": {
+      "implemented": true,
+      "sourcePaths": [
+        "packages/policy/src/index.ts",
+        "services/payment-executor/src/index.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/execution-policy.json",
+      "runtimeArtifactSha256": "sha256:59f2df8a116f56586a3c6e66739e0cd5781410f51d82cb1f400a7fc539309541",
+      "deterministic": true,
+      "enforcedLimits": {
+        "applicationEnforced": true,
+        "dailyLimitBaseUnits": "50000",
+        "incidentLimitBaseUnits": "50000",
+        "perTransactionLimitBaseUnits": "20000"
+      },
+      "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+    }
+  }
+}

@@ -1,0 +1,680 @@
+{
+  "schemaVersion": "2.0",
+  "generatedAt": "2026-10-21T21:44:10.961Z",
+  "evidenceStatus": "devnet-verified",
+  "project": {
+    "name": "Uptime402",
+    "networkTarget": "Solana Devnet",
+    "assetTarget": "USDC",
+    "deployment": "live",
+    "liveUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+    "deploymentArtifact": "cloudbuild.yaml",
+    "projectIamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/project-iam.json",
+    "projectIamPolicyArtifactSha256": "sha256:325cefac395543db7c14833a539a5e7958e1795767d3988c65bbe4d4ad216f2b",
+    "deckPdf": "submission/Uptime402_Deck.pdf",
+    "demoVideoUrl": "https://www.youtube.com/watch?v=jwJRfs-NRZY",
+    "demoVideoDurationSeconds": 165,
+    "services": [
+      {
+        "role": "control-plane",
+        "url": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+        "healthUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/api/health",
+        "public": true,
+        "serviceAccount": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "private/rpc-recovery-2026-10-22/deployment/control-plane.service.yaml",
+        "serviceDescribeArtifact": "private/rpc-recovery-2026-10-22/deployment/control-plane-service.json",
+        "serviceDescribeArtifactSha256": "sha256:b02ed2b4fe2a0109640f07b6fe12686dbf6a983aedac8561a897903eb0da8f63",
+        "iamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/control-plane-iam.json",
+        "iamPolicyArtifactSha256": "sha256:9c8087a4a52140dd117e56900fc3322609c030c729d2e2170836823995a45878"
+      },
+      {
+        "role": "payment-executor",
+        "url": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app",
+        "public": false,
+        "iamProtected": true,
+        "audience": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app",
+        "serviceAccount": "uptime402-executor@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "private/rpc-recovery-2026-10-22/deployment/payment-executor.service.yaml",
+        "serviceDescribeArtifact": "private/rpc-recovery-2026-10-22/deployment/payment-executor-service.json",
+        "serviceDescribeArtifactSha256": "sha256:1d57707cebef8563b0a8c5d5e64f212d79d95f61e4e99ac985909642d817011e",
+        "iamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/payment-executor-iam.json",
+        "iamPolicyArtifactSha256": "sha256:3fe8f0fe471115e4a2883cb92509844dd3d12485e44e6109b6b24cdfc2833824",
+        "signerSecretResource": "projects/uptime402-hack-260803/secrets/uptime402-executor-signer/versions/1",
+        "secretIamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/executor-signer-iam.json",
+        "secretIamPolicyArtifactSha256": "sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8"
+      },
+      {
+        "role": "vendor-agent",
+        "url": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app",
+        "healthUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/health",
+        "public": true,
+        "serviceAccount": "uptime402-vendor@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "private/rpc-recovery-2026-10-22/deployment/vendor-agent.service.yaml",
+        "serviceDescribeArtifact": "private/rpc-recovery-2026-10-22/deployment/vendor-agent-service.json",
+        "serviceDescribeArtifactSha256": "sha256:c1a8361bc52f9d044468122d76c79c816958d2cad22711bbd7fcdc17a475011c",
+        "iamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/vendor-agent-iam.json",
+        "iamPolicyArtifactSha256": "sha256:0593d855fe4225f81c268dc13fe1befbc3e545bc54647ccfafdb1502aa726471"
+      }
+    ]
+  },
+  "attestations": {
+    "gemini": {
+      "implemented": true,
+      "sourcePaths": [
+        "apps/control-plane/src/server/gemini.ts",
+        "apps/control-plane/src/server/gemini-evidence.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/gemini-runtime.json",
+      "runtimeArtifactSha256": "sha256:b0f33d294c4ed04e5f71159a23f927f40c11a55a230f1b1e6d8175380db970c0",
+      "model": "gemini-3.8-flash"
+    },
+    "a2a": {
+      "implemented": true,
+      "sourcePaths": [
+        "services/vendor-agent/src/index.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/vendor-agent-card.json",
+      "runtimeArtifactSha256": "sha256:96625d208ac42b27975c8cdaddf437affe8ffbaffce30c003d4c7d2d47e54b4b",
+      "separateService": true,
+      "agentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+      "verificationKeyId": "uptime402-vendor-v1",
+      "verificationPublicKey": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+      "agentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32"
+    },
+    "autonomy": {
+      "implemented": true,
+      "sourcePaths": [
+        "apps/control-plane/src/server/operator-boundary.ts",
+        "services/payment-executor/src/index.ts",
+        "apps/control-plane/src/server/recovery-rpc-probe.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/autonomy-runtime.json",
+      "runtimeArtifactSha256": "sha256:2cc0010fdd043cd0b72211257b005861b4b4acab90e8969fb0f4fa2a127bf1c3",
+      "humanApprovalPerPayment": false,
+      "automaticSigning": true,
+      "verificationKeyId": "uptime402-outcome-v1",
+      "verificationPublicKey": "FrgE93V2ZzZPN45zZLB252Eb4hnQLLtoutMfTcXdrHzC"
+    },
+    "policy": {
+      "implemented": true,
+      "sourcePaths": [
+        "packages/policy/src/index.ts",
+        "services/payment-executor/src/index.ts"
+      ],
+      "runtimeArtifact": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/execution-policy.json",
+      "runtimeArtifactSha256": "sha256:59f2df8a116f56586a3c6e66739e0cd5781410f51d82cb1f400a7fc539309541",
+      "deterministic": true,
+      "enforcedLimits": {
+        "applicationEnforced": true,
+        "dailyLimitBaseUnits": "50000",
+        "incidentLimitBaseUnits": "50000",
+        "perTransactionLimitBaseUnits": "20000"
+      },
+      "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d"
+    }
+  },
+  "offers": [
+    {
+      "payload": {
+        "offerId": "rpc-recovery-standard",
+        "providerAgentId": "uptime402-owned-vendor",
+        "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+        "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+        "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+        "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+        "asset": "USDC",
+        "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "amountBaseUnits": "15000",
+        "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+        "expiresAt": "2026-11-01T00:00:00.000Z",
+        "capability": "solana-rpc-health",
+        "method": "POST"
+      },
+      "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+      "keyId": "uptime402-vendor-v1",
+      "signature": "GtXomwYnDmMHjqLBGigmqaqF5QQo48sGoA9sqmzM7e9CTmQTnx7mQavbNK7dpvumqhhPCysk1u5eC27pP8FzCZS"
+    },
+    {
+      "payload": {
+        "offerId": "rpc-recovery-emergency",
+        "providerAgentId": "uptime402-owned-vendor",
+        "providerAgentCardUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/.well-known/agent-card.json",
+        "providerAgentCardHash": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+        "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+        "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+        "asset": "USDC",
+        "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "amountBaseUnits": "25000",
+        "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+        "expiresAt": "2026-11-01T00:00:00.000Z",
+        "capability": "solana-rpc-health",
+        "method": "POST"
+      },
+      "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+      "keyId": "uptime402-vendor-v1",
+      "signature": "5aZvyWuHtuXNwz7u1L2GNkN6u64nL8DoFPiNb5eU6EyE3sJiZhzS9G2p7EPkqj2M5yctBM34JXAxBgz2hrNd9w3a"
+    }
+  ],
+  "selection": {
+    "candidateOfferIds": [
+      "rpc-recovery-standard",
+      "rpc-recovery-emergency"
+    ],
+    "baseline": {
+      "telemetryHash": "sha256:cfed604a7a397214de7966f353834742da38e27b81e3833a045f77193179ea28",
+      "modelOutputHash": "sha256:97f3e87201208bdb1b527c2b768ed23e26d664f4261aa748f7f17a11818d1aa0",
+      "selectedOfferId": "rpc-recovery-standard",
+      "schemaValidated": true,
+      "capturedAt": "2026-10-21T21:42:43.187Z"
+    },
+    "counterfactual": {
+      "telemetryHash": "sha256:ae9eee3657bb23f3c36d9feec16794e0d4a911fd691db521e1c6947d1a8876ac",
+      "modelOutputHash": "sha256:f12727893a420b4dda717181c746daf24e553b508fceefdee084f79d625c85af",
+      "selectedOfferId": "rpc-recovery-emergency",
+      "schemaValidated": true,
+      "capturedAt": "2026-10-21T21:42:54.470Z"
+    },
+    "artifactPath": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/gemini-selection-artifact.json",
+    "artifactSha256": "sha256:7aa602ef6a8d6b2c449b188ecebb2b907917e9a0cbf9b17854bb179bf00d40a5"
+  },
+  "payments": [
+    {
+      "incidentId": "incident-rpc-20261022-a27f3f19-primary",
+      "incidentAt": "2026-10-21T21:42:36.394Z",
+      "mandateId": "mandate-rpc-20261022-a27f3f19",
+      "paymentId": "payment-rpc-20261022-a27f3f19-primary",
+      "nonce": "nonce-rpc-20261022-a27f3f19-primary",
+      "runBindingHash": "sha256:eda68bb3dc0e3758e7bdf4317a233c50315d21894e9406247bb343a1c5e8a28a",
+      "offerId": "rpc-recovery-standard",
+      "idempotencyKey": "idem-rpc-20261022-a27f3f19-primary",
+      "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+      "cluster": "devnet",
+      "asset": "USDC",
+      "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      "decimals": 6,
+      "amount": "0.015",
+      "amountBaseUnits": "15000",
+      "payer": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+      "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+      "txSignature": "jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS",
+      "explorerUrl": "https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet",
+      "confirmationStatus": "finalized",
+      "confirmedAt": "2026-10-21T21:42:47.000Z",
+      "resourceResponseHash": "sha256:be8e8db9a5785eb5e7de7231c4ed363be765f4914d883321a598f23e9d13dcb3",
+      "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+      "challengeHash": "sha256:19837c732403c40b4d2e26fa7c7ec02ad09aae2fb07fe9bd85ef2b18565a9ae6",
+      "requestFingerprint": "sha256:f8650e267820d21cb81fbf41860ea34e3cf74918d8de3938e7ea140d224c3d65",
+      "x402": {
+        "request": {
+          "method": "POST",
+          "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+          "operationId": "operation-rpc-20261022-a27f3f19-primary",
+          "canonicalBodyHash": "sha256:93b596f69bb5ac87cfdd128cc25aaef30ea71096c7e42d5f11ad7a5b01053215"
+        },
+        "challenge": {
+          "headerName": "PAYMENT-REQUIRED",
+          "headerValue": "eyJ4NDAyVmVyc2lvbiI6MiwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly91cHRpbWU0MDItdmVuZG9yLWFnZW50LTEwNjU2NDk0NjM2MjEuYXNpYS1ub3J0aGVhc3QzLnJ1bi5hcHAvdjEvcmVjb3ZlcnkiLCJkZXNjcmlwdGlvbiI6IlBhaWQgcmVjb3Zlcnkgcm91dGluZyByZXNvdXJjZSIsIm1pbWVUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsInNlcnZpY2VOYW1lIjoiVXB0aW1lNDAyIFJlY292ZXJ5IFZlbmRvciJ9LCJhY2NlcHRzIjpbeyJzY2hlbWUiOiJleGFjdCIsIm5ldHdvcmsiOiJzb2xhbmE6RXRXVFJBQlphWXE2aU1mZVlLb3VSdTE2NlZVMnhxYTEiLCJhc3NldCI6IjR6TU1DOXNydDVSaTVYMTRHQWdYaGFIaWkzR25QQUVFUllQSmdaSkRuY0RVIiwiYW1vdW50IjoiMTUwMDAiLCJwYXlUbyI6IkdLVzZrd1NnVFkxS2tNaTR5Z0FiWkgxZ1oxM21ZSGZRSmpyQ0FTcVlvZG1rIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnsiZmVlUGF5ZXIiOiJDS1BLSldOZEpFcWE4MXg3Q2taMTRCVlBpWTZ5MTZTeHM3b3d6bnF0V1lwNSIsIm1lbW8iOiJwYXltZW50LXJwYy0yMDI2MTAyMi1hMjdmM2YxOS1wcmltYXJ5IiwicGF5bWVudElkIjoicGF5bWVudC1ycGMtMjAyNjEwMjItYTI3ZjNmMTktcHJpbWFyeSIsIm9mZmVySWQiOiJycGMtcmVjb3Zlcnktc3RhbmRhcmQiLCJvZmZlckhhc2giOiJzaGEyNTY6YzMxZTYxN2VlNjBhZjM2ZjM0NDdiMDNmMDZiNzkxY2Y4ZDZkYzA1MWVjYWJhMzY5MTk2MzA5ZWE5YzM5NzNiZCIsInJlcXVlc3RGaW5nZXJwcmludCI6InNoYTI1NjpmODY1MGUyNjc4MjBkMjFjYjgxZmJmNDE4NjBlYTM0ZTNjZjc0OTE4ZDhkZTM5MzhlN2VhMTQwZDIyNGMzZDY1IiwiZXhlY3V0aW9uUG9saWN5SGFzaCI6InNoYTI1NjpmY2M1MDNiNjgzNWI1ODA2NGEyNjkxMDQ3MDRhYTdiMTZhMTgyMDI1MWQyMjFhODMyMDdkYTcyMTQzY2M2NzFkIn19XSwiZXh0ZW5zaW9ucyI6eyJwYXltZW50LWlkZW50aWZpZXIiOnsiaW5mbyI6eyJyZXF1aXJlZCI6dHJ1ZX0sInNjaGVtYSI6eyIkc2NoZW1hIjoiaHR0cHM6Ly9qc29uLXNjaGVtYS5vcmcvZHJhZnQvMjAyMC0xMi9zY2hlbWEiLCJ0eXBlIjoib2JqZWN0IiwicHJvcGVydGllcyI6eyJyZXF1aXJlZCI6eyJ0eXBlIjoiYm9vbGVhbiJ9LCJpZCI6eyJ0eXBlIjoic3RyaW5nIiwibWluTGVuZ3RoIjoxNiwibWF4TGVuZ3RoIjoxMjgsInBhdHRlcm4iOiJeW2EtekEtWjAtOV8tXSskIn19LCJyZXF1aXJlZCI6WyJyZXF1aXJlZCJdfX19fQ==",
+          "capturedAt": "2026-10-21T21:42:43.246Z",
+          "status": 402
+        },
+        "payment": {
+          "headerName": "PAYMENT-SIGNATURE",
+          "headerValue": "eyJ4NDAyVmVyc2lvbiI6MiwicGF5bG9hZCI6eyJ0cmFuc2FjdGlvbiI6IkFnQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQlZzRnhJY1l6VTZ2cERoSithczZ1MFg0TXV4cnMrVmZpV3V4bUFqKzdkeVIxRUNpdDRGTldjTUozeklLSWRuemZFWm45UXpGRHY0VElDelpiQlIrTUdnQUlCQkFpb0pqNDIzMVFsVWRLMmIwZkozVlV4aW9nUlhkME5RaEJ2Sk82MjJaVUtma08rdTJ2ZE1vVGFhanNUZEVjNGE2WGRRRHgxbjZBMVMzbDNGUWEvZERZMEphRzErZEdkSy8ycUFaK2JjTzFoWHJWUHF5dFpaOFVUTkc0a08yWCtlN1poQkhpSXpHNHgzNWF1VGhLdElZdkhFa0hsQTRtT3hMNnRzSVhYUVRIc1p6dEVMTE9SSVZmeE9wTTlBVFFvTFFNclgvN05BYUxiOGJkNUJnamZBQzZuQXdaR2IrVWhGekwvN0syNmNzT2I1N3lNNWJ2Rjl4SnJMRU9iT2tBQUFBQUZTbE5hbVNraEJrMGs2SEZnMmpoOGZEVzEzYnlTdTRIa0g2aEFRUVZFalFiZDl1SFhaYUdUMmN2aFJzN3JlYXdjdElYdFgxczNrVHFNOVlWKy93Q3BJQ25WeWNyZFViZUdWczM2VWRtTk5tT2tTaVQzZmh3c0RZRmZ4ZU5VMlBrRUJRQUZBaUJPQUFBRkFBa0RBUUFBQUFBQUFBQUhCQUlFQXdFS0RKZzZBQUFBQUFBQUJnWUFKWEJoZVcxbGJuUXRjbkJqTFRJd01qWXhNREl5TFdFeU4yWXpaakU1TFhCeWFXMWhjbmtBIn0sImV4dGVuc2lvbnMiOnsicGF5bWVudC1pZGVudGlmaWVyIjp7ImluZm8iOnsicmVxdWlyZWQiOnRydWUsImlkIjoicGF5bWVudC1ycGMtMjAyNjEwMjItYTI3ZjNmMTktcHJpbWFyeSJ9LCJzY2hlbWEiOnsiJHNjaGVtYSI6Imh0dHBzOi8vanNvbi1zY2hlbWEub3JnL2RyYWZ0LzIwMjAtMTIvc2NoZW1hIiwidHlwZSI6Im9iamVjdCIsInByb3BlcnRpZXMiOnsicmVxdWlyZWQiOnsidHlwZSI6ImJvb2xlYW4ifSwiaWQiOnsidHlwZSI6InN0cmluZyIsIm1pbkxlbmd0aCI6MTYsIm1heExlbmd0aCI6MTI4LCJwYXR0ZXJuIjoiXlthLXpBLVowLTlfLV0rJCJ9fSwicmVxdWlyZWQiOlsicmVxdWlyZWQiXX19fSwicmVzb3VyY2UiOnsidXJsIjoiaHR0cHM6Ly91cHRpbWU0MDItdmVuZG9yLWFnZW50LTEwNjU2NDk0NjM2MjEuYXNpYS1ub3J0aGVhc3QzLnJ1bi5hcHAvdjEvcmVjb3ZlcnkiLCJkZXNjcmlwdGlvbiI6IlBhaWQgcmVjb3Zlcnkgcm91dGluZyByZXNvdXJjZSIsIm1pbWVUeXBlIjoiYXBwbGljYXRpb24vanNvbiIsInNlcnZpY2VOYW1lIjoiVXB0aW1lNDAyIFJlY292ZXJ5IFZlbmRvciJ9LCJhY2NlcHRlZCI6eyJzY2hlbWUiOiJleGFjdCIsIm5ldHdvcmsiOiJzb2xhbmE6RXRXVFJBQlphWXE2aU1mZVlLb3VSdTE2NlZVMnhxYTEiLCJhc3NldCI6IjR6TU1DOXNydDVSaTVYMTRHQWdYaGFIaWkzR25QQUVFUllQSmdaSkRuY0RVIiwiYW1vdW50IjoiMTUwMDAiLCJwYXlUbyI6IkdLVzZrd1NnVFkxS2tNaTR5Z0FiWkgxZ1oxM21ZSGZRSmpyQ0FTcVlvZG1rIiwibWF4VGltZW91dFNlY29uZHMiOjMwMCwiZXh0cmEiOnsiZmVlUGF5ZXIiOiJDS1BLSldOZEpFcWE4MXg3Q2taMTRCVlBpWTZ5MTZTeHM3b3d6bnF0V1lwNSIsIm1lbW8iOiJwYXltZW50LXJwYy0yMDI2MTAyMi1hMjdmM2YxOS1wcmltYXJ5IiwicGF5bWVudElkIjoicGF5bWVudC1ycGMtMjAyNjEwMjItYTI3ZjNmMTktcHJpbWFyeSIsIm9mZmVySWQiOiJycGMtcmVjb3Zlcnktc3RhbmRhcmQiLCJvZmZlckhhc2giOiJzaGEyNTY6YzMxZTYxN2VlNjBhZjM2ZjM0NDdiMDNmMDZiNzkxY2Y4ZDZkYzA1MWVjYWJhMzY5MTk2MzA5ZWE5YzM5NzNiZCIsInJlcXVlc3RGaW5nZXJwcmludCI6InNoYTI1NjpmODY1MGUyNjc4MjBkMjFjYjgxZmJmNDE4NjBlYTM0ZTNjZjc0OTE4ZDhkZTM5MzhlN2VhMTQwZDIyNGMzZDY1IiwiZXhlY3V0aW9uUG9saWN5SGFzaCI6InNoYTI1NjpmY2M1MDNiNjgzNWI1ODA2NGEyNjkxMDQ3MDRhYTdiMTZhMTgyMDI1MWQyMjFhODMyMDdkYTcyMTQzY2M2NzFkIn19fQ==",
+          "capturedAt": "2026-10-21T21:42:45.157Z",
+          "signedTransactionSha256": "sha256:a2e4729a2ac3e31846f8ea58577c8196e942c3c2657a58d1ca85a61c2f654359"
+        },
+        "settlement": {
+          "headerName": "PAYMENT-RESPONSE",
+          "headerValue": "eyJzdWNjZXNzIjp0cnVlLCJwYXllciI6IjVaVDExZnFucWFaUGJXTHF4NW80UENOU2lzWExLVjFZRnROVXhqUVNHUEh1IiwidHJhbnNhY3Rpb24iOiJqUXRHU1h5Z3piTUJWM3BwdGtZdUZDSmFVMzQzTEh4Q3lmbzQzeTk3NW9Wb05GTHFXTlJENHdBWmtUSlI3czljek1xQlhZUzI3a2JGZTgzRWJmU1pnVVMiLCJuZXR3b3JrIjoic29sYW5hOkV0V1RSQUJaYVlxNmlNZmVZS291UnUxNjZWVTJ4cWExIiwiYW1vdW50IjoiMTUwMDAifQ==",
+          "capturedAt": "2026-10-21T21:42:49.577Z",
+          "status": 200
+        }
+      },
+      "chainEvidence": {
+        "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+        "sdkNetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+        "slot": 513662003,
+        "payerDeltaBaseUnits": "-15000",
+        "payeeDeltaBaseUnits": "15000",
+        "tokenAccountDeltas": [
+          {
+            "accountIndex": 2,
+            "tokenAccount": "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+            "owner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "decimals": 6,
+            "preAmountBaseUnits": "19940000",
+            "postAmountBaseUnits": "19925000",
+            "deltaBaseUnits": "-15000"
+          },
+          {
+            "accountIndex": 3,
+            "tokenAccount": "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J",
+            "owner": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "decimals": 6,
+            "preAmountBaseUnits": "60000",
+            "postAmountBaseUnits": "75000",
+            "deltaBaseUnits": "15000"
+          }
+        ]
+      },
+      "policyEvidence": {
+        "decision": "allow",
+        "reservationId": "idem-rpc-20261022-a27f3f19-primary",
+        "amountBaseUnits": "15000",
+        "remainingBeforeBaseUnits": "50000",
+        "remainingAfterReserveBaseUnits": "35000",
+        "remainingAfterCommitBaseUnits": "35000",
+        "reservationStateHistory": [
+          "reserved",
+          "submitted",
+          "confirmed",
+          "fulfilled",
+          "committed"
+        ],
+        "rules": [
+          {
+            "rule": "mandate.exists",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "schema.valid",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "proposal.binds_authoritative_ids",
+            "expected": "incident-rpc-20261022-a27f3f19-primary|mandate-rpc-20261022-a27f3f19|rpc-recovery-standard",
+            "actual": "incident-rpc-20261022-a27f3f19-primary|mandate-rpc-20261022-a27f3f19|rpc-recovery-standard",
+            "pass": true
+          },
+          {
+            "rule": "mandate.subject",
+            "expected": "service:primary-solana-rpc",
+            "actual": "service:primary-solana-rpc",
+            "pass": true
+          },
+          {
+            "rule": "mandate.not_revoked",
+            "expected": null,
+            "actual": null,
+            "pass": true
+          },
+          {
+            "rule": "mandate.hash",
+            "expected": "sha256:0c02c2b6220dc6bd29ca629e58b1c221249307a1acf5947bcadda9bc96e71f6b",
+            "actual": "sha256:0c02c2b6220dc6bd29ca629e58b1c221249307a1acf5947bcadda9bc96e71f6b",
+            "pass": true
+          },
+          {
+            "rule": "mandate.attestation",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "execution_policy.hash",
+            "expected": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+            "actual": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+            "pass": true
+          },
+          {
+            "rule": "execution_policy.immutable_binding",
+            "expected": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+            "actual": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d|sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+            "pass": true
+          },
+          {
+            "rule": "mandate.issuer",
+            "expected": "operator:khyun2348@gmail.com",
+            "actual": "operator:khyun2348@gmail.com",
+            "pass": true
+          },
+          {
+            "rule": "mandate.time_window",
+            "expected": "2026-10-21T21:42:06.394Z <= now < 2026-10-21T21:52:36.394Z and proposal expiry",
+            "actual": "2026-10-21T21:42:43.678Z",
+            "pass": true
+          },
+          {
+            "rule": "network.cluster",
+            "expected": "devnet",
+            "actual": "devnet|devnet|devnet",
+            "pass": true
+          },
+          {
+            "rule": "network.genesis",
+            "expected": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+            "actual": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG|EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+            "pass": true
+          },
+          {
+            "rule": "network.caip2",
+            "expected": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "actual": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1|solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "pass": true
+          },
+          {
+            "rule": "network.sdk",
+            "expected": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "actual": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1|solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+            "pass": true
+          },
+          {
+            "rule": "asset.mint",
+            "expected": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "actual": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU|4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU|4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+            "pass": true
+          },
+          {
+            "rule": "asset.decimals",
+            "expected": 6,
+            "actual": 6,
+            "pass": true
+          },
+          {
+            "rule": "capability.allowlist",
+            "expected": "solana-rpc-health",
+            "actual": "solana-rpc-health",
+            "pass": true
+          },
+          {
+            "rule": "agent_card.allowlist",
+            "expected": "[\"sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32\"]",
+            "actual": "sha256:f12b56036c34d67e499e61b65dc4198d7dfcc949e998dd66f40b42b5893cfe32",
+            "pass": true
+          },
+          {
+            "rule": "vendor.origin",
+            "expected": "[\"https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app\"]",
+            "actual": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app",
+            "pass": true
+          },
+          {
+            "rule": "facilitator.origin",
+            "expected": "[\"https://x402.org\"]",
+            "actual": "https://x402.org",
+            "pass": true
+          },
+          {
+            "rule": "recipient.allowlist",
+            "expected": "[\"GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk\"]",
+            "actual": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "pass": true
+          },
+          {
+            "rule": "offer.hash",
+            "expected": "sha256:c31e617ee60af36f3447b03f06b791cf8d6dc051ecaba369196309ea9c3973bd",
+            "actual": "sha256:c31e617ee60af36f3447b03f06b791cf8d6dc051ecaba369196309ea9c3973bd",
+            "pass": true
+          },
+          {
+            "rule": "offer.signature",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "offer.expiry",
+            "expected": "now < 2026-11-01T00:00:00.000Z",
+            "actual": "2026-10-21T21:42:43.678Z",
+            "pass": true
+          },
+          {
+            "rule": "challenge.signature",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "challenge.expiry",
+            "expected": "now < 2026-10-21T21:47:43.246Z",
+            "actual": "2026-10-21T21:42:43.678Z",
+            "pass": true
+          },
+          {
+            "rule": "challenge.binding",
+            "expected": "sha256:19837c732403c40b4d2e26fa7c7ec02ad09aae2fb07fe9bd85ef2b18565a9ae6|solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1|4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU|15000|GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "actual": "sha256:19837c732403c40b4d2e26fa7c7ec02ad09aae2fb07fe9bd85ef2b18565a9ae6|solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1|4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU|15000|GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+            "pass": true
+          },
+          {
+            "rule": "request.method",
+            "expected": "POST",
+            "actual": "POST|POST|POST",
+            "pass": true
+          },
+          {
+            "rule": "request.url",
+            "expected": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+            "actual": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery|https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery|https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+            "pass": true
+          },
+          {
+            "rule": "request.body_hash",
+            "expected": "sha256:93b596f69bb5ac87cfdd128cc25aaef30ea71096c7e42d5f11ad7a5b01053215",
+            "actual": "sha256:93b596f69bb5ac87cfdd128cc25aaef30ea71096c7e42d5f11ad7a5b01053215",
+            "pass": true
+          },
+          {
+            "rule": "request.operation_id",
+            "expected": "operation-rpc-20261022-a27f3f19-primary",
+            "actual": "operation-rpc-20261022-a27f3f19-primary",
+            "pass": true
+          },
+          {
+            "rule": "request.fingerprint",
+            "expected": "sha256:f8650e267820d21cb81fbf41860ea34e3cf74918d8de3938e7ea140d224c3d65",
+            "actual": "sha256:f8650e267820d21cb81fbf41860ea34e3cf74918d8de3938e7ea140d224c3d65",
+            "pass": true
+          },
+          {
+            "rule": "transport.redirects_disabled",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "transport.public_addresses",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "amount.positive",
+            "expected": "> 0",
+            "actual": "15000",
+            "pass": true
+          },
+          {
+            "rule": "amount.offer_coherent",
+            "expected": "15000",
+            "actual": "15000|15000",
+            "pass": true
+          },
+          {
+            "rule": "amount.per_transaction_limit",
+            "expected": "<= 20000",
+            "actual": "15000",
+            "pass": true
+          },
+          {
+            "rule": "identifier.payment_id_fresh",
+            "expected": "unused",
+            "actual": "unused",
+            "pass": true
+          },
+          {
+            "rule": "identifier.nonce_fresh",
+            "expected": "unused",
+            "actual": "unused",
+            "pass": true
+          },
+          {
+            "rule": "identifier.idempotency_key_fresh",
+            "expected": "unused",
+            "actual": "unused",
+            "pass": true
+          },
+          {
+            "rule": "budget.incident_limit",
+            "expected": "<= 50000",
+            "actual": "15000",
+            "pass": true
+          },
+          {
+            "rule": "budget.daily_limit",
+            "expected": "<= 50000",
+            "actual": "15000",
+            "pass": true
+          },
+          {
+            "rule": "transaction.instructions",
+            "expected": "expected SDK transaction plan validated; exact bytes rechecked after signing",
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "transaction.program_allowlist",
+            "expected": "[\"ComputeBudget111111111111111111111111111111\",\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\",\"MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr\"]",
+            "actual": "[\"ComputeBudget111111111111111111111111111111\",\"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA\",\"MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr\"]",
+            "pass": true
+          },
+          {
+            "rule": "transaction.account_allowlist",
+            "expected": "[\"CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5\",\"5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu\",\"4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU\",\"3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd\",\"GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk\",\"7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J\"]",
+            "actual": "[\"CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5\",\"5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu\",\"4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU\",\"3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd\",\"7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J\"]",
+            "pass": true
+          },
+          {
+            "rule": "transaction.fee_payer",
+            "expected": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+            "actual": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+            "pass": true
+          },
+          {
+            "rule": "transaction.executor_public_key",
+            "expected": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "actual": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "pass": true
+          },
+          {
+            "rule": "transaction.network_fee_limit",
+            "expected": "<= 100000",
+            "actual": "100000",
+            "pass": true
+          },
+          {
+            "rule": "signer.private_boundary",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "signer.available",
+            "expected": true,
+            "actual": true,
+            "pass": true
+          },
+          {
+            "rule": "signer.active_wallet",
+            "expected": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "actual": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+            "pass": true
+          }
+        ]
+      },
+      "fulfillmentReceipt": {
+        "payload": {
+          "version": "1",
+          "issuerAgentId": "uptime402-owned-vendor",
+          "incidentId": "incident-rpc-20261022-a27f3f19-primary",
+          "offerId": "rpc-recovery-standard",
+          "paymentId": "payment-rpc-20261022-a27f3f19-primary",
+          "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+          "challengeHash": "sha256:19837c732403c40b4d2e26fa7c7ec02ad09aae2fb07fe9bd85ef2b18565a9ae6",
+          "requestFingerprint": "sha256:f8650e267820d21cb81fbf41860ea34e3cf74918d8de3938e7ea140d224c3d65",
+          "txSignature": "jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS",
+          "resourceResponseHash": "sha256:be8e8db9a5785eb5e7de7231c4ed363be765f4914d883321a598f23e9d13dcb3",
+          "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+          "payer": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+          "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+          "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+          "amountBaseUnits": "15000",
+          "fulfilledAt": "2026-10-21T21:42:49.372Z"
+        },
+        "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+        "keyId": "uptime402-vendor-v1",
+        "signature": "28mRzr7rA6yvkSGBHtA1Jmp3AAPMqAzv7vbMoXg2pRzcm8ApTiG965xMZJEvwLKmwVDrVcrV4VQGCirCkoEScSQi"
+      },
+      "fulfillmentReceiptHash": "sha256:2034ae49b105581a24e77c68b2c7a4df28e9739da0e8e2668856105fdab0da3c",
+      "outcome": {
+        "payload": {
+          "incidentId": "incident-rpc-20261022-a27f3f19-primary",
+          "paymentId": "payment-rpc-20261022-a27f3f19-primary",
+          "fulfillmentReceiptHash": "sha256:2034ae49b105581a24e77c68b2c7a4df28e9739da0e8e2668856105fdab0da3c",
+          "resourceResponseHash": "sha256:be8e8db9a5785eb5e7de7231c4ed363be765f4914d883321a598f23e9d13dcb3",
+          "statusBefore": "degraded",
+          "statusAfter": "healthy",
+          "healthProbeHash": "sha256:46c65f4cbeeeb483aa09672070859d1ed5623ada45a5b322d3c403b44054f945",
+          "recoveredAt": "2026-10-21T21:42:50.213Z"
+        },
+        "signer": "FrgE93V2ZzZPN45zZLB252Eb4hnQLLtoutMfTcXdrHzC",
+        "keyId": "uptime402-outcome-v1",
+        "signature": "44zZgQfNcLXmZaHsLy1eCVnfqfUGmWcNVaD5UGgpbKcgrRCt6d8PdDoJk4B8RrK7pmZPV9wwCfXdocZZzBMCq86x",
+        "artifactPath": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/recovery-outcome-artifact.json",
+        "artifactSha256": "sha256:b988c8ad621ce4ab681de10f8eff589b1ed239787b01a04432ae8af1078f67b9"
+      },
+      "rpcRecovery": {
+        "artifactPath": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/rpc-recovery-proof.json",
+        "artifactSha256": "sha256:7e06e93e2466325049d38838171dfe9d9e43b1ff9652f9878b63ace70f6cbf1c"
+      }
+    }
+  ],
+  "denials": [
+    {
+      "incidentId": "incident-rpc-20261022-a27f3f19-overcap",
+      "mandateId": "mandate-rpc-20261022-a27f3f19",
+      "reasonCode": "amount.per_transaction_limit",
+      "attemptedAt": "2026-10-21T21:42:55.163Z",
+      "attemptedAmountBaseUnits": "25000",
+      "perTransactionLimitBaseUnits": "20000",
+      "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+      "transactionCreated": false,
+      "txSignature": null,
+      "artifactPath": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/policy-denial-over-transaction-limit-artifact.json",
+      "artifactSha256": "sha256:a9073087dca58224cb5cac23244a96c9a89870d7476493bb2ac41da31a20af63"
+    },
+    {
+      "incidentId": "incident-rpc-20261022-a27f3f19-replay",
+      "mandateId": "mandate-rpc-20261022-a27f3f19",
+      "reasonCode": "identifier.nonce_fresh",
+      "attemptedAt": "2026-10-21T21:42:58.398Z",
+      "attemptedAmountBaseUnits": "15000",
+      "perTransactionLimitBaseUnits": "20000",
+      "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+      "transactionCreated": false,
+      "txSignature": null,
+      "replayProof": {
+        "identifierType": "nonce",
+        "identifierValue": "nonce-rpc-20261022-a27f3f19-primary",
+        "originalPaymentId": "payment-rpc-20261022-a27f3f19-primary",
+        "deniedPaymentId": "payment-rpc-20261022-a27f3f19-replay",
+        "originalIncidentId": "incident-rpc-20261022-a27f3f19-primary",
+        "deniedIncidentId": "incident-rpc-20261022-a27f3f19-replay",
+        "originalNonce": "nonce-rpc-20261022-a27f3f19-primary",
+        "deniedNonce": "nonce-rpc-20261022-a27f3f19-primary",
+        "originalIdempotencyKey": "idem-rpc-20261022-a27f3f19-primary",
+        "deniedIdempotencyKey": "idem-rpc-20261022-a27f3f19-replay",
+        "originalTxSignature": "jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS",
+        "originalExplorerUrl": "https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet"
+      },
+      "artifactPath": "artifacts/runs/rpc-recovery-2026-10-22/live-capture/policy-denial-replay-artifact.json",
+      "artifactSha256": "sha256:c551652b966e97e7959cd9f06623967fe76d424434baeb5cbb3969b7613186c0"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "incidentId": "incident-rpc-20261022-a27f3f19-primary",
+  "paymentId": "payment-rpc-20261022-a27f3f19-primary",
+  "fulfillmentReceiptHash": "sha256:2034ae49b105581a24e77c68b2c7a4df28e9739da0e8e2668856105fdab0da3c",
+  "resourceResponseHash": "sha256:be8e8db9a5785eb5e7de7231c4ed363be765f4914d883321a598f23e9d13dcb3",
+  "statusBefore": "degraded",
+  "statusAfter": "healthy",
+  "healthProbeHash": "sha256:46c65f4cbeeeb483aa09672070859d1ed5623ada45a5b322d3c403b44054f945",
+  "recoveredAt": "2026-10-21T21:42:50.213Z"
+}

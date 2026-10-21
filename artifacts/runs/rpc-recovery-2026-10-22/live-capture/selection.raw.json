@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "selection",
+  "capturedAt": "2026-10-21T21:44:10.961Z",
+  "payloadHash": "sha256:097b44b721507785af024d8b078d0ddfe6b02d3b64becf04d3eebb665e256946",
+  "payload": {
+    "candidateOfferIds": [
+      "rpc-recovery-standard",
+      "rpc-recovery-emergency"
+    ],
+    "baseline": {
+      "modelInput": {
+        "incident": {
+          "id": "incident-rpc-20261022-a27f3f19-primary",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-10-21T21:42:36.394Z",
+          "healthBefore": "degraded",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_TIMEOUT",
+            "statusCode": 503,
+            "latencyMs": 1800,
+            "failureRate": 0.45,
+            "redactedMessage": "Injected Devnet RPC degradation scenario"
+          },
+          "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+        },
+        "offers": [
+          {
+            "offerId": "rpc-recovery-standard",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "15000",
+            "latencyMs": 180,
+            "health": "available",
+            "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+          },
+          {
+            "offerId": "rpc-recovery-emergency",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "25000",
+            "latencyMs": 30,
+            "health": "available",
+            "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+          }
+        ]
+      },
+      "generation": {
+        "mode": "live-gemini",
+        "provider": "google-genai",
+        "requestedModel": "gemini-3.8-flash",
+        "modelVersion": "gemini-3.8-flash",
+        "responseId": "zzHZaoCJHYuDncoP0YOhIA",
+        "rawText": "{\n  \"diagnosis\": \"주 Solana RPC 서비스(primary-solana-rpc)에서 UPSTREAM_TIMEOUT 및 HTTP 503 에러가 감지되었으며, 45%의 실패율과 1800ms의 높은 지연 시간으로 인해 서비스가 저하(degraded) 상태에 도달했습니다.\",\n  \"requiredCapability\": \"solana-rpc-health\",\n  \"selectedOfferId\": \"rpc-recovery-standard\",\n  \"rejectedOfferIds\": [\n    \"rpc-recovery-emergency\"\n  ],\n  \"evidenceRefs\": [\n    \"incident.sanitizedTelemetry.errorClass:UPSTREAM_TIMEOUT\",\n    \"incident.sanitizedTelemetry.statusCode:503\",\n    \"incident.sanitizedTelemetry.failureRate:0.45\",\n    \"incident.sanitizedTelemetry.latencyMs:1800\",\n    \"incident.healthBefore:degraded\"\n  ],\n  \"rationale\": \"장애 상태는 완전한 중단(outage)이 아닌 지연 및 간헐적 오류에 의한 성능 저하(degraded) 상태이므로, 비용 효율적이고 안정적인 rpc-recovery-standard 오퍼가 상황에 가장 적합하여 선택되었습니다.\",\n  \"confidence\": 0.95\n}"
+      },
+      "decision": {
+        "diagnosis": "주 Solana RPC 서비스(primary-solana-rpc)에서 UPSTREAM_TIMEOUT 및 HTTP 503 에러가 감지되었으며, 45%의 실패율과 1800ms의 높은 지연 시간으로 인해 서비스가 저하(degraded) 상태에 도달했습니다.",
+        "requiredCapability": "solana-rpc-health",
+        "selectedOfferId": "rpc-recovery-standard",
+        "rejectedOfferIds": [
+          "rpc-recovery-emergency"
+        ],
+        "evidenceRefs": [
+          "incident.sanitizedTelemetry.errorClass:UPSTREAM_TIMEOUT",
+          "incident.sanitizedTelemetry.statusCode:503",
+          "incident.sanitizedTelemetry.failureRate:0.45",
+          "incident.sanitizedTelemetry.latencyMs:1800",
+          "incident.healthBefore:degraded"
+        ],
+        "rationale": "장애 상태는 완전한 중단(outage)이 아닌 지연 및 간헐적 오류에 의한 성능 저하(degraded) 상태이므로, 비용 효율적이고 안정적인 rpc-recovery-standard 오퍼가 상황에 가장 적합하여 선택되었습니다.",
+        "confidence": 0.95
+      },
+      "capturedAt": "2026-10-21T21:42:43.187Z"
+    },
+    "counterfactual": {
+      "modelInput": {
+        "incident": {
+          "id": "incident-rpc-20261022-a27f3f19-overcap",
+          "service": "primary-solana-rpc",
+          "signal": "dependency-degraded",
+          "observedAt": "2026-10-21T21:42:36.394Z",
+          "healthBefore": "down",
+          "sanitizedTelemetry": {
+            "errorClass": "UPSTREAM_OUTAGE",
+            "statusCode": 503,
+            "latencyMs": 12000,
+            "failureRate": 1,
+            "redactedMessage": "Injected Devnet RPC outage scenario"
+          },
+          "redactionReportHash": "sha256:e727df361ea9aa819f053fafee741a9ad1f46bb633aaf8a0b17fb7799debf19d"
+        },
+        "offers": [
+          {
+            "offerId": "rpc-recovery-standard",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "15000",
+            "latencyMs": 180,
+            "health": "available",
+            "untrustedDescription": "Cost-efficient stable failover for degraded RPC latency and intermittent errors."
+          },
+          {
+            "offerId": "rpc-recovery-emergency",
+            "capability": "solana-rpc-health",
+            "priceBaseUnits": "25000",
+            "latencyMs": 30,
+            "health": "available",
+            "untrustedDescription": "Premium emergency failover for a complete RPC outage requiring the fastest recovery."
+          }
+        ]
+      },
+      "generation": {
+        "mode": "live-gemini",
+        "provider": "google-genai",
+        "requestedModel": "gemini-3.8-flash",
+        "modelVersion": "gemini-3.8-flash",
+        "responseId": "2jHZaqTzJf6Lx9gPucfTiQs",
+        "rawText": "{\n  \"diagnosis\": \"주 Solana RPC 서비스에서 503 상태 코드, 100% 실패율 및 12,000ms의 극단적인 지연 시간을 동반한 완전한 업스트림 장애(UPSTREAM_OUTAGE)가 발생하여 서비스가 중단되었습니다.\",\n  \"requiredCapability\": \"solana-rpc-health\",\n  \"selectedOfferId\": \"rpc-recovery-emergency\",\n  \"rejectedOfferIds\": [\"rpc-recovery-standard\"],\n  \"evidenceRefs\": [\n    \"incident.sanitizedTelemetry.errorClass\",\n    \"incident.sanitizedTelemetry.statusCode\",\n    \"incident.sanitizedTelemetry.failureRate\",\n    \"incident.sanitizedTelemetry.latencyMs\",\n    \"incident.healthBefore\"\n  ],\n  \"rationale\": \"서비스 상태가 'down'이고 실패율이 1.0(100%)에 달하는 심각한 업스트림 장애 상황이므로, 지연 시간이 가장 짧고(30ms) 긴급 복구에 최적화된 rpc-recovery-emergency 오퍼를 선정했습니다. rpc-recovery-standard는 지연 시간(180ms)이 상대적으로 길어 긴급 복구 상황에 부적합하므로 제외되었습니다.\",\n  \"confidence\": 0.95\n}"
+      },
+      "decision": {
+        "diagnosis": "주 Solana RPC 서비스에서 503 상태 코드, 100% 실패율 및 12,000ms의 극단적인 지연 시간을 동반한 완전한 업스트림 장애(UPSTREAM_OUTAGE)가 발생하여 서비스가 중단되었습니다.",
+        "requiredCapability": "solana-rpc-health",
+        "selectedOfferId": "rpc-recovery-emergency",
+        "rejectedOfferIds": [
+          "rpc-recovery-standard"
+        ],
+        "evidenceRefs": [
+          "incident.sanitizedTelemetry.errorClass",
+          "incident.sanitizedTelemetry.statusCode",
+          "incident.sanitizedTelemetry.failureRate",
+          "incident.sanitizedTelemetry.latencyMs",
+          "incident.healthBefore"
+        ],
+        "rationale": "서비스 상태가 'down'이고 실패율이 1.0(100%)에 달하는 심각한 업스트림 장애 상황이므로, 지연 시간이 가장 짧고(30ms) 긴급 복구에 최적화된 rpc-recovery-emergency 오퍼를 선정했습니다. rpc-recovery-standard는 지연 시간(180ms)이 상대적으로 길어 긴급 복구 상황에 부적합하므로 제외되었습니다.",
+        "confidence": 0.95
+      },
+      "capturedAt": "2026-10-21T21:42:54.470Z"
+    }
+  }
+}

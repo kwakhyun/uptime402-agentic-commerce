@@ -1,24 +1,41 @@
 # Uptime402
 
-현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 화면의 실시간 진단은 입력한 장애 지표로 Gemini를 호출하고 A2A 공급자의 서명된 견적 두 개를 비교한다. 구매나 결제는 실행하지 않는다. 별도의 기록 재생 화면과 아래 도식의 `gemini-2.5-flash`는 과거 결제 당시 모델을 그대로 나타낸다.
+현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 화면의 실시간 진단은 입력한 장애 지표로 Gemini를 호출하고 A2A 공급자의 서명된 견적 두 개를 비교한다. 구매나 결제는 실행하지 않는다. 새 구매 RPC 증거도 Gemini 3.8 Flash로 생성했다. `gemini-2.5-flash`가 표시된 demo5 기록과 도식은 과거 실행을 설명한다.
 
 > **An outage does not wait for procurement.**
 
-Uptime402는 장애가 발생하면 Gemini로 원인을 진단하고, A2A로 받은 공급자 견적을 비교해 복구 리소스를 자동 구매하는 프로젝트입니다. 운영자가 미리 설정한 정책과 예산 안에서 x402와 Solana USDC로 결제하므로 건별 승인이나 브라우저 지갑 팝업이 필요하지 않습니다. 결제부터 리소스 전달, 라우트 활성화까지의 기록을 서로 연결해 검증할 수 있습니다.
+Uptime402는 장애가 발생하면 Gemini로 원인을 진단하고, A2A로 받은 공급자 견적을 비교해 복구 리소스를 자동 구매하는 프로젝트입니다. 운영자가 미리 설정한 정책과 예산 안에서 x402와 Solana USDC로 결제하므로 건별 승인이나 브라우저 지갑 팝업이 필요하지 않습니다. 결제부터 리소스 전달, 구매한 RPC의 정상 응답까지의 기록을 서로 연결해 검증할 수 있습니다.
 
 이 저장소에는 **실제 Solana Devnet USDC 결제, 세 Cloud Run 서비스의 권한 분리, Firestore 트랜잭션, Gemini의 견적 선택, A2A 통신, 서명 영수증, 정책 위반 요청의 자동 거절**을 구현한 코드와 검증 기록이 있습니다. B2B 에이전트 간 자동 거래를 다룬 포트폴리오용 참고 구현입니다.
+
+## 2026-10-22 구매 RPC 검증
+
+Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택했고, 기존 지갑에서 `0.015 USDC`(`15000` base units)를 결제했다. 구매한 RPC에서 `getHealth=ok`와 Devnet genesis 일치를 확인하고 서명된 복구 결과와 예산 commit까지 완료했다. 판단 기록부터 복구까지 **7.026초**, 실제 두 RPC 호출은 **314.6ms**였다.
+
+공식 Solana Devnet을 upstream으로 사용하는 자체 공급자 RPC 릴레이의 10분 접근권이다. 허용 메서드는 `getHealth`, `getGenesisHash`이며 입력 장애는 주입한 시나리오다. 운영 환경 전체 장애나 외부 상용 RPC 구독을 검증한 것으로 설명하지 않는다.
+
+- 성공 거래: `jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS` — [Solana Explorer](https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet)
+- 정산: `finalized`, slot `513662003`, payer `-15000`, payee `+15000` base units.
+- 한도 초과 `25000 > 20000`과 nonce 재사용을 자동 거절했다. 두 요청 모두 추가 거래가 없다.
+- 새 evidence SHA-256: `c3524b10e841f57f9ab4bcbe32cbfccbce74b7081c8e5ba4d9cdcb1a9627781f`
+- 새 verification report SHA-256: `10c9fcf7b2206039960fb14281a99cec1afa0f8de2e973905147a60dd8d0441d`
+- 기존 demo5 원본 두 파일과 과거 결제 증거는 그대로 보존했다.
+
+첫 검증 거래도 0.015 Devnet USDC로 정산됐으나, 접근권 만료와 견적 만료를 같아야 한다고 검사하는 오류로 복구 단계가 거절됐다. 해당 기록을 보존하고 만료 검사를 수정한 뒤 별도 실행에서 위 결과를 얻었다. **이번 작업의 새 Devnet 결제는 총 2건, 0.030 USDC**다. 첫 거래를 재결제하거나 실패를 성공으로 표시하지 않았다.
+
+상세 증거와 실패 경위는 [검증 기록](docs/RPC_RECOVERY_2026-10-22.md)에서 확인한다.
 
 ## 바로 보기
 
 - [Live mission control](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app) — 로그인 없이 실제 진단, 견적 비교와 기존 결제 기록 재생
-- [Demo video](https://www.youtube.com/watch?v=jwJRfs-NRZY) — 한국어 내레이션으로 전체 흐름 설명
+- [과거 demo5 영상](https://www.youtube.com/watch?v=jwJRfs-NRZY) — 당시 결제 흐름을 설명하는 기록
 - [Solana Explorer transaction](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet)
-- [Payment evidence](artifacts/payment-evidence.json) · [Verification report](artifacts/verification-report.json) · [Current replay deployment evidence](artifacts/portfolio-deployment/manifest.json)
-- [Architecture](docs/ARCHITECTURE.md) · [Presentation deck](submission/Uptime402_Deck.pdf) · [Build status](docs/BUILD_STATUS.md)
+- [새 Payment evidence](artifacts/runs/rpc-recovery-2026-10-22/payment-evidence.json) · [새 Verification report](artifacts/runs/rpc-recovery-2026-10-22/verification-report.json) · [Current replay deployment evidence](artifacts/portfolio-deployment/manifest.json)
+- [Architecture](docs/ARCHITECTURE.md) · [과거 제출 deck](submission/Uptime402_Deck.pdf) · [Build status](docs/BUILD_STATUS.md)
 
-## 검증된 결과
+## 보존된 demo5 결과
 
-Solana Devnet 데모에서 다음 결과를 확인했습니다. 화면에 표시된 `9.340초`는 Gemini 판단 기록부터 라우트 활성화 확인까지의 시간입니다.
+과거 demo5에서는 다음 결과를 확인했습니다. 당시 `9.340초`는 Gemini 판단 기록부터 라우트 활성화 확인까지의 시간입니다.
 
 | Signal | Verified result |
 |---|---|
@@ -69,13 +86,13 @@ Uptime402의 목표는 다음과 같습니다.
 7. 결제 실행기는 x402 결제 데이터에 자동 서명해 control plane에 반환합니다. 이때 온체인 전송을 먼저 실행하지 않습니다.
 8. 구매자가 같은 요청에 `PAYMENT-SIGNATURE`를 첨부해 다시 보내면 공급자와 결제 중개자가 검증과 정산을 처리합니다.
 9. 정산이 확인된 뒤에만 공급자가 HTTP `200` 응답으로 복구 리소스와 서명 영수증을 반환합니다.
-10. Control plane은 영수증을 검증하고 리소스를 적용한 뒤 상태 확인을 거쳐 예약된 예산의 사용을 확정합니다. 당시 확인 범위는 Firestore 라우트 활성화까지입니다.
+10. Control plane은 영수증을 검증하고 리소스를 적용한 뒤 상태 확인을 거쳐 예약된 예산의 사용을 확정합니다. 새 번들은 구매한 RPC의 getHealth와 getGenesisHash 응답도 검증합니다.
 11. 같은 운영자 실행에서 한도 초과 요청과 nonce 재사용을 시도해 트랜잭션 없이 거절되는지도 기록합니다.
 
 ## 아키텍처
 
 아래 다이어그램은 `finalist-demo-5` 당시의 결제와 복구 흐름입니다. 현재 공개
-화면의 기록 재생 영역은 해당 증거의 해시를 검증합니다. 상단 실시간 진단은 Gemini와
+화면의 기록 재생 영역은 새 RPC 번들의 증거 해시를 검증합니다. 상단 실시간 진단은 Gemini와
 A2A 공급자를 호출하며, Firestore와 결제 실행기, 서명 키에는 접근하지 않습니다.
 
 ```mermaid

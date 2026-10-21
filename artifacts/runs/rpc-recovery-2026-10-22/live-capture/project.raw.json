@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "project",
+  "capturedAt": "2026-10-21T21:44:10.961Z",
+  "payloadHash": "sha256:99ec2772b66150b73f459484fd02767c1be382c87e761d1afdbf34abe743d76c",
+  "payload": {
+    "name": "Uptime402",
+    "networkTarget": "Solana Devnet",
+    "assetTarget": "USDC",
+    "deployment": "live",
+    "liveUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+    "deploymentArtifact": "cloudbuild.yaml",
+    "projectIamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/project-iam.json",
+    "projectIamPolicyArtifactSha256": "sha256:325cefac395543db7c14833a539a5e7958e1795767d3988c65bbe4d4ad216f2b",
+    "deckPdf": "submission/Uptime402_Deck.pdf",
+    "demoVideoUrl": "https://www.youtube.com/watch?v=jwJRfs-NRZY",
+    "demoVideoDurationSeconds": 165,
+    "services": [
+      {
+        "role": "control-plane",
+        "url": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+        "healthUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/api/health",
+        "public": true,
+        "serviceAccount": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "private/rpc-recovery-2026-10-22/deployment/control-plane.service.yaml",
+        "serviceDescribeArtifact": "private/rpc-recovery-2026-10-22/deployment/control-plane-service.json",
+        "serviceDescribeArtifactSha256": "sha256:b02ed2b4fe2a0109640f07b6fe12686dbf6a983aedac8561a897903eb0da8f63",
+        "iamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/control-plane-iam.json",
+        "iamPolicyArtifactSha256": "sha256:9c8087a4a52140dd117e56900fc3322609c030c729d2e2170836823995a45878"
+      },
+      {
+        "role": "payment-executor",
+        "url": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app",
+        "public": false,
+        "iamProtected": true,
+        "audience": "https://uptime402-payment-executor-1065649463621.asia-northeast3.run.app",
+        "serviceAccount": "uptime402-executor@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "private/rpc-recovery-2026-10-22/deployment/payment-executor.service.yaml",
+        "serviceDescribeArtifact": "private/rpc-recovery-2026-10-22/deployment/payment-executor-service.json",
+        "serviceDescribeArtifactSha256": "sha256:1d57707cebef8563b0a8c5d5e64f212d79d95f61e4e99ac985909642d817011e",
+        "iamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/payment-executor-iam.json",
+        "iamPolicyArtifactSha256": "sha256:3fe8f0fe471115e4a2883cb92509844dd3d12485e44e6109b6b24cdfc2833824",
+        "signerSecretResource": "projects/uptime402-hack-260803/secrets/uptime402-executor-signer/versions/1",
+        "secretIamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/executor-signer-iam.json",
+        "secretIamPolicyArtifactSha256": "sha256:edadb0b47f343f024a871b2482867c6ce9f84c78ab1686041fc01c0710ea56a8"
+      },
+      {
+        "role": "vendor-agent",
+        "url": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app",
+        "healthUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/health",
+        "public": true,
+        "serviceAccount": "uptime402-vendor@uptime402-hack-260803.iam.gserviceaccount.com",
+        "deploymentArtifact": "private/rpc-recovery-2026-10-22/deployment/vendor-agent.service.yaml",
+        "serviceDescribeArtifact": "private/rpc-recovery-2026-10-22/deployment/vendor-agent-service.json",
+        "serviceDescribeArtifactSha256": "sha256:c1a8361bc52f9d044468122d76c79c816958d2cad22711bbd7fcdc17a475011c",
+        "iamPolicyArtifact": "private/rpc-recovery-2026-10-22/deployment/vendor-agent-iam.json",
+        "iamPolicyArtifactSha256": "sha256:0593d855fe4225f81c268dc13fe1befbc3e545bc54647ccfafdb1502aa726471"
+      }
+    ]
+  }
+}

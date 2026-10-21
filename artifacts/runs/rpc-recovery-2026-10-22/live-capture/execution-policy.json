@@ -1,0 +1,32 @@
+{
+  "id": "policy-finalist-demo-1",
+  "version": 1,
+  "network": {
+    "clusterLabel": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "x402NetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    "sdkNetworkId": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"
+  },
+  "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  "assetDecimals": 6,
+  "executorPublicKey": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+  "feePayer": "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+  "maxNetworkFeeLamports": "100000",
+  "allowedProgramIds": [
+    "ComputeBudget111111111111111111111111111111",
+    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+  ],
+  "allowedAccountRules": [
+    "CKPKJWNdJEqa81x7CkZ14BVPiY6y16Sxs7owznqtWYp5",
+    "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+    "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+    "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+    "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J"
+  ],
+  "allowedFacilitatorOrigins": [
+    "https://x402.org"
+  ],
+  "maxResponseBytes": 1048576
+}

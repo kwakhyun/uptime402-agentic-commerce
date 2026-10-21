@@ -1,6 +1,24 @@
 # Uptime402 build status
 
-Last updated: `2026-10-21T20:51:21.661271+00:00`
+## 2026-10-22 구매 RPC 검증
+
+Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택했고, 기존 지갑에서 `0.015 USDC`(`15000` base units)를 결제했다. 구매한 RPC에서 `getHealth=ok`와 Devnet genesis 일치를 확인하고 서명된 복구 결과와 예산 commit까지 완료했다. 판단 기록부터 복구까지 **7.026초**, 실제 두 RPC 호출은 **314.6ms**였다.
+
+공식 Solana Devnet을 upstream으로 사용하는 자체 공급자 RPC 릴레이의 10분 접근권이다. 허용 메서드는 `getHealth`, `getGenesisHash`이며 입력 장애는 주입한 시나리오다. 운영 환경 전체 장애나 외부 상용 RPC 구독을 검증한 것으로 설명하지 않는다.
+
+- 성공 거래: `jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS` — [Solana Explorer](https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet)
+- 정산: `finalized`, slot `513662003`, payer `-15000`, payee `+15000` base units.
+- 한도 초과 `25000 > 20000`과 nonce 재사용을 자동 거절했다. 두 요청 모두 추가 거래가 없다.
+- 새 evidence SHA-256: `c3524b10e841f57f9ab4bcbe32cbfccbce74b7081c8e5ba4d9cdcb1a9627781f`
+- 새 verification report SHA-256: `10c9fcf7b2206039960fb14281a99cec1afa0f8de2e973905147a60dd8d0441d`
+- 기존 demo5 원본 두 파일과 과거 결제 증거는 그대로 보존했다.
+
+첫 검증 거래도 0.015 Devnet USDC로 정산됐으나, 접근권 만료와 견적 만료를 같아야 한다고 검사하는 오류로 복구 단계가 거절됐다. 해당 기록을 보존하고 만료 검사를 수정한 뒤 별도 실행에서 위 결과를 얻었다. **이번 작업의 새 Devnet 결제는 총 2건, 0.030 USDC**다. 첫 거래를 재결제하거나 실패를 성공으로 표시하지 않았다.
+
+상세: [새 RPC 검증 기록](RPC_RECOVERY_2026-10-22.md). 아래 과거 기록과 영상 수치는 당시 실행에만 적용한다.
+
+
+Last updated: `2026-10-21T21:45:03.839Z`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
@@ -37,7 +55,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 | Public payment-free diagnosis | implemented | local | live | verified | 2026-10-21T20:24:52.296Z | `docs/verification/public-diagnosis.json`; `artifacts/portfolio-deployment/manifest.json`; `tests/public-diagnosis.test.ts` | P0 | 실제 모델 진단, 서명된 A2A 견적 비교; 결제 API 분리 |
 | Gemini 3.8 Flash default | implemented | local | local | verified | 2026-10-21T19:55:53.946Z | `docs/verification/gemini-3.8-flash.json`; `tests/control-plane.test.ts` | P0 | 실제 Vertex 응답 modelVersion 확인, standard/emergency 조건별 선택 확인. 공개 진단은 모델을 호출하고 과거 결제 기록 재생은 호출하지 않음 |
 | Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/payments.test.ts`; `tests/persistence-firestore.test.ts` | P0 | paid 응답과 즉시 재조회 동시 유실, facilitator 응답 유실 후 무결제 재개; 기존 health/commit/audit 복구와 예산 snapshot 유지 |
-| Paid-route RPC health probe | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/recovery-rpc-probe.test.ts`; `tests/dependency-health.test.ts` | P0 | pinned offer/resource/RPC, getHealth 및 Devnet genesis 확인. 실제 구매 endpoint 설정과 live 검증은 별도 필요 |
+| Paid-route RPC health probe | implemented | devnet | live | verified | 2026-10-21T21:45:03.839Z | `artifacts/runs/rpc-recovery-2026-10-22/live-capture/rpc-recovery-proof.json`; `docs/RPC_RECOVERY_2026-10-22.md` | P0 | 실제 구매 RPC에서 getHealth=ok, Devnet genesis 일치. IAM과 receipt_signed 결제 확인 후에만 접근. |
 | Evidence scope, comparison UX and replay performance | implemented | local | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `tests/mission-control-dom.test.ts`; `docs/REVIEW_2026-09-05.md` | P0 | 9.340초 측정 구간 정정, 미검증 성공 표현 제거, 실제 조건 비교, 상세 지연 로딩, 최대 4개 캐시. 한국어 문구와 desktop/mobile 공개 URL 검증 |
 | Maintenance dependency patches | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `package.json`; `pnpm-lock.yaml`; 아래 2026-10-22 검증 기록 | P0 | Next.js 16.3.8 및 6개 전이 의존성 패치; production audit 0건; frozen lockfile 설치, lint/typecheck/build 통과 |
 | Structured telemetry and vendor-text redaction | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane.test.ts` | P0 | 중첩 JSON 필드 허용 목록, 인증 헤더, IPv6, URL 사용자정보와 쿼리 제거; 모델 입력과 캡처에 원문이 남지 않음을 검사 |

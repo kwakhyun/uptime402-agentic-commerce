@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "nonce": "4bc5986f7756d4303ebf7b5bebbd14e97c5d6392d02a202be6de8159f19db6fd",
+  "producedAt": "2026-10-21T21:45:03.839Z",
+  "evidenceSha256": "sha256:c3524b10e841f57f9ab4bcbe32cbfccbce74b7081c8e5ba4d9cdcb1a9627781f",
+  "rpcHosts": {
+    "primary": "api.devnet.solana.com"
+  },
+  "checks": {
+    "geminiRuntime": true,
+    "a2aRemoteService": true,
+    "autonomousNoPrompt": true,
+    "policyAllow": true,
+    "policyDeny": true,
+    "recoveryOutcome": true,
+    "x402RoundTrip": true,
+    "offerSignature": true,
+    "fulfillmentReceiptSignature": true,
+    "cloudRunIdentityBoundary": true,
+    "executorUnauthenticatedDenied": true,
+    "signerSecretLeastPrivilege": true,
+    "urlCanonicalization": true
+  }
+}

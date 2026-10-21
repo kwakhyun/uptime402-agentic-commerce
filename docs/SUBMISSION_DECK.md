@@ -1,4 +1,22 @@
-# Uptime402 — 9-slide submission deck source
+# Uptime402 — 보존된 제출 deck과 추가 검증
+
+## 2026-10-22 구매 RPC 검증
+
+Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택했고, 기존 지갑에서 `0.015 USDC`(`15000` base units)를 결제했다. 구매한 RPC에서 `getHealth=ok`와 Devnet genesis 일치를 확인하고 서명된 복구 결과와 예산 commit까지 완료했다. 판단 기록부터 복구까지 **7.026초**, 실제 두 RPC 호출은 **314.6ms**였다.
+
+공식 Solana Devnet을 upstream으로 사용하는 자체 공급자 RPC 릴레이의 10분 접근권이다. 허용 메서드는 `getHealth`, `getGenesisHash`이며 입력 장애는 주입한 시나리오다. 운영 환경 전체 장애나 외부 상용 RPC 구독을 검증한 것으로 설명하지 않는다.
+
+- 성공 거래: `jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS` — [Solana Explorer](https://explorer.solana.com/tx/jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS?cluster=devnet)
+- 정산: `finalized`, slot `513662003`, payer `-15000`, payee `+15000` base units.
+- 한도 초과 `25000 > 20000`과 nonce 재사용을 자동 거절했다. 두 요청 모두 추가 거래가 없다.
+- 새 evidence SHA-256: `c3524b10e841f57f9ab4bcbe32cbfccbce74b7081c8e5ba4d9cdcb1a9627781f`
+- 새 verification report SHA-256: `10c9fcf7b2206039960fb14281a99cec1afa0f8de2e973905147a60dd8d0441d`
+- 기존 demo5 원본 두 파일과 과거 결제 증거는 그대로 보존했다.
+
+첫 검증 거래도 0.015 Devnet USDC로 정산됐으나, 접근권 만료와 견적 만료를 같아야 한다고 검사하는 오류로 복구 단계가 거절됐다. 해당 기록을 보존하고 만료 검사를 수정한 뒤 별도 실행에서 위 결과를 얻었다. **이번 작업의 새 Devnet 결제는 총 2건, 0.030 USDC**다. 첫 거래를 재결제하거나 실패를 성공으로 표시하지 않았다.
+
+상세: [새 RPC 검증 기록](RPC_RECOVERY_2026-10-22.md). 아래 과거 기록과 영상 수치는 당시 실행에만 적용한다.
+
 
 Export target: `submission/Uptime402_Deck.pdf`. 아래 값은 `finalist-demo-5`의 `artifacts/payment-evidence.json`과 독립 `artifacts/verification-report.json`에서 가져왔다. 9-page PDF/PPTX는 이 실측값으로 재export했고 overflow, template fidelity, source render, final PDF render QA를 통과했다. 이 deck은 새 결제를 만들지 않는 judge-facing read-only replay이며, 165-second final walkthrough는 `https://www.youtube.com/watch?v=jwJRfs-NRZY`에 공개했다.
 

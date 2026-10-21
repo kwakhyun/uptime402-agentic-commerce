@@ -1,5 +1,8 @@
 # Artifact authority map
 
+현재 구매 RPC 증거: `artifacts/runs/rpc-recovery-2026-10-22/`. `payment-evidence.json`, `verification-report.json`, `live-capture/rpc-recovery-proof.json`이 성공 실행을 묶는다. `attempts/first-paid-recovery-incomplete.json`은 정산 후 복구 검사에서 거절된 첫 실행이다. 기존 root와 `final-deployment/`의 역사 증거는 변경하지 않았다.
+
+
 이 디렉터리의 파일은 모두 같은 증거 수준을 뜻하지 않습니다. 검토와 유지보수에서는 아래 순서를 사용합니다.
 
 ## 1. 보존된 실제 결제 증거

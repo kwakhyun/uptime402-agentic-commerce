@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1",
+  "verifiedAt": "2026-10-21T21:45:03.839Z",
+  "sourceCommit": "b2855e2a5190979ffb609d74924f484b6a667303",
+  "captureRevision": "uptime402-control-plane-00028-nsm",
+  "evidenceSha256": "sha256:c3524b10e841f57f9ab4bcbe32cbfccbce74b7081c8e5ba4d9cdcb1a9627781f",
+  "verificationReportSha256": "sha256:10c9fcf7b2206039960fb14281a99cec1afa0f8de2e973905147a60dd8d0441d",
+  "checks": {
+    "geminiRuntime": true,
+    "a2aRemoteService": true,
+    "autonomousNoPrompt": true,
+    "policyAllow": true,
+    "policyDeny": true,
+    "recoveryOutcome": true,
+    "x402RoundTrip": true,
+    "offerSignature": true,
+    "fulfillmentReceiptSignature": true,
+    "cloudRunIdentityBoundary": true,
+    "executorUnauthenticatedDenied": true,
+    "signerSecretLeastPrivilege": true,
+    "urlCanonicalization": true
+  },
+  "initialRpcProbe": {
+    "healthy": true,
+    "observedAt": "2026-10-21T21:42:50.212Z",
+    "routeActivationId": "d193e7b99cf98bbe58c13549f594ad960e447c1516c885bdb3a712a302183cab",
+    "statusCode": 200,
+    "latencyMs": 532.3039649999992,
+    "details": {
+      "kind": "solana_rpc_probe",
+      "state": "active",
+      "offerId": "rpc-recovery-standard",
+      "endpointHash": "sha256:5504a9468ce3a825a67093621b46a5b46f42ff643204f91a492ff71719961671",
+      "responseHash": "sha256:c71601b5963e7b575da248bbfc1828171775d3461c624d01a19edc1e4ebd319d",
+      "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "latencyMs": 314.5997209999987,
+      "observedAt": "2026-10-21T21:42:50.207Z",
+      "rpcEndpoint": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery-rpc",
+      "authentication": "google-iam",
+      "rpcResponsesJson": "[{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"ok\"},{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG\"}]"
+    }
+  },
+  "reusedPaidAccess": {
+    "observedAt": "2026-10-21T21:45:00.187Z",
+    "status": 200,
+    "body": {
+      "status": "healthy",
+      "routeActivationId": "d193e7b99cf98bbe58c13549f594ad960e447c1516c885bdb3a712a302183cab",
+      "details": {
+        "kind": "solana_rpc_probe",
+        "endpointHash": "sha256:5504a9468ce3a825a67093621b46a5b46f42ff643204f91a492ff71719961671",
+        "responseHash": "sha256:c71601b5963e7b575da248bbfc1828171775d3461c624d01a19edc1e4ebd319d",
+        "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+        "latencyMs": 373.653083000012,
+        "rpcEndpoint": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery-rpc",
+        "rpcResponsesJson": "[{\"id\":0,\"jsonrpc\":\"2.0\",\"result\":\"ok\"},{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG\"}]",
+        "authentication": "google-iam",
+        "observedAt": "2026-10-21T21:45:00.177Z",
+        "state": "active",
+        "offerId": "rpc-recovery-standard"
+      }
+    }
+  },
+  "unauthenticatedRpc": {
+    "observedAt": "2026-10-21T21:27:19.543Z",
+    "rpcUnauthenticatedStatus": 401,
+    "body": {
+      "error": "iam_token_required"
+    },
+    "agentCardUnchanged": true
+  },
+  "newPaymentCount": 2,
+  "newPaymentTotalBaseUnits": "30000",
+  "firstPaymentRecoveryVerified": false,
+  "successfulPayment": "jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS",
+  "physicalMobileDeviceTested": false
+}

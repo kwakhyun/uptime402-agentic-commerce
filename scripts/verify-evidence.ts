@@ -1891,7 +1891,7 @@ async function readIgnoredLocalRpcEnvironment(root: string): Promise<Partial<Rec
 }
 
 async function main(): Promise<void> {
-  const bundleId = process.env.UPTIME402_EVIDENCE_BUNDLE;
+  const bundleId = process.env.UPTIME402_EVIDENCE_BUNDLE?.trim() || undefined;
   if (bundleId !== undefined && !/^[a-z0-9][a-z0-9-]{0,63}$/.test(bundleId)) throw new Error("Invalid evidence bundle ID");
   const artifactDirectory = bundleId ? `artifacts/runs/${bundleId}` : "artifacts";
   const local = await readIgnoredLocalRpcEnvironment(ROOT);
