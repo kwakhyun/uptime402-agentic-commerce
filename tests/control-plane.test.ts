@@ -397,11 +397,16 @@ describe("control-plane server-only orchestration", () => {
     });
   });
 
-  it("disables thinking so the bounded structured decision budget is reserved for JSON", async () => {
+  it.each([
+    ["gemini-3.8-flash", { thinkingLevel: "LOW" }],
+    ["gemini-2.5-flash", { thinkingBudget: 0 }],
+  ])("uses compatible bounded thinking for %s", async (modelId, thinkingConfig) => {
     let requestConfig: unknown;
+    let requestedModel: string | undefined;
     const fakeClient = {
       models: {
-        async generateContent(input: { config?: unknown }) {
+        async generateContent(input: { model: string; config?: unknown }) {
+          requestedModel = input.model;
           requestConfig = input.config;
           return {
             text: JSON.stringify({
@@ -413,7 +418,7 @@ describe("control-plane server-only orchestration", () => {
               rationale: "The lower-latency supplied offer matches the incident.",
               confidence: 0.91,
             }),
-            modelVersion: "gemini-2.5-flash",
+            modelVersion: modelId,
             responseId: "response-structured-budget",
           };
         },
@@ -421,11 +426,13 @@ describe("control-plane server-only orchestration", () => {
     };
     await orchestrateRecoveryDecision({
       request: request(1),
-      model: new GoogleGenAiRecoveryDecisionModel(fakeClient as never),
+      model: new GoogleGenAiRecoveryDecisionModel(fakeClient as never, modelId),
       now: () => NOW,
     });
+    expect(requestedModel).toBe(modelId);
+    expect(DEFAULT_GEMINI_MODEL).toBe("gemini-3.8-flash");
     expect(requestConfig).toMatchObject({
-      thinkingConfig: { thinkingBudget: 0 },
+      thinkingConfig,
       maxOutputTokens: 2_048,
       responseMimeType: "application/json",
     });

@@ -1,5 +1,7 @@
 # Uptime402 architecture
 
+현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 UI는 저장된 증거를 재생하며 모델을 호출하지 않는다. 아래 기존 결제 증거와 도식의 `gemini-2.5-flash`는 당시 사용한 모델을 그대로 나타낸다.
+
 이 문서는 **실행 당시 P0 capture 경계**와 **현재 배포된 hash-pinned final evidence stage**를 분리한다. 상태의 최종 기준은 [BUILD_STATUS.md](BUILD_STATUS.md)다. 현재 public UI는 `final / DEVNET VERIFIED` read-only replay이며 새 incident나 결제를 생성하지 않는다.
 
 ## 현재 구현·배포된 경계

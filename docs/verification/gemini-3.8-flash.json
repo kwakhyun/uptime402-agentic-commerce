@@ -1,0 +1,20 @@
+{
+  "verifiedAt": "2026-10-21T19:55:53.946Z",
+  "notPaymentEvidence": true,
+  "results": [
+    {
+      "scenario": "baseline",
+      "requestedModel": "gemini-3.8-flash",
+      "modelVersion": "gemini-3.8-flash",
+      "selectedOfferId": "rpc-recovery-standard",
+      "responseId": "uRjZavOJCaai0ckPmpuloAE"
+    },
+    {
+      "scenario": "counterfactual",
+      "requestedModel": "gemini-3.8-flash",
+      "modelVersion": "gemini-3.8-flash",
+      "selectedOfferId": "rpc-recovery-emergency",
+      "responseId": "xxjZarScFqai0ckPmpuloAE"
+    }
+  ]
+}

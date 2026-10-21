@@ -6,6 +6,8 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 ## 현재 체크포인트
 
+- 2026-10-22 추가 승인: 기본 모델을 Gemini 3.8 Flash로 변경하고 최신 main의 공개 Cloud Run replay를 배포한다. 별도 마감은 없으며 모델 호환성 검증, main 반영, Cloud Build와 배포, 공개 URL 확인 순으로 진행한다. 30분 단위로 진행 상태를 점검한다. 기존 결제 증거와 결제 서비스, 읽기 전용 경계는 보존한다.
+
 - 2026-10-22 사용자 승인 범위: 필수 개선점 네 가지를 수정하고 테스트한다. 별도 마감은 없다. 복구와 운영자 기록, 민감정보 제거와 의존성 패치, 전체 검증 순으로 진행했다. 검증을 30분 단위로 점검해 완료했다. 이번 변경의 상태는 `implementation=implemented`, `evidence=local`, `deployment=local`, `verification=verified`, `priority=P0`이며 `lastVerifiedAt=2026-10-22T04:06:02+09:00`이다. 근거는 아래 수정 및 검증 기록에 연결했다. 기존 `artifacts/`를 보존하며 새 결제, 지갑 변경, 배포는 수행하지 않는다.
 
 - 2026-09-05 사용자 승인 범위: 한국어 문구 개선 후 전체 변경사항 커밋, main 푸시, 기존 공개 replay 배포를 완료했다. 별도 제출 마감은 없다. 새 결제 실행과 capture 권한 활성화는 이번 배포에 포함하지 않는다.
@@ -25,6 +27,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 | Integration | implementation | evidence | deployment | verification | lastVerifiedAt | evidenceRef | priority | Notes / blocker |
 |---|---|---|---|---|---|---|---|---|
+| Gemini 3.8 Flash default | implemented | local | local | verified | 2026-10-21T19:55:53.946Z | `docs/verification/gemini-3.8-flash.json`; `tests/control-plane.test.ts` | P0 | 실제 Vertex 응답 modelVersion 확인, standard/emergency 조건별 선택 확인. 무결제 모델 검증이며 공개 replay는 모델을 호출하지 않음 |
 | Payment continuation and atomic budget evidence | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane-live-flow.test.ts`; `tests/services-integration.test.ts`; `tests/payments.test.ts`; `tests/persistence-firestore.test.ts` | P0 | paid 응답과 즉시 재조회 동시 유실, facilitator 응답 유실 후 무결제 재개; 기존 health/commit/audit 복구와 예산 snapshot 유지 |
 | Paid-route RPC health probe | implemented | local | local | verified | 2026-09-05T20:53:43+09:00 | `tests/recovery-rpc-probe.test.ts`; `tests/dependency-health.test.ts` | P0 | pinned offer/resource/RPC, getHealth 및 Devnet genesis 확인. 실제 구매 endpoint 설정과 live 검증은 별도 필요 |
 | Evidence scope, comparison UX and replay performance | implemented | local | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `tests/mission-control-dom.test.ts`; `docs/REVIEW_2026-09-05.md` | P0 | 9.340초 측정 구간 정정, 미검증 성공 표현 제거, 실제 조건 비교, 상세 지연 로딩, 최대 4개 캐시. 한국어 문구와 desktop/mobile 공개 URL 검증 |

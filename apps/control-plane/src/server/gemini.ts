@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import {
   BaseUnitsSchema,
   IdentifierSchema,
@@ -11,7 +11,7 @@ import {
 } from "@uptime402/domain";
 import { z } from "zod";
 
-export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash" as const;
+export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash" as const;
 
 export const DecisionOfferProjectionSchema = z
   .object({
@@ -106,7 +106,9 @@ export class GoogleGenAiRecoveryDecisionModel implements RecoveryDecisionModel {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseJsonSchema: responseJsonSchema(parsed),
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: this.model.startsWith("gemini-2.5-")
+          ? { thinkingBudget: 0 }
+          : { thinkingLevel: ThinkingLevel.LOW },
         maxOutputTokens: 2_048,
       },
     });
