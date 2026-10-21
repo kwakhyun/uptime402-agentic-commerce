@@ -26,3 +26,11 @@ Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택
 [운영 절차](PAID_RPC_RUNBOOK.md)에 연결 설정, 재결제 방지, 별도 번들 검증 및 final 공개 배포 방법을 정리했다. 공개 진단과 견적 비교는 결제를 실행하지 않으며, 검증된 구매 기록만 재생한다. 당시의 10분 접근권이 만료된 뒤에도 영수증과 응답 증거는 보존된다.
 
 기존 제출 영상과 PDF/PPTX는 demo5를 설명하는 역사 기록이다. 새 결제의 영상으로 표시하지 않는다. 현재 배포의 source, build, revision과 권한 회수 근거는 [BUILD_STATUS](BUILD_STATUS.md) 및 [deployment manifest](../artifacts/portfolio-deployment/manifest.json)를 따른다.
+
+## 2026-10-22 새 RPC 증거의 최종 공개 배포
+
+- Runtime source: `a752c708d17ba6e472cc72d48de39982fc16013b`. Cloud Build `740335a5-b962-4d89-ad2a-4f17758f2e74` (`global`), digest `sha256:e38f625364435e8634dd28aa4a08ca1dc02da808092a52c39c7bda673bbd17db`.
+- Control revision: `uptime402-control-plane-00029-jsh`, traffic 100%. Vendor `uptime402-vendor-agent-00012-n6w`, executor `uptime402-payment-executor-00013-rpc`.
+- 새 RPC bundle hash pin, mutation 404, executor unauthenticated 403, UI/health/vendor 200을 `2026-10-21T21:59:27.023Z`에 확인했다. 임시 control Firestore, executor invoke와 outcome secret 권한을 회수했고 예측 전용 custom role은 유지했다.
+
+최종 공개 화면도 검증했다. 390px 기본 장애 조건은 standard, 320px 심한 장애 조건은 emergency를 선택했고 두 견적을 표시했다. 새 RPC 증거, receipt/outcome 상세 로딩과 기록 재생 완료를 확인했다. 추가 결제와 콘솔 오류는 없다. 실제 모바일 하드웨어 검증은 포함하지 않는다. [브라우저 검증 기록](verification/paid-rpc-deployment-ui.json).

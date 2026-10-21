@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1",
+  "verifiedAt": "2026-10-21T22:05:05.400626Z",
+  "sourceCommit": "a752c708d17ba6e472cc72d48de39982fc16013b",
+  "controlRevision": "uptime402-control-plane-00029-jsh",
+  "url": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
+  "deploymentManifest": "artifacts/portfolio-deployment/manifest.json",
+  "evidenceBundle": "rpc-recovery-2026-10-22",
+  "method": "in-app browser viewport verification",
+  "physicalMobileDeviceTested": false,
+  "model": "gemini-3.8-flash",
+  "cases": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "failureRatePercent": 45,
+      "latencyMs": 1800,
+      "selectedOfferId": "rpc-recovery-standard",
+      "offerCount": 2,
+      "horizontalOverflow": false,
+      "inputFontSize": "16px",
+      "renderedModelResultAt": "2026-10-21T22:00:43Z"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 740
+      },
+      "failureRatePercent": 100,
+      "latencyMs": 12000,
+      "selectedOfferId": "rpc-recovery-emergency",
+      "offerCount": 2,
+      "horizontalOverflow": false,
+      "renderedModelResultAt": "2026-10-21T22:01:44Z"
+    }
+  ],
+  "checks": {
+    "verifiedRecoveryTimeSeconds": 7.026,
+    "paidRpcHealth": "ok",
+    "paidRpcGenesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "displayedRpcLatencyMs": 315,
+    "receiptVerified": true,
+    "outcomeVerified": true,
+    "lazyEvidenceLoaded": true,
+    "replayCompleted": true,
+    "consoleErrors": 0,
+    "viewportReset": true,
+    "publicMutationStatus": 404,
+    "executorUnauthenticatedStatus": 403,
+    "temporaryCapturePermissionsRemoved": true
+  },
+  "newPaymentsDuringBrowserVerification": 0,
+  "historicalEvidence": {
+    "checkedOriginalArtifactCount": 52,
+    "unchangedArtifactCount": 50,
+    "changedNonPaymentFiles": [
+      "artifacts/INDEX.md",
+      "artifacts/portfolio-deployment/manifest.json"
+    ],
+    "paymentEvidenceSha256": "sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
+  },
+  "screenshots": [
+    {
+      "path": "docs/verification/paid-rpc-diagnosis-390.png",
+      "sha256": "sha256:e174dd1e9f0b886a7538a61504f835a77c69977805763f674a535741b0e44c3c"
+    },
+    {
+      "path": "docs/verification/paid-rpc-diagnosis-320.png",
+      "sha256": "sha256:8c9b48398bf892cca9f227d4fc3047e59d2047e51be1e1c63713853558a9b5b0"
+    },
+    {
+      "path": "docs/verification/paid-rpc-recovery-390.png",
+      "sha256": "sha256:a4c845a457529d16778e674b25befe31659389670ec5fa8aef407d871b8528a1"
+    }
+  ]
+}

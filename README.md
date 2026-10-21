@@ -29,7 +29,7 @@ Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택
 
 - [Live mission control](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app) — 로그인 없이 실제 진단, 견적 비교와 기존 결제 기록 재생
 - [과거 demo5 영상](https://www.youtube.com/watch?v=jwJRfs-NRZY) — 당시 결제 흐름을 설명하는 기록
-- [Solana Explorer transaction](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet)
+- [과거 demo5 거래](https://explorer.solana.com/tx/4P7YWm9Rt7w4MKbRvmfj3sjt5SW1NUfra7xyT9zUMD9uBsby4f3JC8LgYKUFPE1GXN24SoK8ABRx5YSf1HQAKtmZ?cluster=devnet)
 - [새 Payment evidence](artifacts/runs/rpc-recovery-2026-10-22/payment-evidence.json) · [새 Verification report](artifacts/runs/rpc-recovery-2026-10-22/verification-report.json) · [Current replay deployment evidence](artifacts/portfolio-deployment/manifest.json)
 - [Architecture](docs/ARCHITECTURE.md) · [과거 제출 deck](submission/Uptime402_Deck.pdf) · [Build status](docs/BUILD_STATUS.md)
 
@@ -61,9 +61,9 @@ Verification report SHA-256:
 b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e
 ```
 
-공개 UI의 `final` 단계에서는 이 두 파일의 SHA-256이 설정된 값과 일치하는지 확인합니다. 파일이 없거나 해시가 다르면 검증 완료 화면을 표시하지 않습니다. 기존 결제 기록 영역은 저장된 실행만 재생하며 새 결제를 만들지 않습니다. 상단의 실시간 진단은 별도로 입력한 장애 지표를 분석합니다.
+위 두 해시는 보존된 demo5 원본에 해당합니다. 현재 공개 UI의 `final` 단계는 상단 새 RPC 번들의 evidence와 report 해시를 고정하고 일치 여부를 확인합니다. 파일이 없거나 해시가 다르면 검증 완료 화면을 표시하지 않습니다. 기존 결제 기록 영역은 저장된 실행만 재생하며 새 결제를 만들지 않습니다. 상단의 실시간 진단은 별도로 입력한 장애 지표를 분석합니다.
 
-모바일 검증: 390px와 320px 화면에서 실제 Gemini 3.8 진단과 두 견적 비교를 실행했고, 430px 결과 배치도 확인했습니다. 구형 브라우저의 타임아웃 API 의존을 제거했습니다. 실제 iPhone/Android 단말 검증은 포함하지 않습니다. [검증 기록](docs/verification/mobile-diagnosis.json).
+새 배포의 모바일 검증: 390px 기본 조건은 standard, 320px 심한 장애 조건은 emergency를 선택했습니다. 실제 Gemini 3.8 진단과 두 견적 표시, 가로 넘침 없음, 새 RPC 증거와 상세 로딩, 기록 재생을 확인했습니다. 실제 iPhone/Android 단말 검증은 포함하지 않습니다. [최신 검증 기록](docs/verification/paid-rpc-deployment-ui.json), [이전 모바일 기록](docs/verification/mobile-diagnosis.json).
 
 ## 해결하려는 문제
 

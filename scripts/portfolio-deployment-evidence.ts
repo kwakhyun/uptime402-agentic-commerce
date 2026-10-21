@@ -35,6 +35,7 @@ type PortfolioDeploymentManifest = Readonly<{
   sourceCommit: string;
   evidenceBundle?: string;
   buildId: string;
+  buildRegion?: string;
   buildExportSha256: string;
   controlImageDigest: string;
   projectIamExportSha256: string;
@@ -339,9 +340,10 @@ function evidenceDirectory(bundle?: string): string {
   return bundle ? `artifacts/runs/${bundle}` : "artifacts";
 }
 
-async function capture(buildId: string, sourceCommit: string, evidenceBundle?: string): Promise<void> {
+async function capture(buildId: string, sourceCommit: string, evidenceBundle?: string, buildRegion = deploymentRegion): Promise<void> {
   if (!/^[0-9a-f]{40}$/u.test(sourceCommit)) throw new TypeError("source commit must be a full Git SHA");
   if (!/^[0-9a-f-]{20,64}$/u.test(buildId)) throw new TypeError("Cloud Build ID is invalid");
+  if (buildRegion !== "global" && buildRegion !== deploymentRegion) throw new TypeError("Unsupported Cloud Build region");
   const projectId = "uptime402-hack-260803";
   const region = deploymentRegion;
   awaitedPaymentEvidenceBytes = await readFile(resolve(root, evidenceDirectory(evidenceBundle), "payment-evidence.json"));
@@ -382,7 +384,7 @@ async function capture(buildId: string, sourceCommit: string, evidenceBundle?: s
   const build = await gcloudJson([
     "builds", "describe", buildId,
     `--project=${projectId}`,
-    `--region=${region}`,
+    `--region=${buildRegion}`,
   ]);
   if (build.status !== "SUCCESS") throw new Error("Portfolio Cloud Build is not successful");
   const imageDigest = controlImageDigest(build, sourceCommit);
@@ -448,6 +450,7 @@ async function capture(buildId: string, sourceCommit: string, evidenceBundle?: s
     sourceCommit,
     ...(evidenceBundle ? { evidenceBundle } : {}),
     buildId,
+    buildRegion,
     buildExportSha256: await writePrivateRawArtifact("cloud-build.json", build),
     controlImageDigest: imageDigest,
     projectIamExportSha256: await writePrivateRawArtifact("project.iam.json", projectIam),
@@ -497,6 +500,7 @@ async function verify(): Promise<void> {
   }
   if (
     !/^[0-9a-f]{40}$/u.test(manifest.sourceCommit) ||
+    (manifest.buildRegion !== undefined && manifest.buildRegion !== "global" && manifest.buildRegion !== deploymentRegion) ||
     !HASH.test(manifest.buildExportSha256) ||
     !HASH.test(manifest.projectIamExportSha256) ||
     !HASH.test(manifest.controlImageDigest) ||
@@ -559,7 +563,9 @@ if (mode === "capture") {
   if (!buildId || !sourceCommit) {
     throw new TypeError("capture requires --build-id=<id> and --source-commit=<full-sha>");
   }
-  await capture(buildId, sourceCommit, args.find(arg => arg.startsWith("--evidence-bundle="))?.slice("--evidence-bundle=".length));
+  await capture(buildId, sourceCommit,
+    args.find(arg => arg.startsWith("--evidence-bundle="))?.slice("--evidence-bundle=".length),
+    args.find(arg => arg.startsWith("--build-region="))?.slice("--build-region=".length));
 } else if (mode === "verify") {
   await verify();
 } else {

@@ -1,13 +1,10 @@
 # Cloud Run deployment contract
 
-이 디렉터리는 실제 demo5 `capture` 배포에 사용한 세 서비스 계약과, 같은 증거를
-hash-pin한 `final` revision으로 승격하는 절차를 함께 설명합니다. Capture 당시 raw
-Cloud Run/IAM exports는 `artifacts/live-capture/`에 보존돼 있고, 현재 public control UI는
-exact evidence/report hash를 고정한 `DEVNET VERIFIED` read-only final replay입니다.
+이 디렉터리는 세 서비스의 `capture` 계약과 검증된 번들을 hash-pin한 `final` 공개 배포 절차를 설명합니다. 현재 번들은 `artifacts/runs/rpc-recovery-2026-10-22/`이며, demo5 원본은 `artifacts/`에 보존합니다. Cloud Run/IAM 원본 export는 ignored `private/`에만 두고 공개 증거에는 경로와 해시를 기록합니다. 공개 화면은 검증된 기록 재생과 결제 없는 진단을 제공합니다.
 Template 파일 존재만으로 live 증거가 되는 것은 아니며, 새 image build·final 배포·IAM
 변경·Secret version 추가는 매번 승인된 GCP 범위와 fresh raw export로 다시 검증합니다.
 
-Demo5 capture 경계와 현재 portfolio replay 경계는 분리됩니다.
+결제를 실행하는 capture와 공개 final의 권한 경계는 다음과 같습니다. 최신 RPC capture는 CLI로 실행해 outcome key만 마운트하며, demo5 브라우저 실행에 쓰던 request/mandate secret은 사용하지 않습니다.
 
 | Service | Exposure | Service account | Secret mount |
 | --- | --- | --- | --- |
@@ -48,7 +45,7 @@ Control-plane evidence stage는 반드시 둘 중 하나입니다.
   manifest에서 hash env 자체를 제거하고, UI는 bundled/stale artifact가 있어도 항상
   `LIVE UNVERIFIED` 상태만 선택합니다.
 - `UPTIME402_UI_EVIDENCE_STAGE=final`: 실제 검증이 끝난
-  `artifacts/payment-evidence.json`과 `artifacts/verification-report.json` 각각의 exact
+  선택한 artifact root의 `payment-evidence.json`과 `verification-report.json` 각각의 exact
   `sha256:<lowercase hex>`를 설정해야 합니다. 하나라도 없거나 bytes가 달라지면 UI
   request가 fail closed하며 local/capture 화면으로 fallback하지 않습니다. Renderer는
   별도 replay template을 선택하고 `CONTROL_PLANE_MUTATIONS_ENABLED=false`를 고정하며
@@ -70,7 +67,7 @@ python3 deploy/render_cloudrun.py \
 필요 API: Cloud Run, Artifact Registry, Cloud Build, Firestore, Secret Manager,
 Vertex AI, 검증용 Cloud Asset Inventory. Capture에서는 세 service account를 별도로 만들고 세 계정 모두에 shared Firestore를
 사용할 최소 `roles/datastore.user`를 부여합니다. Vertex 경로를 쓰면 capture control-plane
-계정만 `roles/aiplatform.user`를 가집니다. Final portfolio의 결제 기록 재생은 Firestore를 호출하지 않습니다. 공개 진단은 Vertex 예측 전용 custom role만 사용하므로 control identity에는 `roles/datastore.user`와 광범위한 `roles/aiplatform.user`를 부여하지 않습니다. Deployer에는 세 service account에 대한
+계정에 `aiplatform.endpoints.predict` 예측 전용 custom role을 사용합니다. Final portfolio의 결제 기록 재생은 Firestore를 호출하지 않습니다. 공개 진단은 Vertex 예측 전용 custom role만 사용하므로 control identity에는 `roles/datastore.user`와 광범위한 `roles/aiplatform.user`를 부여하지 않습니다. Deployer에는 세 service account에 대한
 `iam.serviceAccounts.actAs`가 필요합니다.
 
 Artifact Registry repository는 `ARTIFACT_REPOSITORY`와 같은 region에 만들고,
@@ -94,8 +91,8 @@ gcloud builds submit \
   .
 ```
 
-Executor/vendor final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
-Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. 현재 control replay는
+과거 demo5의 executor/vendor images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
+Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 생성됐습니다. RPC 검증 전 control replay는
 revision `uptime402-control-plane-00026-bg4`, exact source tag
 `e0ce8092fd64025402fd80dfe2ed8d2a23b47007`, regional Cloud Build
 `5fbf5243-f658-4d81-865e-837b8aa003f4`, digest
@@ -456,3 +453,10 @@ tag로 다시 build/deploy합니다. UI adapter는 image 안 evidence와 verific
 현재 연결은 [PAID_RPC_RUNBOOK](../docs/PAID_RPC_RUNBOOK.md)의 vendor `/v1/recovery-rpc`와 `authentication: google-iam`을 사용한다. `b2855e2a5190979ffb609d74924f484b6a667303` capture에서 실제 결제와 RPC 응답, 복구를 검증했다. 기존 2026-09-05의 미배포 설명은 당시 상태이며, 새 증거는 `artifacts/runs/rpc-recovery-2026-10-22/`에 있다. 원본 endpoint는 credential-free 공개 주소만 증거에 기록하고 IAM token은 기록하지 않는다.
 
 Final은 `UPTIME402_EVIDENCE_BUNDLE=rpc-recovery-2026-10-22`를 사용한다. Renderer가 `UPTIME402_ARTIFACT_ROOT=/workspace/artifacts/runs/rpc-recovery-2026-10-22`를 설정하며 새 evidence/report hash를 pin한다. 기존 root bundle을 덮어쓰지 않는다.
+
+## 2026-10-22 새 RPC 증거의 최종 공개 배포
+
+- Runtime source: `a752c708d17ba6e472cc72d48de39982fc16013b`. Cloud Build `740335a5-b962-4d89-ad2a-4f17758f2e74` (`global`), digest `sha256:e38f625364435e8634dd28aa4a08ca1dc02da808092a52c39c7bda673bbd17db`.
+- Control revision: `uptime402-control-plane-00029-jsh`, traffic 100%. Vendor `uptime402-vendor-agent-00012-n6w`, executor `uptime402-payment-executor-00013-rpc`.
+- 새 RPC bundle hash pin, mutation 404, executor unauthenticated 403, UI/health/vendor 200을 `2026-10-21T21:59:27.023Z`에 확인했다. 임시 control Firestore, executor invoke와 outcome secret 권한을 회수했고 예측 전용 custom role은 유지했다.
+- 증거 수집 명령은 `pnpm portfolio:capture-deployment --build-id=740335a5-b962-4d89-ad2a-4f17758f2e74 --source-commit=a752c708d17ba6e472cc72d48de39982fc16013b --evidence-bundle=rpc-recovery-2026-10-22 --build-region=global`이다. Cloud Run 리전과 Cloud Build 리전은 별도 값으로 기록한다.
