@@ -70,8 +70,7 @@ python3 deploy/render_cloudrun.py \
 필요 API: Cloud Run, Artifact Registry, Cloud Build, Firestore, Secret Manager,
 Vertex AI, 검증용 Cloud Asset Inventory. Capture에서는 세 service account를 별도로 만들고 세 계정 모두에 shared Firestore를
 사용할 최소 `roles/datastore.user`를 부여합니다. Vertex 경로를 쓰면 capture control-plane
-계정만 `roles/aiplatform.user`를 가집니다. Final portfolio replay는 Firestore와 Vertex를 호출하지 않으므로
-control identity에서 이 두 role을 제거할 수 있습니다. Deployer에는 세 service account에 대한
+계정만 `roles/aiplatform.user`를 가집니다. Final portfolio의 결제 기록 재생은 Firestore를 호출하지 않습니다. 공개 진단은 Vertex 예측 전용 custom role만 사용하므로 control identity에는 `roles/datastore.user`와 광범위한 `roles/aiplatform.user`를 부여하지 않습니다. Deployer에는 세 service account에 대한
 `iam.serviceAccounts.actAs`가 필요합니다.
 
 Artifact Registry repository는 `ARTIFACT_REPOSITORY`와 같은 region에 만들고,
@@ -97,10 +96,10 @@ gcloud builds submit \
 
 Executor/vendor final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
 Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. 현재 control replay는
-revision `uptime402-control-plane-00024-9fr`, exact source tag
-`82a960b1289f032c695f86fc58c18e7859321b6b`, regional Cloud Build
-`827b03a5-bc2b-4454-b47b-d8a82c4d0dd2`, digest
-`sha256:972a1eefa418f4979e1dfcbcada88229bbd1aa8e6e1031dad50678fa8a8ef4d4`입니다.
+revision `uptime402-control-plane-00025-xq2`, exact source tag
+`53c960da0bd9102f2d29511bc707cfd0fcf956bc`, regional Cloud Build
+`af3f0fc3-83f5-46dd-9963-13bcedc5736a`, digest
+`sha256:5301414c4fbeaf9f291fe6cdddf4f55f0ab733e3436176a5fed234a7c2b3c513`입니다.
 Raw service, IAM, build bytes는 ignored `private/portfolio-deployment-raw/`에 두고,
 그 SHA-256과 최소 live status만 `artifacts/portfolio-deployment/manifest.json`에
 기록했습니다. 후속 build도 audited source와 renderer `IMAGE_TAG`의 관계를

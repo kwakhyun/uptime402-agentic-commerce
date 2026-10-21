@@ -2,14 +2,14 @@
   "schemaVersion": "1.0",
   "artifactKind": "portfolio-replay-deployment-evidence",
   "notPaymentEvidence": true,
-  "capturedAt": "2026-10-21T20:01:38.299Z",
+  "capturedAt": "2026-10-21T20:24:52.296Z",
   "projectId": "uptime402-hack-260803",
   "region": "asia-northeast3",
-  "sourceCommit": "82a960b1289f032c695f86fc58c18e7859321b6b",
-  "buildId": "827b03a5-bc2b-4454-b47b-d8a82c4d0dd2",
-  "buildExportSha256": "sha256:02e42d360eb9c3d312a981a652a066ac47fa8fe59dda898047bf61de385cec84",
-  "controlImageDigest": "sha256:972a1eefa418f4979e1dfcbcada88229bbd1aa8e6e1031dad50678fa8a8ef4d4",
-  "projectIamExportSha256": "sha256:04bcc3b9a7d620548915132df921d3e25840f77f36b1083061ab98918e720f87",
+  "sourceCommit": "53c960da0bd9102f2d29511bc707cfd0fcf956bc",
+  "buildId": "af3f0fc3-83f5-46dd-9963-13bcedc5736a",
+  "buildExportSha256": "sha256:83910a6a9cb20cce19b83a8e1ea292fbf1c1068c55a909b22ce5716f9b686636",
+  "controlImageDigest": "sha256:5301414c4fbeaf9f291fe6cdddf4f55f0ab733e3436176a5fed234a7c2b3c513",
+  "projectIamExportSha256": "sha256:2e5db458935ff322e63b6fe4095fe02eb7c0b55d8c8e138c28d50e772e480125",
   "retiredControlPolicyExportSha256s": [
     "sha256:ae16c080018ce635bf7ed9bc4d9c97d4219a18d77c6143375a34d3e25835a788",
     "sha256:fc4e3fa77444f3a53c2c89d398182eece26ba1efa2f92be5a18b4bc45e32c217",
@@ -26,11 +26,11 @@
     {
       "role": "control-plane",
       "serviceName": "uptime402-control-plane",
-      "revision": "uptime402-control-plane-00024-9fr",
+      "revision": "uptime402-control-plane-00025-xq2",
       "serviceAccount": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com",
       "stableUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
-      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane:82a960b1289f032c695f86fc58c18e7859321b6b",
-      "descriptionSha256": "sha256:1d5d2f4bb387371540094c782c90b04a4b61b1bdf20d47c6c37bdb899d371a93",
+      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane:53c960da0bd9102f2d29511bc707cfd0fcf956bc",
+      "descriptionSha256": "sha256:e255cdda7567c5576230d21b07bb350344275629da2533bb68fc5bd9d61b94cb",
       "iamPolicySha256": "sha256:9c8087a4a52140dd117e56900fc3322609c030c729d2e2170836823995a45878"
     },
     {
@@ -65,5 +65,14 @@
   "evidencePins": {
     "paymentEvidenceSha256": "sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
     "verificationReportSha256": "sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
+  },
+  "publicDiagnosis": {
+    "model": "gemini-3.8-flash",
+    "paymentEnabled": false,
+    "role": "projects/uptime402-hack-260803/roles/uptime402GeminiPredict",
+    "roleExportSha256": "sha256:7b417a106463051c5fdf4cf69663740a62fa45d5f356c3073a0a85fd1a615a5a",
+    "permissions": [
+      "aiplatform.endpoints.predict"
+    ]
   }
 }

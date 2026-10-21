@@ -1,0 +1,42 @@
+{
+  "verifiedAt": "2026-10-21T20:25:35.315459+00:00",
+  "notPaymentEvidence": true,
+  "verificationMethod": "public browser form submission and rendered model response",
+  "sourceCommit": "53c960da0bd9102f2d29511bc707cfd0fcf956bc",
+  "revision": "uptime402-control-plane-00025-xq2",
+  "modelVersion": "gemini-3.8-flash",
+  "cases": [
+    {
+      "failureRate": 0.05,
+      "latencyMs": 420,
+      "selectedOfferId": "rpc-recovery-standard",
+      "displayedAt": "2026-10-21T20:23:29Z"
+    },
+    {
+      "failureRate": 1,
+      "latencyMs": 12000,
+      "selectedOfferId": "rpc-recovery-emergency",
+      "displayedAt": "2026-10-21T20:24:16Z"
+    }
+  ],
+  "newPaymentExecuted": false,
+  "evidencePins": {
+    "paymentEvidenceSha256": "sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e"
+  },
+  "liveChecks": {
+    "controlRootStatus": 200,
+    "controlHealthStatus": 200,
+    "controlMutationStatus": 404,
+    "vendorHealthStatus": 200,
+    "vendorAgentCardStatus": 200,
+    "executorUnauthenticatedStatus": 403
+  },
+  "iamPermissions": [
+    "aiplatform.endpoints.predict"
+  ],
+  "negativeApiChecks": {
+    "invalidInputStatus": 400,
+    "missingOriginStatus": 403
+  }
+}
