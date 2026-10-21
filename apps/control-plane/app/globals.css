@@ -1731,3 +1731,8 @@ code {
 .live-diagnosis__result li span { display: block; margin-top: 6px; }
 .live-diagnosis [role="alert"] { color: var(--red); }
 @media (max-width: 600px) { .live-diagnosis { padding: 18px; } }
+
+.rpc-recovery-facts dd {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

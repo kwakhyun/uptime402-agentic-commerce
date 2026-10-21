@@ -183,7 +183,8 @@ export async function finalizeVendorFulfillment(
       challengeCapturedAt: input.challengeBinding.challenge.capturedAt,
     });
     if (
-      fulfilled.resource.expiresAt !== input.selectedOffer.payload.expiresAt ||
+      Date.parse(fulfilled.resource.expiresAt) > Date.parse(input.selectedOffer.payload.expiresAt) ||
+      Date.parse(fulfilled.resource.expiresAt) <= Date.parse(fulfilled.resource.activatedAt) ||
       Date.parse(fulfilled.resource.activatedAt) <
       Date.parse(input.challengeBinding.challenge.capturedAt) ||
       Date.parse(fulfilled.resource.activatedAt) > Date.parse(receipt.payload.fulfilledAt)

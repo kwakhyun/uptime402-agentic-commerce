@@ -360,6 +360,14 @@ export function MissionControl({ initialState, liveOperatorConfig, diagnosisEnab
                     </a>
                   </div>
                   <code className="receipt-transaction">Tx · {verifiedEvidence.transactionSignature}</code>
+                  {verifiedEvidence.rpcRecovery && (
+                    <dl className="compact-facts rpc-recovery-facts">
+                      <div><dt>구매한 RPC</dt><dd>{verifiedEvidence.rpcRecovery.endpoint}</dd></div>
+                      <div><dt>실제 응답</dt><dd>getHealth = ok</dd></div>
+                      <div><dt>Devnet genesis</dt><dd>{verifiedEvidence.rpcRecovery.genesisHash}</dd></div>
+                      <div><dt>RPC 호출 지연</dt><dd>{Math.round(verifiedEvidence.rpcRecovery.latencyMs)}ms</dd></div>
+                    </dl>
+                  )}
                 </>
               ) : null}
             </div>

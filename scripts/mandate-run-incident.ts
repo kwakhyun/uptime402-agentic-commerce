@@ -144,10 +144,11 @@ export async function runIncidentFromEnvironment(): Promise<{
     body: request,
   });
   const fresh = FreshRunResponseSchema.parse(response.body);
+  const expectsDenials = request.denialRequests !== undefined && fresh.result.primary.outcome === "recovered";
   if (
-    (request.denialRequests === undefined) !== (fresh.result.denials === null) ||
-    (request.denialRequests === undefined) !== (fresh.result.denialBindings === null) ||
-    (request.denialRequests === undefined) !==
+    (!expectsDenials) !== (fresh.result.denials === null) ||
+    (!expectsDenials) !== (fresh.result.denialBindings === null) ||
+    (!expectsDenials) !==
       (fresh.result.denialBindingHashes === null)
   ) {
     throw new Error("Fresh incident response omitted or invented the requested dual-denial proof");
@@ -215,6 +216,7 @@ async function main(): Promise<void> {
       transactionCreated: result.transactionCreated,
     })}\n`,
   );
+  if (result.outcome !== "recovered") process.exitCode = 2;
 }
 
 const invokedPath = process.argv[1];

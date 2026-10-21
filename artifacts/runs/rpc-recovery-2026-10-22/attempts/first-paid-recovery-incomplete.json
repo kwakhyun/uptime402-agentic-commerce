@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1",
+  "runId": "rpc-20261022-4d574608",
+  "sourceCommit": "8155948a5f9fdf90171e8800f5da0e52fed137ce",
+  "paymentFinalized": true,
+  "recoveryVerified": false,
+  "reason": "access_expiry_contract_mismatch",
+  "explanation": "Control finalization required the delivered access expiry to equal the quote expiry. The purchased ten-minute lease was therefore rejected after finalized payment. This incident was not repaid.",
+  "paymentRetried": false,
+  "settlementRetried": false,
+  "settlement": {
+    "verification": "verified",
+    "clusterLabel": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    "decimals": 6,
+    "amountBaseUnits": "15000",
+    "txSignature": "3BbwAMZjVyX43qwqpMr6dWs7g5zLEPygLd9f5EjgmxTLHua9vLhK3ppTcUAZSR8U5ns98gnhv9BwvpB5FPJQHhwT",
+    "confirmationStatus": "finalized",
+    "slot": 513658504,
+    "confirmedAt": "2026-10-21T21:28:53.000Z",
+    "payerOwner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+    "payeeOwner": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+    "payerDeltaBaseUnits": "-15000",
+    "payeeDeltaBaseUnits": "15000",
+    "tokenAccountDeltas": [
+      {
+        "accountIndex": 2,
+        "tokenAccount": "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+        "owner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+        "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "decimals": 6,
+        "preAmountBaseUnits": "19955000",
+        "postAmountBaseUnits": "19940000",
+        "deltaBaseUnits": "-15000"
+      },
+      {
+        "accountIndex": 3,
+        "tokenAccount": "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J",
+        "owner": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+        "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "decimals": 6,
+        "preAmountBaseUnits": "45000",
+        "postAmountBaseUnits": "60000",
+        "deltaBaseUnits": "15000"
+      }
+    ],
+    "explorerUrl": "https://explorer.solana.com/tx/3BbwAMZjVyX43qwqpMr6dWs7g5zLEPygLd9f5EjgmxTLHua9vLhK3ppTcUAZSR8U5ns98gnhv9BwvpB5FPJQHhwT?cluster=devnet"
+  },
+  "resource": {
+    "activatedAt": "2026-10-21T21:28:54.891Z",
+    "activationId": "9244d258dea0f553f591bea790079045984f9514fcf42b40b32dd74335e228b7",
+    "expiresAt": "2026-10-21T21:38:54.891Z",
+    "incidentId": "incident-rpc-20261022-4d574608-primary",
+    "kind": "firestore_recovery_route",
+    "offerId": "rpc-recovery-standard",
+    "operationId": "operation-rpc-20261022-4d574608-primary",
+    "paymentId": "payment-rpc-20261022-4d574608-primary",
+    "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+    "rpcEndpoint": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery-rpc",
+    "state": "active",
+    "txSignature": "3BbwAMZjVyX43qwqpMr6dWs7g5zLEPygLd9f5EjgmxTLHua9vLhK3ppTcUAZSR8U5ns98gnhv9BwvpB5FPJQHhwT",
+    "version": "1"
+  },
+  "fulfillmentReceipt": {
+    "keyId": "uptime402-vendor-v1",
+    "signer": "F2H34mSSfeDQ7eerYeUa3cKk5YBdWnmDahTqLf3rKaP1",
+    "payload": {
+      "fulfilledAt": "2026-10-21T21:28:54.891Z",
+      "payee": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+      "txSignature": "3BbwAMZjVyX43qwqpMr6dWs7g5zLEPygLd9f5EjgmxTLHua9vLhK3ppTcUAZSR8U5ns98gnhv9BwvpB5FPJQHhwT",
+      "requestFingerprint": "sha256:c556957507078ea5c31e373265c5d56cc07f41b13ee35ecf61f73c32e0e705e0",
+      "amountBaseUnits": "15000",
+      "offerId": "rpc-recovery-standard",
+      "challengeHash": "sha256:219956a606beeb3c642d343bbcb0a49ac06d6df65eb18b21f5986f6689a66cf1",
+      "resourceResponseHash": "sha256:c024cc0c66bb40879dd6b2b16e3cb33c7181119c79d1ea9ab234cff4edeb65b2",
+      "executionPolicyHash": "sha256:fcc503b6835b58064a269104704aa7b16a1820251d221a83207da72143cc671d",
+      "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      "incidentId": "incident-rpc-20261022-4d574608-primary",
+      "paymentId": "payment-rpc-20261022-4d574608-primary",
+      "payer": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+      "version": "1",
+      "resourceUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app/v1/recovery",
+      "issuerAgentId": "uptime402-owned-vendor"
+    },
+    "signature": "2TqX1KJnM6Deca9Q1s3VWtM7GjotkDHKeiZ4k8HgMafH8y4vvzjxRGqiAo9YyPEgWL26u374PTijjg1KYPAQGZhQ"
+  },
+  "originalOperatorCaptureSha256": "sha256:12da2569063d61434b97988589b8a7c5d0e3a955355a27fc1c994642d2e791bb"
+}

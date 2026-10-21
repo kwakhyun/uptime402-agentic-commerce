@@ -453,6 +453,7 @@ async function buildFixture() {
   let reconciliationBehavior: "success" | "fail" = "success";
   let executorBehavior: "allow" | "deny" = "allow";
 
+  let resourceExpiresAt = offers[0].payload.expiresAt;
   const fulfilledResponse = async (reconciledFulfillment: boolean): Promise<Response> => {
     const recoveredResource: FirestoreRecoveryRoute = {
       version: "1",
@@ -466,7 +467,7 @@ async function buildFixture() {
       resourceUrl: RESOURCE_URL,
       state: "active",
       activatedAt: clock(),
-      expiresAt: offers[0].payload.expiresAt,
+      expiresAt: resourceExpiresAt,
     };
     const receiptPayload = {
       version: "1" as const,
@@ -735,6 +736,7 @@ async function buildFixture() {
     receiptSigner,
     outcomeKey,
     payer,
+    set resourceExpiresAt(value: string) { resourceExpiresAt = value; },
     get paidBehavior() {
       return paidBehavior;
     },
@@ -837,6 +839,21 @@ describe("control-plane live incident flow", () => {
 
   beforeEach(async () => {
     fixture = await buildFixture();
+  });
+
+  it("accepts a purchased access window shorter than the immutable quote validity", async () => {
+    fixture.resourceExpiresAt = "2026-08-03T12:10:00.000Z";
+    const result = await runLiveIncident(fixture.request, fixture.dependencies);
+    expect(result.outcome).toBe("recovered");
+    expect(fixture.recorded.paidCalls).toBe(1);
+  });
+
+  it.each(["2026-08-03T14:00:00.000Z", "2026-08-03T11:59:59.000Z"])("rejects invalid access expiry %s without another payment", async expiry => {
+    fixture.resourceExpiresAt = expiry;
+    const result = await runLiveIncident(fixture.request, fixture.dependencies);
+    expect(result.outcome).toBe("reconciliation_required");
+    expect(fixture.recorded.paidCalls).toBe(1);
+    expect(fixture.router.resources).toHaveLength(0);
   });
 
   it("runs the complete one-click flow, preserves byte-identical retry bytes, and commits only after health proof", async () => {
