@@ -2,13 +2,13 @@
   "schemaVersion": "1.0",
   "artifactKind": "portfolio-replay-deployment-evidence",
   "notPaymentEvidence": true,
-  "capturedAt": "2026-09-05T12:14:35.261Z",
+  "capturedAt": "2026-10-21T20:01:38.299Z",
   "projectId": "uptime402-hack-260803",
   "region": "asia-northeast3",
-  "sourceCommit": "cb3e5595e33670536e552327ebda2a27a7d48f94",
-  "buildId": "9339a850-987a-4077-8067-d4ca796082ea",
-  "buildExportSha256": "sha256:2e99f42ee6fd827ae389f7a840d112a485c0a9f7e435ccfdde8f8a5f6159d660",
-  "controlImageDigest": "sha256:dadf1d201429242f59573a9f791ea95426b07a31dc36dc08d6b4e33e57b4ce95",
+  "sourceCommit": "82a960b1289f032c695f86fc58c18e7859321b6b",
+  "buildId": "827b03a5-bc2b-4454-b47b-d8a82c4d0dd2",
+  "buildExportSha256": "sha256:02e42d360eb9c3d312a981a652a066ac47fa8fe59dda898047bf61de385cec84",
+  "controlImageDigest": "sha256:972a1eefa418f4979e1dfcbcada88229bbd1aa8e6e1031dad50678fa8a8ef4d4",
   "projectIamExportSha256": "sha256:04bcc3b9a7d620548915132df921d3e25840f77f36b1083061ab98918e720f87",
   "retiredControlPolicyExportSha256s": [
     "sha256:ae16c080018ce635bf7ed9bc4d9c97d4219a18d77c6143375a34d3e25835a788",
@@ -26,11 +26,11 @@
     {
       "role": "control-plane",
       "serviceName": "uptime402-control-plane",
-      "revision": "uptime402-control-plane-00023-sl4",
+      "revision": "uptime402-control-plane-00024-9fr",
       "serviceAccount": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com",
       "stableUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
-      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane:cb3e5595e33670536e552327ebda2a27a7d48f94",
-      "descriptionSha256": "sha256:54aec149ca1c2aad9fdae62e9b6acbd4085c984a83528f04191715454fb362ac",
+      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane:82a960b1289f032c695f86fc58c18e7859321b6b",
+      "descriptionSha256": "sha256:1d5d2f4bb387371540094c782c90b04a4b61b1bdf20d47c6c37bdb899d371a93",
       "iamPolicySha256": "sha256:9c8087a4a52140dd117e56900fc3322609c030c729d2e2170836823995a45878"
     },
     {

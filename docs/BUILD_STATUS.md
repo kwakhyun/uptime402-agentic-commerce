@@ -1,6 +1,6 @@
 # Uptime402 build status
 
-Last updated: `2026-10-22T04:06:02+09:00`
+Last updated: `2026-10-21T20:01:38.299Z`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
@@ -14,7 +14,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 - 2026-09-05 검토 개선을 로컬 코드에 반영했다. 결제 후 단계 재개, 원자적 예산 증거, 실제 RPC probe, 검증 범위와 조건 비교 UI, 모듈 분리, 캐시/지연 로딩, DOM 테스트와 취약 의존성 패치를 포함한다. 결제 실행 경로의 검증은 로컬 구현에 한정한다. UI는 새 공개 리비전에서 확인했으며 demo5 evidence와 기존 결제 서비스 리비전은 보존했다. 상세: `docs/REVIEW_2026-09-05.md#개선-반영-기록`.
 
-- Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00023-sl4`, exact source commit `cb3e5595e33670536e552327ebda2a27a7d48f94`, Cloud Build `9339a850-987a-4077-8067-d4ca796082ea` `SUCCESS`, image digest `sha256:dadf1d201429242f59573a9f791ea95426b07a31dc36dc08d6b4e33e57b4ce95`.
+- Current replay deployment: GCP project `uptime402-hack-260803`, region `asia-northeast3`, control revision `uptime402-control-plane-00024-9fr`, exact source commit `82a960b1289f032c695f86fc58c18e7859321b6b`, Cloud Build `827b03a5-bc2b-4454-b47b-d8a82c4d0dd2` `SUCCESS`, image digest `sha256:972a1eefa418f4979e1dfcbcada88229bbd1aa8e6e1031dad50678fa8a8ef4d4`.
 - Preserved payment services: executor revision `uptime402-payment-executor-00012-2dg`, vendor revision `uptime402-vendor-agent-00011-88p`, payment runtime SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`. 이 두 service는 portfolio replay 배포에서 다시 build하거나 변경하지 않았다.
 - 공개 서비스 상태: UI 단계 `final`, 메인 화면과 health API `200`, 실행 API `404`, 비인증 executor `403`, vendor health/Agent Card `200`. 로그인 없이 데스크톱 1440×1024와 모바일 390×844에서 한국어 문구, 재생 버튼, 조건 전환과 상세 증거를 확인했다. 두 화면 모두 가로 넘침이 없었다.
 - Current control identity has no executor `run.invoker`, Firestore `datastore.user`, Vertex `aiplatform.user`, or retired capture-secret access. Current replay manifest에는 OAuth, Gemini, Firestore, executor endpoint와 secret volume이 없다. 이는 현재 read-only 배포 경계이며 2026-08-03 capture 당시의 payment path IAM 증거를 소급 변경하지 않는다.
@@ -41,9 +41,9 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 | Signed receipt and recovery outcome | implemented | devnet | live | verified | 2026-08-03T20:51:11+09:00 | `artifacts/payment-evidence.json` | P0 | vendor key `uptime402-vendor-v1` binds offer/request/tx/response/incident; distinct outcome key `uptime402-outcome-v1` binds the receipt to `healthy` |
 | Gemini two-offer material decision | implemented | devnet | live | verified | 2026-08-03T20:18:13+09:00 | `artifacts/live-capture/gemini-selection-artifact.json` | P0 | captured `gemini-2.5-flash` strict output selected `rpc-recovery-standard`; counterfactual selected `rpc-recovery-emergency` |
 | A2A Agent Card and message boundary | implemented | devnet | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `artifacts/live-capture/vendor-agent-card.json` | P0 | separate public vendor service still returns health and Agent Card `200`; two immutable signed offers are preserved |
-| Read-only portfolio mission control | implemented | devnet | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `apps/control-plane/components/mission-control.tsx` | P0 | logged-out evidence replay is the default; no Google login/live trigger; mutation routes fail before auth/backend initialization |
-| Current Cloud Run and IAM boundary | implemented | local | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; owner-private raw exports | P0 | capture tool verified control/vendor public, executor private, distinct service accounts, and no current control backend role, executor invoke permission, or retired config access; public manifest exposes only the minimal attestation and source hashes |
-| Evidence hash-pinned final stage | implemented | devnet | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/payment-evidence.json`; `artifacts/verification-report.json`; `artifacts/portfolio-deployment/manifest.json` | P0 | exact evidence/report bytes are pinned; missing or mismatched evidence cannot render `VERIFIED` |
+| Read-only portfolio mission control | implemented | devnet | live | verified | 2026-10-21T20:01:38.299Z | `artifacts/portfolio-deployment/manifest.json`; `apps/control-plane/components/mission-control.tsx` | P0 | logged-out evidence replay is the default; no Google login/live trigger; mutation routes fail before auth/backend initialization |
+| Current Cloud Run and IAM boundary | implemented | local | live | verified | 2026-10-21T20:01:38.299Z | `artifacts/portfolio-deployment/manifest.json`; owner-private raw exports | P0 | capture tool verified control/vendor public, executor private, distinct service accounts, and no current control backend role, executor invoke permission, or retired config access; public manifest exposes only the minimal attestation and source hashes |
+| Evidence hash-pinned final stage | implemented | devnet | live | verified | 2026-10-21T20:01:38.299Z | `artifacts/payment-evidence.json`; `artifacts/verification-report.json`; `artifacts/portfolio-deployment/manifest.json` | P0 | exact evidence/report bytes are pinned; missing or mismatched evidence cannot render `VERIFIED` |
 | Test, supply-chain and release gates | implemented | local | local | verified | 2026-08-30T11:07:08+09:00 | `.github/workflows/quality.yml`; `scripts/run-maintenance-gates.ts`; `pnpm-lock.yaml` | P0 | clean-clone lint, typecheck, 185 non-emulator tests, production build, production audit, Git boundary, deployment contracts and strict readiness pass; clean-clone Firestore suite passed 10/10. CI action runtimes use their current Node 24-compatible major versions |
 | Public source release | implemented | local | live | verified | 2026-08-30T11:07:08+09:00 | `https://github.com/kwakhyun/uptime402-agentic-commerce`; [GitHub Actions quality](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/workflows/quality.yml) | P0 | public `main` is fast-forwarded only with a raw-metadata-free squash tree; maintenance and Firestore jobs are required to pass after each push |
 | Pub/Sub, Eventarc, Workflows, BigQuery pipeline | planned | none | local | unverified | — | `docs/ARCHITECTURE.md` | P1 | production async extension; deliberately outside the proved synchronous recovery path |
@@ -96,3 +96,13 @@ The preserved demo5 payment evidence is immutable. UX and documentation releases
 - 두 파일의 바이트는 작업 전과 같다. 기존 `artifacts/` 파일도 변경하지 않았다. 증거 보고서를 다시 쓰는 live verification이나 새 결제는 실행하지 않았다.
 - 새 복구 경로는 로컬 코드와 테스트로 검증했다. 현재 공개 replay와 결제 서비스의 배포 리비전은 유지했다.
 - 공급자 조회는 payer의 최근 confirmed 거래 100개로 제한한다. 이력이 없거나 조회 범위를 벗어났거나 저장된 페이로드가 없는 과거 claim은 잠긴 상태를 유지한다. 기존 실패 기록이나 demo5를 소급 변환하지 않는다. 자세한 경계는 `docs/ARCHITECTURE.md`의 결제 후 재개 설명에 기록했다.
+
+## 2026-10-22 Gemini 3.8 및 공개 replay 배포
+
+- 기본 모델은 `gemini-3.8-flash`, 추론 수준은 `LOW`다. 기존 2.5 모델을 명시하면 `thinkingBudget: 0` 호환 설정을 사용한다.
+- 실제 Vertex 응답에서 모델 ID와 구조화 JSON을 확인했다. 기본 조건은 standard, 심한 장애 조건은 emergency를 선택했다. `docs/verification/gemini-3.8-flash.json`은 무결제 모델 검증 기록이다.
+- 실행 소스는 `82a960b1289f032c695f86fc58c18e7859321b6b`. [GitHub Actions](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39665988174)의 maintenance와 Firestore Emulator가 모두 통과했다. 기본 테스트 206개와 Emulator 전용 13개, 총 219개를 검증했다.
+- Cloud Build `827b03a5-bc2b-4454-b47b-d8a82c4d0dd2` 성공. 새 리비전 `uptime402-control-plane-00024-9fr`에 트래픽 100%를 전환했다. 후속 커밋은 배포 기록과 문서만 갱신하며 실행 코드는 동일하다.
+- 공개 UI/health 200, 실행 API 404, vendor health/Agent Card 200, 비인증 executor 403. 브라우저에서 재생 완료, 심한 장애 조건의 견적 전환, 원본 증거 지연 로딩과 receipt/outcome 검증 표시를 확인했다.
+- `implementation=implemented`, `evidence=local`, `deployment=live`, `verification=verified`, `lastVerifiedAt=2026-10-21T20:01:38.299Z`, `priority=P0`. 배포 근거: `artifacts/portfolio-deployment/manifest.json`. 공개 서비스는 읽기 전용 replay이며 Gemini를 호출하지 않는다. 모델 실제 호출은 별도 로컬 검증이다.
+- 기존 결제 증거 전체의 바이트와 두 SHA-256은 보존했다. 변경된 기존 artifact는 현재 배포 manifest 하나뿐이다. executor/vendor 리비전과 IAM, 비밀정보 설정은 유지했다. 이전 private raw 배포 export도 ignored history에 보존했다.

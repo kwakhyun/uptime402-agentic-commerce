@@ -97,10 +97,10 @@ gcloud builds submit \
 
 Executor/vendor final images는 Git SHA `10ca5f2ccaf2af45e2d80f6065de9c623b24e559`와
 Cloud Build `793d0ada-8859-4ed6-b2ad-bf3a5fd13ee3`에서 유지됩니다. 현재 control replay는
-revision `uptime402-control-plane-00023-sl4`, exact source tag
-`cb3e5595e33670536e552327ebda2a27a7d48f94`, regional Cloud Build
-`9339a850-987a-4077-8067-d4ca796082ea`, digest
-`sha256:dadf1d201429242f59573a9f791ea95426b07a31dc36dc08d6b4e33e57b4ce95`입니다.
+revision `uptime402-control-plane-00024-9fr`, exact source tag
+`82a960b1289f032c695f86fc58c18e7859321b6b`, regional Cloud Build
+`827b03a5-bc2b-4454-b47b-d8a82c4d0dd2`, digest
+`sha256:972a1eefa418f4979e1dfcbcada88229bbd1aa8e6e1031dad50678fa8a8ef4d4`입니다.
 Raw service, IAM, build bytes는 ignored `private/portfolio-deployment-raw/`에 두고,
 그 SHA-256과 최소 live status만 `artifacts/portfolio-deployment/manifest.json`에
 기록했습니다. 후속 build도 audited source와 renderer `IMAGE_TAG`의 관계를
