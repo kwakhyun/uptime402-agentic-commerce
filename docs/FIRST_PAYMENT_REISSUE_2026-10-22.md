@@ -38,7 +38,7 @@ Cloud Run Job은 요청을 받는 서비스가 아니라 실행 후 종료하는
 - 새 후속 증거: `artifacts/runs/first-payment-reissue-2026-10-22/evidence.json`, `sha256:889e60ae932e1a383d05adadfeb60d3aa5952b428093b823cf90d98a70fbb873`.
 - 새 검증 보고서: `artifacts/runs/first-payment-reissue-2026-10-22/verification-report.json`, `sha256:cdad85f57cdcbcde512f04075fad0accbb338afbee97582009f85d76aceb307c`. 서명 및 보존 검증 10개와 실시간 기존 정산 재검증이 통과했다.
 
-검증 명령은 `pnpm evidence:verify-free-recovery`다. `-- --live` 대신 `pnpm evidence:verify-free-recovery --live`로 실행하면 기존 거래를 읽기 전용으로 재검증한다. 보고서는 표준 출력에만 쓰며 역사 파일을 수정하지 않는다.
+검증 명령은 `pnpm evidence:verify-free-recovery`다. `pnpm evidence:verify-free-recovery --live`로 실행하면 기존 거래를 읽기 전용으로 재검증한다. 보고서는 표준 출력에만 쓰며 역사 파일을 수정하지 않는다.
 
 구현 CI [39731050290](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39731050290)의 maintenance와 Firestore emulator가 모두 통과했다. 기본 테스트 256개와 emulator 전용 14개, 고유 테스트 270개를 검증했다. 로컬 emulator는 시작 시간 초과가 발생해 정상 완료한 GitHub Actions의 동일 버전 emulator 결과를 기준으로 삼았다.
 

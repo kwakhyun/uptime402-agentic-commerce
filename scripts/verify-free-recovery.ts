@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { canonicalHash, RecoveryOutcomePayloadSchema, sha256Bytes, verifyRpcRecoveryProof } from "@uptime402/domain";
+import { canonicalHash, DEVNET_USDC_MINT, RecoveryOutcomePayloadSchema, sha256Bytes, verifyRpcRecoveryProof } from "@uptime402/domain";
 import { verifyCanonicalEd25519Signature, verifyReissuedFulfillment, verifySolanaSettlement } from "@uptime402/payments";
 
 // Append-only follow-up verifier. It never rewrites the original evidence/report.
@@ -39,8 +39,9 @@ if (evidence.reservationAfter.state !== "committed" || evidence.reservationAfter
 let chainVerified = false;
 if (process.argv.includes("--live")) {
   const receipt = grant.originalReceipt.payload;
+  if (receipt.assetMint !== DEVNET_USDC_MINT) throw new Error("Recovery requires the pinned Devnet USDC mint");
   await verifySolanaSettlement({ rpc: { rpcUrl: "https://api.devnet.solana.com" }, txSignature: receipt.txSignature,
-    payerOwner: receipt.payer, payeeOwner: receipt.payee, assetMint: receipt.assetMint, amountBaseUnits: receipt.amountBaseUnits });
+    payerOwner: receipt.payer, payeeOwner: receipt.payee, assetMint: DEVNET_USDC_MINT, amountBaseUnits: receipt.amountBaseUnits });
   chainVerified = true;
 }
 process.stdout.write(JSON.stringify({ schemaVersion: "1", producedAt: new Date().toISOString(), evidenceSha256: sha256Bytes(bytes),
