@@ -5,3 +5,5 @@ export * from "./schemas.js";
 export * from "./strict-json.js";
 export * from "./url.js";
 export * from "./rpc-recovery-proof.js";
+
+export * from "./recovery-reissue.js";

@@ -1,4 +1,8 @@
+import type { RecoveryReissueStore } from "@uptime402/persistence";
+import { reissuePaidRecovery } from "./reissue.js";
 import {
+  IdentifierSchema,
+  DEVNET_X402_NETWORK_ID,
   canonicalHash,
   canonicalize,
   computeVendorOfferHash,
@@ -286,6 +290,7 @@ export type VendorAgentDependencies = {
   reconciliationIamVerifier: VendorIamTokenVerifier;
   recoveryResource: RecoveryResourceProvider;
   paidRpc?: PaidRecoveryRpc;
+  reissues?: RecoveryReissueStore;
   receiptSigner: VendorFulfillmentReceiptSigner;
   onSafeDiagnostic?: (event: VendorSafeDiagnosticEvent) => void;
   now?: () => string;
@@ -1061,12 +1066,31 @@ export function createVendorAgentApp(deps: VendorAgentDependencies): Express {
   app.disable("x-powered-by");
   // Authenticate the private reconciliation boundary before parsing any
   // attacker-controlled body. The public A2A/x402 routes remain unchanged.
+  app.use("/v1/recovery/reissue", authorizeReconciliation(deps));
   app.use("/v1/recovery/reconcile", authorizeReconciliation(deps));
   app.use("/v1/recovery-rpc", authorizeReconciliation(deps));
   // This parser runs before the A2A SDK's parser as well as the x402 resource
   // route, so duplicate keys and malformed UTF-8 are rejected at the raw-byte
   // boundary instead of after SDK/schema normalization.
   app.use(strictExternalJsonParser());
+  app.post("/v1/recovery/reissue", async (request: Request, response: Response) => {
+    response.set("cache-control", "no-store");
+    const parsed = z.object({ approvalId: IdentifierSchema }).strict().safeParse(request.body);
+    if (!parsed.success || request.header(PAYMENT_SIGNATURE_HEADER)) {
+      response.status(400).json({ error: "invalid_reissue_request" }); return;
+    }
+    try {
+      const reissue = await reissuePaidRecovery(deps, parsed.data.approvalId);
+      const receipt = reissue.fulfillmentReceipt;
+      response.set(PAYMENT_RESPONSE_HEADER, encodePaymentResponseHeader({ success: true,
+        payer: receipt.payload.payer, transaction: receipt.payload.txSignature,
+        network: DEVNET_X402_NETWORK_ID,
+        amount: receipt.payload.amountBaseUnits }));
+      response.json({ resource: reissue.resource, fulfillmentReceipt: receipt, reissue,
+        protocol: "x402", replayedFulfillment: true, reconciledFulfillment: true,
+        settlementRetried: false, transactionCreated: false });
+    } catch { response.status(409).json({ error: "reissue_unavailable", transactionCreated: false, settlementRetried: false }); }
+  });
   app.post("/v1/recovery-rpc", async (request: Request, response: Response) => {
     response.set("cache-control", "no-store");
     const parsed = PaidRpcRequestSchema.safeParse(request.body);

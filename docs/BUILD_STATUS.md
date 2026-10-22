@@ -1,5 +1,12 @@
 # Uptime402 build status
 
+## 2026-10-22 첫 거래 무결제 재발급 작업
+
+별도 마감은 지정되지 않았다. 30분 단위로 재발급 보안/테스트, 실시간 정산 및 무결제 복구, 증거와 재배포를 점검한다. 원본 만료 접근권, 영수증, 실패 capture와 모든 기존 증거 파일을 보존한다. 신규 결제, 정산 재전송, 만료된 spending mandate 재활성화는 허용하지 않는다.
+
+- 상태: implementation=planned, evidence=none, deployment=local, verification=unverified, lastVerifiedAt=—, evidenceRef=이 작업 기록, priority=P0.
+
+
 ## 2026-10-22 구매 RPC 검증
 
 Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택했고, 기존 지갑에서 `0.015 USDC`(`15000` base units)를 결제했다. 구매한 RPC에서 `getHealth=ok`와 Devnet genesis 일치를 확인하고 서명된 복구 결과와 예산 commit까지 완료했다. 판단 기록부터 복구까지 **7.026초**, 실제 두 RPC 호출은 **314.6ms**였다.

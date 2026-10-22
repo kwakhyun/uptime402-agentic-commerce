@@ -1,4 +1,5 @@
-import { resumePaidIncident } from "../apps/control-plane/src/server/live-flow-finalization.js";
+import { ReissueApprovalSchema, reissueActivationId } from "@uptime402/domain";
+import { resumePaidIncident, resumeReissuedPaidIncident } from "../apps/control-plane/src/server/live-flow-finalization.js";
 import { InMemoryRecoveryCheckpointStore } from "@uptime402/persistence";
 import {
   DEVNET_GENESIS_HASH,
@@ -1191,6 +1192,56 @@ describe("control-plane live incident flow", () => {
 
 
 describe("durable paid continuation", () => {
+  it("finishes an explicitly approved free reissue after the original spending window without signing or paying again", async () => {
+    const f = await buildFixture();
+    f.paidBehavior = "throw"; f.reconciliationBehavior = "fail";
+    await runLiveIncident(f.request, f.dependencies);
+    const checkpoint = (await f.dependencies.checkpoints.get("reservation-incident-0001", "request"))!;
+    const oldCheckpointHash = canonicalHash(checkpoint);
+    const c = checkpoint.value as unknown as { challengeBinding: { proposal: { expiresAt: string }; challenge: { capturedAt: string; challengeHash: string }; requestFingerprint: string } };
+    const originalResource = { version: "1" as const, kind: "firestore_recovery_route" as const,
+      activationId: "a".repeat(64), incidentId: f.request.incident.id, offerId: f.offers[0].payload.offerId,
+      operationId: f.request.operationId, paymentId: f.request.paymentId, txSignature: TX_SIGNATURE,
+      resourceUrl: RESOURCE_URL, state: "active" as const, activatedAt: "2026-08-03T12:01:00.000Z", expiresAt: "2026-08-03T12:09:00.000Z" };
+    const originalReceipt = await signEnvelope({ version: "1", issuerAgentId: "vendor-agent-1", incidentId: f.request.incident.id,
+      paymentId: f.request.paymentId, offerId: f.offers[0].payload.offerId, executionPolicyHash: f.request.executionPolicy.policyHash,
+      challengeHash: c.challengeBinding.challenge.challengeHash, requestFingerprint: c.challengeBinding.requestFingerprint,
+      txSignature: TX_SIGNATURE, resourceResponseHash: canonicalHash(originalResource), resourceUrl: RESOURCE_URL,
+      payer: f.payer.address, payee: f.offers[0].payload.payee, assetMint: DEVNET_USDC_MINT,
+      amountBaseUnits: f.offers[0].payload.amountBaseUnits, fulfilledAt: originalResource.activatedAt },
+      FulfillmentReceiptPayloadSchema, { signer: f.receiptSigner, keyId: RECEIPT_KEY_ID });
+    const approval = ReissueApprovalSchema.parse({ version: "1", kind: "paid_recovery_reissue", approvalId: "approval-1",
+      paymentId: f.request.paymentId, originalActivationId: originalResource.activationId, originalReceiptHash: canonicalHash(originalReceipt),
+      approvedAt: "2026-08-03T12:19:00.000Z", expiresAt: "2026-08-03T12:40:00.000Z", ttlSeconds: 600,
+      additionalAmountBaseUnits: "0", reason: "paid_recovery_incomplete" });
+    const resource = { ...originalResource, activationId: reissueActivationId(approval), activatedAt: "2026-08-03T12:20:00.000Z",
+      expiresAt: "2026-08-03T12:30:00.000Z", reissue: { approvalHash: canonicalHash(approval), originalActivationId: originalResource.activationId,
+        originalReceiptHash: canonicalHash(originalReceipt), additionalAmountBaseUnits: "0" as const } };
+    expect(Date.parse(resource.activatedAt)).toBeGreaterThan(Date.parse(c.challengeBinding.proposal.expiresAt));
+    const receipt = await signEnvelope({ ...originalReceipt.payload, resourceResponseHash: canonicalHash(resource), fulfilledAt: resource.activatedAt },
+      FulfillmentReceiptPayloadSchema, { signer: f.receiptSigner, keyId: RECEIPT_KEY_ID });
+    const response = { resource, fulfillmentReceipt: receipt, protocol: "x402", replayedFulfillment: true,
+      reconciledFulfillment: true, settlementRetried: false, transactionCreated: false,
+      reissue: { approval, originalResource, originalReceipt, resource, fulfillmentReceipt: receipt } };
+    const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(_url)).toBe(`${VENDOR_ORIGIN}/v1/recovery/reissue`);
+      expect(new Headers(init?.headers).has("payment-signature")).toBe(false);
+      expect(JSON.parse(String(init?.body))).toEqual({ approvalId: "approval-1" });
+      return jsonResponse(200, response, { "payment-response": encodePaymentResponseHeader({ success: true, payer: f.payer.address,
+        transaction: TX_SIGNATURE, network: DEVNET_X402_NETWORK_ID, amount: f.offers[0].payload.amountBaseUnits }) });
+    });
+    const deps = { ...f.dependencies, now: () => "2026-08-03T12:21:00.000Z",
+      fetchFactory: { mode: "explicit-local-test" as const, forOrigin: () => fetcher as typeof fetch },
+      healthProbe: { probe: async () => ({ healthy: true as const, observedAt: "2026-08-03T12:20:01.000Z", routeActivationId: resource.activationId,
+        statusCode: 200, latencyMs: 10, details: { fixture: true } }) } };
+    const result = await resumeReissuedPaidIncident("reservation-incident-0001", "approval-1", deps);
+    expect(result.outcome).toBe("recovered"); expect(f.store.state).toBe("committed");
+    expect(f.recorded.executorCalls).toBe(1); expect(f.recorded.paidCalls).toBe(1);
+    expect(canonicalHash(await deps.checkpoints.get("reservation-incident-0001", "request"))).toBe(oldCheckpointHash);
+    const again = await resumeReissuedPaidIncident("reservation-incident-0001", "approval-1", deps);
+    expect(again.outcome).toBe("recovered"); expect(fetcher).toHaveBeenCalledOnce();
+  });
+
   it("resumes after both the paid response and immediate reconciliation are lost", async () => {
     const fixture = await buildFixture();
     fixture.paidBehavior = "throw";

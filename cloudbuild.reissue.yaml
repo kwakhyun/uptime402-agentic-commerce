@@ -1,0 +1,16 @@
+timeout: 1800s
+options:
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _IMAGE_TAG: REQUIRED_HEX_IMAGE_TAG
+steps:
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args: ['-ceu', '[[ "${_IMAGE_TAG}" =~ ^[0-9a-f]{7,64}$ ]]']
+  - name: gcr.io/cloud-builders/docker
+    args: [build, --file, services/vendor-agent/Dockerfile, --tag, 'asia-northeast3-docker.pkg.dev/${PROJECT_ID}/uptime402/vendor-agent:${_IMAGE_TAG}', .]
+  - name: gcr.io/cloud-builders/docker
+    args: [build, --file, deploy/recovery-worker.Dockerfile, --tag, 'asia-northeast3-docker.pkg.dev/${PROJECT_ID}/uptime402/recovery-worker:${_IMAGE_TAG}', .]
+images:
+  - 'asia-northeast3-docker.pkg.dev/${PROJECT_ID}/uptime402/vendor-agent:${_IMAGE_TAG}'
+  - 'asia-northeast3-docker.pkg.dev/${PROJECT_ID}/uptime402/recovery-worker:${_IMAGE_TAG}'

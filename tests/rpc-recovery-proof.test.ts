@@ -2,7 +2,7 @@ import { canonicalHash, canonicalize, DEVNET_GENESIS_HASH, verifyRpcRecoveryProo
 import { describe, expect, it } from "vitest";
 
 function fixture() {
-  const resource = { version: "1", kind: "firestore_recovery_route", activationId: "a".repeat(64), incidentId: "incident", paymentId: "payment", offerId: "offer", operationId: "operation", txSignature: "transaction", resourceUrl: "https://vendor.example/v1/recovery", rpcEndpoint: "https://vendor.example/v1/recovery-rpc", state: "active", activatedAt: "2026-10-22T00:00:00Z", expiresAt: "2026-10-22T00:10:00Z" };
+  const resource = { version: "1", kind: "firestore_recovery_route", activationId: "a".repeat(64), incidentId: "incident", paymentId: "payment", offerId: "offer", operationId: "operation", txSignature: "2".repeat(88), resourceUrl: "https://vendor.example/v1/recovery", rpcEndpoint: "https://vendor.example/v1/recovery-rpc", state: "active", activatedAt: "2026-10-22T00:00:00Z", expiresAt: "2026-10-22T00:10:00Z" };
   const responses = [{ jsonrpc: "2.0", id: 0, result: "ok" }, { jsonrpc: "2.0", id: 1, result: DEVNET_GENESIS_HASH }];
   const healthProbe = { healthy: true, observedAt: "2026-10-22T00:00:02Z", routeActivationId: resource.activationId, statusCode: 200, latencyMs: 100,
     details: { kind: "solana_rpc_probe", state: "active", offerId: resource.offerId, endpointHash: canonicalHash({ offerId: resource.offerId, resourceUrl: resource.resourceUrl, rpcUrl: resource.rpcEndpoint, authentication: "google-iam" }), responseHash: canonicalHash(responses), genesisHash: DEVNET_GENESIS_HASH, latencyMs: 100, observedAt: "2026-10-22T00:00:01Z", rpcEndpoint: resource.rpcEndpoint, authentication: "google-iam", rpcResponsesJson: canonicalize(responses) } };

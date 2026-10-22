@@ -685,3 +685,5 @@ export * from "./firestore.js";
 export * from "./runtime-state.js";
 
 export * from "./recovery-checkpoints.js";
+
+export * from "./reissues.js";

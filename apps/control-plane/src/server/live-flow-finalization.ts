@@ -1,3 +1,5 @@
+import { IdentifierSchema } from "@uptime402/domain";
+import { verifyReissuedFulfillment } from "@uptime402/payments";
 import type { RecoveryOutcomePayload } from "@uptime402/domain";
 import type { SignedEnvelope } from "@uptime402/payments";
 import { LiveIncidentRequestSchema, type HealthProbeEvidence } from "./live-flow-contracts.js";
@@ -169,6 +171,23 @@ export async function finalizeVendorFulfillment(
       throw new TypeError("Recovery resource does not bind the paid request and settlement");
     }
     const resourceResponseHash = canonicalHash(fulfilled.resource);
+    let receiptProposal = input.challengeBinding.proposal;
+    if ("reissue" in fulfilled && fulfilled.reissue) {
+      const reissued = await verifyReissuedFulfillment(fulfilled.reissue, {
+        publicKey: input.deps.vendorIdentity.receiptSignerPublicKey, keyId: input.deps.vendorIdentity.receiptSignerKeyId,
+      });
+      if (input.responseMode !== "reconciled" || canonicalHash(reissued.resource) !== resourceResponseHash ||
+          canonicalHash(reissued.fulfillmentReceipt) !== canonicalHash(fulfilled.fulfillmentReceipt)) throw new Error("Reissue response mismatch");
+      // The original receipt must still satisfy the original spending window.
+      await verifyFulfillmentReceiptForFlow({ candidate: reissued.originalReceipt,
+        expectedSignerPublicKey: input.deps.vendorIdentity.receiptSignerPublicKey,
+        expectedSignerKeyId: input.deps.vendorIdentity.receiptSignerKeyId, expectedAgentId: input.deps.vendorIdentity.agentId,
+        incident: input.incident, selectedOffer: input.selectedOffer, proposal: input.challengeBinding.proposal,
+        txSignature: settlement.transaction, payer: settlement.payer,
+        resourceResponseHash: canonicalHash(reissued.originalResource), challengeCapturedAt: input.challengeBinding.challenge.capturedAt });
+      // This window applies only to free fulfillment; it never changes a mandate or payment proposal in storage.
+      receiptProposal = { ...receiptProposal, expiresAt: reissued.resource.expiresAt };
+    } else if (fulfilled.resource.reissue) throw new Error("Reissue history is required");
     const receipt = await verifyFulfillmentReceiptForFlow({
       candidate: fulfilled.fulfillmentReceipt,
       expectedSignerPublicKey: input.deps.vendorIdentity.receiptSignerPublicKey,
@@ -176,7 +195,7 @@ export async function finalizeVendorFulfillment(
       expectedAgentId: input.deps.vendorIdentity.agentId,
       incident: input.incident,
       selectedOffer: input.selectedOffer,
-      proposal: input.challengeBinding.proposal,
+      proposal: receiptProposal,
       txSignature: settlement.transaction,
       payer: settlement.payer,
       resourceResponseHash,
@@ -555,7 +574,7 @@ export async function resumePaidIncident(reservationId: string, deps: RunLiveInc
   });
 }
 
-async function reconcileSavedRequest(reservationId: string, deps: RunLiveIncidentDependencies, state: string) {
+async function reconcileSavedRequest(reservationId: string, deps: RunLiveIncidentDependencies, state: string, approvalId?: string) {
   const checkpoint = await deps.checkpoints.get(reservationId, "request");
   if (!checkpoint || !["submitted", "unknown"].includes(state) || canonicalHash(checkpoint.value) !== checkpoint.contextHash) {
     throw new Error("Paid continuation is unavailable");
@@ -580,7 +599,7 @@ async function reconcileSavedRequest(reservationId: string, deps: RunLiveInciden
   const local = deps.fetchFactory.mode === "explicit-local-test";
   if (local && process.env.NODE_ENV === "production") throw new Error("Local transport forbidden in production");
   const origin = exactOrigin(context.request.vendorAgentOrigin, local);
-  const url = exactUrl(new URL("/v1/recovery/reconcile", origin).toString(), origin, local);
+  const url = exactUrl(new URL(approvalId ? "/v1/recovery/reissue" : "/v1/recovery/reconcile", origin).toString(), origin, local);
   if (state === "submitted") {
     await deps.store.transitionReservation(reservationId, ["submitted"], "unknown", (deps.now ?? (() => new Date().toISOString()))(), {
       failureReason: "paid_retry_ambiguous", note: "Resume existing settlement only; no payment retry",
@@ -593,11 +612,20 @@ async function reconcileSavedRequest(reservationId: string, deps: RunLiveInciden
     response = await deps.fetchFactory.forOrigin(origin)(url, {
       method: "POST", redirect: "error",
       headers: { accept: "application/json", authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body,
+      body: approvalId ? canonicalize({ approvalId }) : body,
     });
   } catch { /* Ambiguity remains locked; never send PAYMENT-SIGNATURE again. */ }
   if (response?.status !== 200) return markUnknown({
     ...context, deps, reservationId, reasonCode: "paid_retry_ambiguous", reservationState: "unknown",
   });
   return finalizeVendorFulfillment({ ...context, deps, response, responseMode: "reconciled", startingReservationState: "unknown" });
+}
+
+/** An explicit operator grant is required. Existing checkpoints always win on retry. */
+export async function resumeReissuedPaidIncident(reservationId: string, approvalId: string, deps: RunLiveIncidentDependencies) {
+  IdentifierSchema.parse(approvalId);
+  if (await deps.checkpoints.get(reservationId, "input")) return resumePaidIncident(reservationId, deps);
+  const reservation = await deps.store.getReservation(reservationId);
+  if (!reservation || !["submitted", "unknown"].includes(reservation.state)) throw new Error("Reissue continuation unavailable");
+  return reconcileSavedRequest(reservationId, deps, reservation.state, approvalId);
 }

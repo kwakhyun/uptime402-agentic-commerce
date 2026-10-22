@@ -22,3 +22,5 @@ export type {
 } from "@x402/core/types";
 export type { FacilitatorClient } from "@x402/core/http";
 export type { ClientSvmSigner } from "@x402/svm";
+
+export * from "./reissue.js";

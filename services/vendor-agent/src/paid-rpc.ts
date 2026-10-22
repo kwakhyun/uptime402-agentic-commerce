@@ -1,17 +1,10 @@
 import { canonicalHash, DEVNET_GENESIS_HASH, FulfillmentReceiptSchema, FulfillmentReceiptPayloadSchema } from "@uptime402/domain";
-import { verifyCanonicalEd25519Signature } from "@uptime402/payments";
+import { verifyCanonicalEd25519Signature, verifyReissuedFulfillment } from "@uptime402/payments";
 import { z } from "zod";
 import type { VendorAgentDependencies } from "./index.js";
 
-export const RecoveryResourceSchema = z.object({
-  version: z.literal("1"), kind: z.literal("firestore_recovery_route"),
-  activationId: z.string().min(1).max(128), incidentId: z.string().min(1).max(128),
-  offerId: z.string().min(1).max(128), operationId: z.string().min(1).max(128),
-  paymentId: z.string().min(1).max(128), txSignature: z.string().min(64).max(96).regex(/^[1-9A-HJ-NP-Za-km-z]+$/),
-  resourceUrl: z.string().url(), rpcEndpoint: z.string().url().optional(), state: z.literal("active"),
-  activatedAt: z.string().datetime({ offset: true }), expiresAt: z.string().datetime({ offset: true }),
-}).strict();
-
+export { RecoveryResourceSchema } from "@uptime402/domain";
+import { RecoveryResourceSchema } from "@uptime402/domain";
 export const PaidRpcRequestSchema = z.object({
   jsonrpc: z.literal("2.0"), id: z.number().int().min(0).max(1_000_000),
   method: z.enum(["getHealth", "getGenesisHash"]), params: z.tuple([]).optional(),
@@ -40,10 +33,20 @@ export async function executePaidRpc(deps: VendorAgentDependencies, activationId
   }
   const claim = await deps.claims.getVendorPaymentClaim(deps.config.vendorTenant, route.paymentId);
   if (!claim || claim.state !== "receipt_signed") return { status: 402, body: { error: "paid_fulfillment_required" } };
-  const receipt = FulfillmentReceiptSchema.parse(claim.fulfillmentReceipt);
+  let receipt = FulfillmentReceiptSchema.parse(claim.fulfillmentReceipt);
+  let paidResourceHash = claim.resourceResponseHash;
+  if (route.reissue) {
+    const reissued = await verifyReissuedFulfillment(await deps.reissues?.readForPayment(route.paymentId),
+      { publicKey: deps.receiptSigner.signerPublicKey, keyId: deps.receiptSigner.keyId });
+    if (canonicalHash(reissued.originalReceipt) !== canonicalHash(receipt) ||
+        canonicalHash(reissued.originalResource) !== claim.resourceResponseHash ||
+        canonicalHash(reissued.resource) !== record.recordHash) throw new Error("Reissued RPC original claim mismatch");
+    receipt = reissued.fulfillmentReceipt;
+    paidResourceHash = receipt.payload.resourceResponseHash;
+  }
   const offer = deps.config.offers.find(candidate => candidate.payload.offerId === route.offerId)?.payload;
   if (!offer || claim.txSignature !== route.txSignature || claim.paymentId !== route.paymentId ||
-      claim.resourceResponseHash !== record.recordHash || receipt.payload.resourceResponseHash !== record.recordHash ||
+      paidResourceHash !== record.recordHash || receipt.payload.resourceResponseHash !== record.recordHash ||
       receipt.payload.paymentId !== route.paymentId || receipt.payload.incidentId !== route.incidentId ||
       receipt.payload.offerId !== route.offerId || receipt.payload.txSignature !== route.txSignature ||
       receipt.payload.resourceUrl !== route.resourceUrl || offer.resourceUrl !== route.resourceUrl ||

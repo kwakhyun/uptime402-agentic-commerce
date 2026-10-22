@@ -1,3 +1,4 @@
+import { FirestoreRecoveryReissueStore } from "@uptime402/persistence";
 import { constants as fsConstants } from "node:fs";
 import type { Server } from "node:http";
 import { open, realpath } from "node:fs/promises";
@@ -771,6 +772,7 @@ export async function buildProductionVendorAgentApp(
     },
     reconciliationIamVerifier: new GoogleCloudVendorIamTokenVerifier(),
     recoveryResource: new FirestoreRecoveryResourceProvider(repository, offers),
+    reissues: new FirestoreRecoveryReissueStore(repository.firestore, repository.collectionPrefix),
     paidRpc: {
       async readActivation(activationId) {
         const snapshot = await repository.firestore.collection(`${repository.collectionPrefix}_recovery_resources`).doc(activationId).get();

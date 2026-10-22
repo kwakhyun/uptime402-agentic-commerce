@@ -4,6 +4,9 @@ import { FirestoreRecoveryCheckpointStore } from "@uptime402/persistence";
 import { afterAll, describe, expect, it } from "vitest";
 import { FirestoreOperatorIncidentCaptureStore } from "../apps/control-plane/src/server/operator-capture.js";
 import { operatorContinuationFixture } from "./fixtures/operator-continuation.js";
+import { FirestoreRecoveryReissueStore } from "@uptime402/persistence";
+import { reissueFixture } from "./fixtures/reissue.js";
+import { reissuePaidRecovery } from "../services/vendor-agent/src/reissue.js";
 
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Firestore recovery checkpoints", () => {
   const prefix = `u402resume_${process.pid}_${Date.now().toString(36)}`;
@@ -12,9 +15,29 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("Firestore recovery checkp
   const first = new FirestoreRecoveryCheckpointStore(firstDb, prefix);
   const second = new FirestoreRecoveryCheckpointStore(secondDb, prefix);
   afterAll(async () => {
+    for (const name of ["reissue_approvals", "reissues", "recovery_resources"]) await firstDb.recursiveDelete(firstDb.collection(`${prefix}_${name}`));
     await firstDb.recursiveDelete(firstDb.collection(`${prefix}_recovery_checkpoints`));
     await firstDb.recursiveDelete(firstDb.collection(`${prefix}_operator_captures`));
     await Promise.all([firstDb.terminate(), secondDb.terminate()]);
+  });
+  it("creates a free lease exactly once across instances without overwriting the expired activation", async () => {
+    const f = reissueFixture();
+    const value = await reissuePaidRecovery(f.deps, f.approval.approvalId);
+    const wrap = (value: unknown) => ({ schemaVersion: "1", recordHash: canonicalHash(value), value });
+    const oldRef = firstDb.collection(`${prefix}_recovery_resources`).doc(f.original.activationId);
+    await oldRef.create(wrap(f.original));
+    await firstDb.collection(`${prefix}_reissue_approvals`).doc(f.approval.approvalId).create(wrap(f.approval));
+    const a = new FirestoreRecoveryReissueStore(firstDb, prefix), b = new FirestoreRecoveryReissueStore(secondDb, prefix);
+    const before = canonicalHash((await oldRef.get()).data());
+    const values = await Promise.all([a.createOnce(value), b.createOnce(value)]);
+    expect(values[0]).toEqual(values[1]);
+    expect(await b.readForPayment(f.approval.paymentId)).toEqual(value);
+    expect(canonicalHash((await oldRef.get()).data())).toBe(before);
+    expect((await firstDb.collection(`${prefix}_reissues`).get()).size).toBe(1);
+    const changed = structuredClone(value); changed.resource.expiresAt = "2026-10-22T05:25:00.000Z";
+    expect(await a.createOnce(changed)).toEqual(value);
+    await firstDb.collection(`${prefix}_reissues`).doc(f.approval.paymentId).update({ "value.resource.expiresAt": changed.resource.expiresAt });
+    await expect(b.readForPayment(f.approval.paymentId)).rejects.toThrow("integrity failure");
   });
   it("persists one proof across instances and rejects a changed payment context", async () => {
     const contextHash = canonicalHash({ paymentId: "paid-1" });

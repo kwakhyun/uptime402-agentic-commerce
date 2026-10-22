@@ -1,3 +1,4 @@
+import { RecoveryResourceSchema } from "./recovery-reissue.js";
 import { z } from "zod";
 import { canonicalHash } from "./canonical.js";
 import { DEVNET_GENESIS_HASH, Sha256Schema, TimestampSchema } from "./schemas.js";
@@ -13,12 +14,7 @@ const ProbeSchema = z.object({
     rpcEndpoint: z.string().url(), authentication: z.literal("google-iam"), rpcResponsesJson: z.string().max(16_384),
   }).strict(),
 }).strict();
-const ResourceSchema = z.object({
-  version: z.literal("1"), kind: z.literal("firestore_recovery_route"), activationId: z.string(),
-  incidentId: z.string(), paymentId: z.string(), offerId: z.string(), operationId: z.string(), txSignature: z.string(),
-  resourceUrl: z.string().url(), rpcEndpoint: z.string().url(), state: z.literal("active"),
-  activatedAt: TimestampSchema, expiresAt: TimestampSchema,
-}).strict();
+const ResourceSchema = RecoveryResourceSchema.extend({ rpcEndpoint: z.string().url() });
 export const RpcRecoveryProofSchema = z.object({ resource: ResourceSchema, healthProbe: ProbeSchema }).strict();
 
 /** The caller first verifies the payment's vendor receipt and control-plane outcome signatures. */

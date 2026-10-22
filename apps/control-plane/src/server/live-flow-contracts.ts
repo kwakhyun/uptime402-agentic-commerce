@@ -1,3 +1,4 @@
+import { RecoveryResourceSchema, ReissuedFulfillmentSchema } from "@uptime402/domain";
 import type { RecoveryCheckpointStore } from "@uptime402/persistence";
 import "server-only";
 
@@ -247,23 +248,7 @@ export const ExecutorDenyResponseSchema = z
   })
   .strict();
 
-export const FirestoreRecoveryRouteSchema = z
-  .object({
-    version: z.literal("1"),
-    kind: z.literal("firestore_recovery_route"),
-    rpcEndpoint: z.string().url().optional(),
-    activationId: z.string().min(1).max(128),
-    incidentId: IdentifierSchema,
-    offerId: IdentifierSchema,
-    operationId: IdentifierSchema,
-    paymentId: IdentifierSchema,
-    txSignature: Base58Schema,
-    resourceUrl: z.string().url(),
-    state: z.literal("active"),
-    activatedAt: TimestampSchema,
-    expiresAt: TimestampSchema,
-  })
-  .strict();
+export const FirestoreRecoveryRouteSchema = RecoveryResourceSchema;
 
 export type FirestoreRecoveryRoute = z.infer<typeof FirestoreRecoveryRouteSchema>;
 
@@ -283,6 +268,7 @@ export const VendorReconciledResponseSchema = z
     protocol: z.literal("x402"),
     replayedFulfillment: z.boolean(),
     reconciledFulfillment: z.literal(true),
+    reissue: ReissuedFulfillmentSchema.optional(),
     settlementRetried: z.literal(false),
     transactionCreated: z.literal(false),
   })
