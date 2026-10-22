@@ -1,6 +1,6 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { ReissuedFulfillmentSchema, RecoveryOutcomePayloadSchema, sha256Bytes, parseStrictJson } from "@uptime402/domain";
 import { z } from "zod";
 import { FREE_RECOVERY_EVIDENCE_HASH, FREE_RECOVERY_REPORT_HASH } from "./free-recovery-pins.js";
@@ -14,9 +14,13 @@ const PublicRecoverySchema = z.object({
   originalRecordsPreserved: z.literal(true), completion: z.object({ newPaymentCount: z.literal(0) }),
 });
 
-export async function loadFreeRecoveryEvidence() {
-  const root = process.env.UPTIME402_ARTIFACT_ROOT?.trim() || resolve(process.cwd(), "artifacts");
-  const directory = resolve(root, "runs/first-payment-reissue-2026-10-22");
+export async function loadFreeRecoveryEvidence(options: { artifactRoot?: string } = {}) {
+  const root = resolve(options.artifactRoot ?? (process.env.UPTIME402_ARTIFACT_ROOT?.trim() || resolve(process.cwd(), "artifacts")));
+  // Final deployments point ARTIFACT_ROOT at the active replay bundle. The
+  // append-only follow-up is its sibling, not a nested replay directory.
+  const directory = basename(dirname(root)) === "runs"
+    ? resolve(root, "../first-payment-reissue-2026-10-22")
+    : resolve(root, "runs/first-payment-reissue-2026-10-22");
   const [evidenceBytes, reportBytes] = await Promise.all([readFile(resolve(directory, "evidence.json")), readFile(resolve(directory, "verification-report.json"))]);
   if (sha256Bytes(evidenceBytes) !== FREE_RECOVERY_EVIDENCE_HASH || sha256Bytes(reportBytes) !== FREE_RECOVERY_REPORT_HASH) throw new Error("Free recovery evidence hash mismatch");
   const raw = parseStrictJson(evidenceBytes.toString("utf8"));
