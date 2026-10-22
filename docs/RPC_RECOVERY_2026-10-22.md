@@ -34,3 +34,7 @@ Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택
 - 새 RPC bundle hash pin, mutation 404, executor unauthenticated 403, UI/health/vendor 200을 `2026-10-21T21:59:27.023Z`에 확인했다. 임시 control Firestore, executor invoke와 outcome secret 권한을 회수했고 예측 전용 custom role은 유지했다.
 
 최종 공개 화면도 검증했다. 390px 기본 장애 조건은 standard, 320px 심한 장애 조건은 emergency를 선택했고 두 견적을 표시했다. 새 RPC 증거, receipt/outcome 상세 로딩과 기록 재생 완료를 확인했다. 추가 결제와 콘솔 오류는 없다. 실제 모바일 하드웨어 검증은 포함하지 않는다. [브라우저 검증 기록](verification/paid-rpc-deployment-ui.json).
+
+## 첫 거래 후속 점검
+
+2026-10-22 14:22 KST에 첫 거래의 finalized 정산과 영수증을 재확인했다. 기존 RPC 접근권과 mandate가 만료됐고 정상 응답 proof가 없어 현재 권한으로는 무결제 복구를 완료할 수 없다. 첫 예산은 0.015 USDC 잠금, 계산상 잔여 0.035 USDC, 현재 승인된 사용 가능액 0 USDC다. 지갑 잔액은 19.925 Devnet USDC다. 추가 결제와 cloud state 변경 없이 [별도 점검 기록](FIRST_PAYMENT_REVIEW_2026-10-22.md)을 추가했고 기존 결제 증거를 보존했다.

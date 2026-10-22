@@ -45,3 +45,7 @@ UPTIME402_EVIDENCE_BUNDLE=rpc-recovery-2026-10-22 \
 독립 검증을 마치면 `UPTIME402_EVIDENCE_BUNDLE`과 새 evidence/report SHA-256을 설정하고 control plane 이미지를 다시 빌드한다. 최종 공개 control plane은 Gemini 진단과 A2A 견적 비교만 실시간으로 실행하고 구매 기록을 재생한다.
 
 임시 Firestore 권한, executor invoker, outcome secret access를 control identity에서 제거한다. 최종 서비스에 capture 설정이나 secret volume을 남기지 않는다. 배포 manifest를 다시 수집하고 공개 진단, 모바일 화면, mutation 404, private executor 401/403을 확인한다. 과거 영상과 제출 deck은 촬영 당시의 실행을 설명하는 기록으로 보존하며 새 결제 영상으로 표시하지 않는다.
+
+## 이미 결제된 실행의 재개 사전 점검
+
+기존 reservation과 vendor claim, request/input/proof/result 체크포인트를 먼저 읽고 RPC에서 정산을 재확인한다. 유효한 proof가 있으면 저장된 정상 응답과 outcome을 검증해 남은 commit을 처리할 수 있지만, proof가 없고 최초 접근권이 만료됐다면 재조회만으로 실제 RPC 복구를 완료할 수 없다. `incident:resume`은 새로운 결제나 접근권 연장 수단이 아니다. 정산된 금액은 unknown 상태라는 이유만으로 release하지 않는다. 원본 증거는 보존하고 후속 점검을 별도 파일로 기록한다. [첫 거래의 실제 점검 사례](../docs/FIRST_PAYMENT_REVIEW_2026-10-22.md).

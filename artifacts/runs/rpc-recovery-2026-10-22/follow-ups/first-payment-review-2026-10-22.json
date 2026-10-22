@@ -1,0 +1,182 @@
+{
+  "schemaVersion": "1",
+  "artifactKind": "existing-payment-read-only-reconciliation-review",
+  "observedAt": "2026-10-22T05:22:56.318Z",
+  "completedAt": "2026-10-22T05:22:58.959Z",
+  "sourceCommit": "6c633c8d99fb3c04ecc76ce2ab0bea1b55b986fe",
+  "originalEvidence": {
+    "path": "artifacts/runs/rpc-recovery-2026-10-22/attempts/first-paid-recovery-incomplete.json",
+    "sha256": "sha256:797b7ac28976c586a6963e97e3b56fe9e5515684455410b6b31ff97cdefbe451"
+  },
+  "originalArtifactsPreserved": {
+    "count": 72,
+    "allByteIdentical": true,
+    "paymentEvidenceSha256": "sha256:0a7bfbb00b07ad29d0a74a4d28e5f8d443c94e6bd5034eeb6b7463463b332df4",
+    "verificationReportSha256": "sha256:b147e7cfe2c71fee903f4052ca342d8266343694e48843ae017c8e55ae42cd3e",
+    "successfulRpcEvidenceSha256": "sha256:c3524b10e841f57f9ab4bcbe32cbfccbce74b7081c8e5ba4d9cdcb1a9627781f",
+    "successfulRpcReportSha256": "sha256:10c9fcf7b2206039960fb14281a99cec1afa0f8de2e973905147a60dd8d0441d"
+  },
+  "privateSource": {
+    "path": "private/first-payment-reconciliation-2026-10-22/live-inspection.json",
+    "sha256": "sha256:5886a9d5504551b94a344272d9ae371c20e44ddd6d1365aa4336f6cd47ddd1d0"
+  },
+  "actions": {
+    "mode": "read-only",
+    "newPaymentCount": 0,
+    "paymentRetried": false,
+    "settlementRetried": false,
+    "cloudStateMutated": false,
+    "iamChanged": false,
+    "accessExtended": false,
+    "recoverySuccessRecorded": false
+  },
+  "firstSettlement": {
+    "verification": "verified",
+    "clusterLabel": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    "assetMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    "decimals": 6,
+    "amountBaseUnits": "15000",
+    "txSignature": "3BbwAMZjVyX43qwqpMr6dWs7g5zLEPygLd9f5EjgmxTLHua9vLhK3ppTcUAZSR8U5ns98gnhv9BwvpB5FPJQHhwT",
+    "confirmationStatus": "finalized",
+    "slot": 513658504,
+    "confirmedAt": "2026-10-21T21:28:53.000Z",
+    "payerOwner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+    "payeeOwner": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+    "payerDeltaBaseUnits": "-15000",
+    "payeeDeltaBaseUnits": "15000",
+    "tokenAccountDeltas": [
+      {
+        "accountIndex": 2,
+        "tokenAccount": "3Xu6xWJQ8TKdTfM21qkqvjqdAJd7Wg6qQgAB8EsMJvQd",
+        "owner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+        "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "decimals": 6,
+        "preAmountBaseUnits": "19955000",
+        "postAmountBaseUnits": "19940000",
+        "deltaBaseUnits": "-15000"
+      },
+      {
+        "accountIndex": 3,
+        "tokenAccount": "7XiW3QKwGEbBzCfZALeoNKCYSaLcBzqenB9YtGT6Z74J",
+        "owner": "GKW6kwSgTY1KkMi4ygAbZH1gZ13mYHfQJjrCASqYodmk",
+        "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+        "decimals": 6,
+        "preAmountBaseUnits": "45000",
+        "postAmountBaseUnits": "60000",
+        "deltaBaseUnits": "15000"
+      }
+    ],
+    "explorerUrl": "https://explorer.solana.com/tx/3BbwAMZjVyX43qwqpMr6dWs7g5zLEPygLd9f5EjgmxTLHua9vLhK3ppTcUAZSR8U5ns98gnhv9BwvpB5FPJQHhwT?cluster=devnet"
+  },
+  "firstFulfillment": {
+    "state": "receipt_signed",
+    "receiptSignatureVerified": true,
+    "receiptUnchanged": true,
+    "resourceUnchanged": true,
+    "activationId": "9244d258dea0f553f591bea790079045984f9514fcf42b40b32dd74335e228b7",
+    "activatedAt": "2026-10-21T21:28:54.891Z",
+    "expiresAt": "2026-10-21T21:38:54.891Z"
+  },
+  "recovery": {
+    "availableWithoutNewAuthority": false,
+    "reason": "paid_activation_expired_no_saved_recovery_proof",
+    "reservationState": "unknown",
+    "operatorOutcome": "reconciliation_required",
+    "checkpointStages": [
+      "request"
+    ],
+    "dependencyRouteExists": false,
+    "continuationRecorded": false,
+    "expiryCheck": {
+      "mode": "production executePaidRpc function evaluated locally against the current Firestore activation and real observation time; not a live HTTP response",
+      "result": {
+        "status": 410,
+        "body": {
+          "error": "paid_activation_expired"
+        }
+      },
+      "upstreamCalls": 0
+    },
+    "fullResumeInvoked": false,
+    "explanation": "Saved request permits no-settlement fulfillment retrieval, but the immutable ten-minute access window is expired. There is no stored healthy probe/outcome for completing commit only. No successful recovery is claimed."
+  },
+  "budgets": [
+    {
+      "runId": "rpc-20261022-4d574608",
+      "mandate": {
+        "id": "mandate-rpc-20261022-4d574608",
+        "notBefore": "2026-10-21T21:27:54.881Z",
+        "expiresAt": "2026-10-21T21:38:24.881Z",
+        "perTransactionLimitBaseUnits": "20000",
+        "incidentLimitBaseUnits": "50000",
+        "dailyLimitBaseUnits": "50000"
+      },
+      "reservationId": "idem-rpc-20261022-4d574608-primary",
+      "reservationState": "unknown",
+      "reservationVersion": 3,
+      "reservationUpdatedAt": "2026-10-21T21:28:55.027Z",
+      "paymentDayUtc": "2026-10-21",
+      "originalDayUsage": {
+        "incidentCommittedAndReservedBaseUnits": "15000",
+        "dailyCommittedAndReservedBaseUnits": "15000"
+      },
+      "currentUtcDayUsage": {
+        "incidentCommittedAndReservedBaseUnits": "15000",
+        "dailyCommittedAndReservedBaseUnits": "0"
+      },
+      "incidentArithmeticRemainingBaseUnits": "35000",
+      "originalDayArithmeticRemainingBaseUnits": "35000",
+      "currentlyAuthorizedSpendBaseUnits": "0",
+      "reason": "mandate_expired",
+      "settlementConfirmationStatus": "finalized"
+    },
+    {
+      "runId": "rpc-20261022-a27f3f19",
+      "mandate": {
+        "id": "mandate-rpc-20261022-a27f3f19",
+        "notBefore": "2026-10-21T21:42:06.394Z",
+        "expiresAt": "2026-10-21T21:52:36.394Z",
+        "perTransactionLimitBaseUnits": "20000",
+        "incidentLimitBaseUnits": "50000",
+        "dailyLimitBaseUnits": "50000"
+      },
+      "reservationId": "idem-rpc-20261022-a27f3f19-primary",
+      "reservationState": "committed",
+      "reservationVersion": 5,
+      "reservationUpdatedAt": "2026-10-21T21:42:50.258Z",
+      "paymentDayUtc": "2026-10-21",
+      "originalDayUsage": {
+        "incidentCommittedAndReservedBaseUnits": "15000",
+        "dailyCommittedAndReservedBaseUnits": "15000"
+      },
+      "currentUtcDayUsage": {
+        "incidentCommittedAndReservedBaseUnits": "15000",
+        "dailyCommittedAndReservedBaseUnits": "0"
+      },
+      "incidentArithmeticRemainingBaseUnits": "35000",
+      "originalDayArithmeticRemainingBaseUnits": "35000",
+      "currentlyAuthorizedSpendBaseUnits": "0",
+      "reason": "mandate_expired",
+      "settlementConfirmationStatus": "finalized"
+    }
+  ],
+  "wallet": {
+    "asset": "Devnet USDC",
+    "payerOwner": "5ZT11fqnqaZPbWLqx5o4PCNSisXLKV1YFtNUxjQSGPHu",
+    "payerUsdcBaseUnits": "19925000",
+    "payerUsdc": "19.925",
+    "payerBalanceSlot": 513777585,
+    "payerSolLamports": "497955720",
+    "payeeUsdcBaseUnits": "75000",
+    "mostRecentTokenAccountTransaction": "jQtGSXygzbMBV3pptkYuFCJaU343LHxCyfo43y975oVoNFLqWNRD4wAZkTJR7s9czMqBXYS27kbFe83EbfSZgUS",
+    "recentTransactionsInspected": 6,
+    "latestIsPreviouslyVerifiedSuccessfulPayment": true
+  },
+  "notes": [
+    "Budget counters include committed and reserved amounts; settled spend and the held counter are the same amount, not additive.",
+    "Daily counters are keyed by mandate and UTC day. A new UTC day does not revive an expired mandate.",
+    "A wallet balance is not spending authority. No refund was performed or budget released."
+  ]
+}
