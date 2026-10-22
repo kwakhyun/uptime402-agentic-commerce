@@ -1,6 +1,6 @@
 # Uptime402
 
-첫 거래도 추가 결제 없이 RPC 접근권을 한 번 재발급해 복구를 완료했습니다. 원본 만료와 실패 기록은 보존했습니다. [처리 결과와 검증](docs/FIRST_PAYMENT_REISSUE_2026-10-22.md).
+첫 거래도 추가 결제 없이 RPC 접근권을 한 번 재발급해 복구를 완료했습니다. 원본 만료와 실패 기록은 보존했습니다. [처리 결과와 검증](docs/FIRST_PAYMENT_REISSUE_2026-10-22.md), [공개 복구 기록](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/recovery/first-payment).
 
 현재 코드의 기본 모델은 `gemini-3.8-flash`다. 공개 화면의 실시간 진단은 입력한 장애 지표로 Gemini를 호출하고 A2A 공급자의 서명된 견적 두 개를 비교한다. 구매나 결제는 실행하지 않는다. 새 구매 RPC 증거도 Gemini 3.8 Flash로 생성했다. `gemini-2.5-flash`가 표시된 demo5 기록과 도식은 과거 실행을 설명한다.
 

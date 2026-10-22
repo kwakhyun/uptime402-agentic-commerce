@@ -456,7 +456,15 @@ Final은 `UPTIME402_EVIDENCE_BUNDLE=rpc-recovery-2026-10-22`를 사용한다. Re
 
 ## 2026-10-22 새 RPC 증거의 최종 공개 배포
 
-- Runtime source: `a752c708d17ba6e472cc72d48de39982fc16013b`. Cloud Build `740335a5-b962-4d89-ad2a-4f17758f2e74` (`global`), digest `sha256:e38f625364435e8634dd28aa4a08ca1dc02da808092a52c39c7bda673bbd17db`.
-- Control revision: `uptime402-control-plane-00029-jsh`, traffic 100%. Vendor `uptime402-vendor-agent-00012-n6w`, executor `uptime402-payment-executor-00013-rpc`.
+- Runtime source: `8e73ab82ea6f3d88803a1b3e8adb319b520686f2`. Cloud Build `c0cbe8ff-b801-44a7-8591-8fa6fecf4901` (`global`), digest `sha256:6fdefe4571108b9ef54cd26b2ecdbd576f223abfc43886f3ff9431a14d6c9591`.
+- Control revision: `uptime402-control-plane-first-free-proof-v2`, traffic 100%. Vendor `uptime402-vendor-agent-free-reissue`, executor `uptime402-payment-executor-00013-rpc`.
 - 새 RPC bundle hash pin, mutation 404, executor unauthenticated 403, UI/health/vendor 200을 `2026-10-21T21:59:27.023Z`에 확인했다. 임시 control Firestore, executor invoke와 outcome secret 권한을 회수했고 예측 전용 custom role은 유지했다.
-- 증거 수집 명령은 `pnpm portfolio:capture-deployment --build-id=740335a5-b962-4d89-ad2a-4f17758f2e74 --source-commit=a752c708d17ba6e472cc72d48de39982fc16013b --evidence-bundle=rpc-recovery-2026-10-22 --build-region=global`이다. Cloud Run 리전과 Cloud Build 리전은 별도 값으로 기록한다.
+- 증거 수집 명령은 `pnpm portfolio:capture-deployment --build-id=c0cbe8ff-b801-44a7-8591-8fa6fecf4901 --source-commit=8e73ab82ea6f3d88803a1b3e8adb319b520686f2 --evidence-bundle=rpc-recovery-2026-10-22 --build-region=global`이다. Cloud Run 리전과 Cloud Build 리전은 별도 값으로 기록한다.
+
+## 첫 거래 무결제 복구 배포
+
+`cloudbuild.reissue.yaml`은 vendor와 일회성 recovery worker 이미지를 만든다. worker는 `deploy/recovery-worker.Dockerfile`에서 빌드하며, `scripts/reissue-paid-incident.ts`만 실행한다. 최초 실패 거래의 운영자 승인 문서를 별도로 만들고 `REISSUE_RESERVATION_ID`, `REISSUE_APPROVAL_ID`, `CONTROL_PLANE_DEMO_RUN_SLOT`을 정확히 일치시킨다. 승인 문서는 `ReissueApprovalSchema`를 따라 create-only로 저장하고 원본 문서의 기한을 수정하지 않는다.
+
+작업 identity에는 임시 datastore와 고정 버전 outcome secret 접근만 필요하다. executor invoker는 부여하지 않는다. Job은 실행 전에 실제 executor 403과 원래 RPC 접근권 410을 검사한다. 성공한 기존 거래만 읽기 전용으로 재검증하며, 결제 서명이나 정산 재전송은 없다. 작업 후 권한을 회수하고 Job 정의를 정리한다. 동일 payment로 재실행해도 발급 시각이나 만료가 연장되지 않는다.
+
+공개 `UPTIME402_ARTIFACT_ROOT`는 기존 replay 번들을 가리킨다. 별도 첫 거래 후속 번들은 sibling `first-payment-reissue-2026-10-22`에서 읽고, 소스에 고정된 evidence/report 해시를 검증한다. 기본 artifact root와 실제 bundle root의 두 경로는 `tests/free-recovery-evidence.test.ts`로 검증한다. `/recovery/first-payment`와 `/api/evidence/first-payment-recovery`는 읽기 전용이다. [실제 복구와 배포 결과](../docs/FIRST_PAYMENT_REISSUE_2026-10-22.md).

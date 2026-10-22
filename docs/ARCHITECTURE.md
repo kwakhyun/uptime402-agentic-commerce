@@ -258,3 +258,9 @@ sequenceDiagram
     C->>C: Bind response hash to signed outcome
     C->>F: Commit reserved budget
 ```
+
+## 첫 거래의 무결제 접근권 재발급
+
+기존 만료 activation과 vendor claim은 수정하지 않는다. IAM 인증과 별도 운영자 승인 기록, 기존 온체인 정산 검증을 거쳐 payment별 한 번만 새 activation과 영수증을 원자적으로 만든다. 새 resource의 서명 해시는 원본 영수증과 승인 해시를 포함한다. 원본의 결제 허용 기간을 유지한 채 별도 600초 fulfillment 기간을 검증한다. 재시도는 같은 기록을 반환하며 기간을 늘리지 않는다.
+
+일회성 Cloud Run Job은 executor 호출 권한 없이 기존 reservation을 재개하고, Firestore 라우트를 독립적으로 읽은 뒤 공급자 RPC의 getHealth와 getGenesisHash를 호출했다. 원본 실패 capture는 유지하고 성공 continuation만 추가했다. 실행 후 임시 권한과 Job 정의를 제거했다. 공개 화면은 새 후속 증거를 hash pin으로 읽는다. 상세한 서명 연결과 실제 실행 결과는 [재발급 기록](FIRST_PAYMENT_REISSUE_2026-10-22.md)에 있다.

@@ -2,18 +2,18 @@
   "schemaVersion": "1.0",
   "artifactKind": "portfolio-replay-deployment-evidence",
   "notPaymentEvidence": true,
-  "capturedAt": "2026-10-21T21:59:27.023Z",
+  "capturedAt": "2026-10-22T06:42:06.780Z",
   "projectId": "uptime402-hack-260803",
   "region": "asia-northeast3",
-  "sourceCommit": "a752c708d17ba6e472cc72d48de39982fc16013b",
+  "sourceCommit": "8e73ab82ea6f3d88803a1b3e8adb319b520686f2",
   "evidenceBundle": "rpc-recovery-2026-10-22",
-  "buildId": "740335a5-b962-4d89-ad2a-4f17758f2e74",
+  "buildId": "c0cbe8ff-b801-44a7-8591-8fa6fecf4901",
   "buildRegion": "global",
-  "buildExportSha256": "sha256:790e4a711069d48a5f2f173e33fe2b2fc3f5f7fefeafd8005109af328860a9e4",
-  "controlImageDigest": "sha256:e38f625364435e8634dd28aa4a08ca1dc02da808092a52c39c7bda673bbd17db",
-  "projectIamExportSha256": "sha256:5b4c63064d5d3c17e7a2d928feb00dd2e56b917b52f30a57537ec2effcdfd282",
+  "buildExportSha256": "sha256:7211ceedf93b7ec7f7e774222364f478c4d6d76eaf991c04582a0b977cbe08b7",
+  "controlImageDigest": "sha256:6fdefe4571108b9ef54cd26b2ecdbd576f223abfc43886f3ff9431a14d6c9591",
+  "projectIamExportSha256": "sha256:e2f51423029a99e2560824186a586a689d69e1ad97887b7ab1443e3eb748081b",
   "retiredControlPolicyExportSha256s": [
-    "sha256:36378071b521df14f240ee93c90237c6f106708074cbc179ba81ef4a132dae57",
+    "sha256:31b924d9a3b56a92d97f09a378a21456be1b55005f028e5839335896c4736e7f",
     "sha256:fc4e3fa77444f3a53c2c89d398182eece26ba1efa2f92be5a18b4bc45e32c217",
     "sha256:14c49b2c393259403eb43639553c17d0f5b79b4eedc8d831b7f1e6bf4f19586e"
   ],
@@ -28,11 +28,11 @@
     {
       "role": "control-plane",
       "serviceName": "uptime402-control-plane",
-      "revision": "uptime402-control-plane-00029-jsh",
+      "revision": "uptime402-control-plane-first-free-proof-v2",
       "serviceAccount": "uptime402-control@uptime402-hack-260803.iam.gserviceaccount.com",
       "stableUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app",
-      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane:a752c708d17ba6e472cc72d48de39982fc16013b",
-      "descriptionSha256": "sha256:83b1178d816ddf6b9407f3cd3082a628f43d8f68df738bba0b9f29b93d4923e6",
+      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/control-plane:8e73ab82ea6f3d88803a1b3e8adb319b520686f2",
+      "descriptionSha256": "sha256:b08c48acb138d7345db3917afbea749680cef724ca15deb962a3690533fcbd37",
       "iamPolicySha256": "sha256:9c8087a4a52140dd117e56900fc3322609c030c729d2e2170836823995a45878"
     },
     {
@@ -48,11 +48,11 @@
     {
       "role": "vendor-agent",
       "serviceName": "uptime402-vendor-agent",
-      "revision": "uptime402-vendor-agent-00012-n6w",
+      "revision": "uptime402-vendor-agent-free-reissue",
       "serviceAccount": "uptime402-vendor@uptime402-hack-260803.iam.gserviceaccount.com",
       "stableUrl": "https://uptime402-vendor-agent-1065649463621.asia-northeast3.run.app",
-      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/vendor-agent:8155948a5f9fdf90171e8800f5da0e52fed137ce",
-      "descriptionSha256": "sha256:c1a8361bc52f9d044468122d76c79c816958d2cad22711bbd7fcdc17a475011c",
+      "image": "asia-northeast3-docker.pkg.dev/uptime402-hack-260803/uptime402/vendor-agent:3b72993",
+      "descriptionSha256": "sha256:47b0ce5ade07e4dc6e39832ead327bb158bb4a03a0a35ce13e59a572840591af",
       "iamPolicySha256": "sha256:0593d855fe4225f81c268dc13fe1befbc3e545bc54647ccfafdb1502aa726471"
     }
   ],

@@ -43,3 +43,11 @@ Cloud Run Job은 요청을 받는 서비스가 아니라 실행 후 종료하는
 구현 CI [39731050290](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39731050290)의 maintenance와 Firestore emulator가 모두 통과했다. 기본 테스트 256개와 emulator 전용 14개, 고유 테스트 270개를 검증했다. 로컬 emulator는 시작 시간 초과가 발생해 정상 완료한 GitHub Actions의 동일 버전 emulator 결과를 기준으로 삼았다.
 
 새 화면은 이 복구가 성공한 시점과 재발급 접근권의 별도 만료 시각을 함께 표시한다. 영구적인 RPC 접근권이나 현재 운영 서비스 전체의 정상 상태를 주장하지 않는다.
+
+## 최종 공개 배포
+
+공개 revision `uptime402-control-plane-first-free-proof-v2`, source `8e73ab82ea6f3d88803a1b3e8adb319b520686f2`, Cloud Build `c0cbe8ff-b801-44a7-8591-8fa6fecf4901`(`global`, `SUCCESS`), 이미지 `sha256:6fdefe4571108b9ef54cd26b2ecdbd576f223abfc43886f3ff9431a14d6c9591`. 확인 시각은 `2026-10-22T06:42:06.780Z`다. 배포 경로를 직접 재현하는 두 회귀 테스트를 추가했으며, [최종 실행 소스 CI](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39734938340)에서 고유 272개 테스트와 전체 품질 검사가 통과했다.
+
+[첫 거래 복구 화면](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/recovery/first-payment)과 [증거 JSON API](https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/api/evidence/first-payment-recovery)가 HTTP 200을 반환한다. API의 증거는 저장한 파일과 canonical hash가 같다. 공개 결제 mutation은 404, executor는 비인증 403, vendor 재발급은 비인증 401이다. 일반 브라우저 화면에서도 복구 내용과 만료 상태를 확인했다. 실제 모바일 단말은 이번 후속 작업에서 새로 검사하지 않았다.
+
+`uptime402-free-recovery` Job 정의도 성공 실행 기록을 보존한 뒤 삭제했다. 공개 control에는 예측 전용 custom role만 남아 있으며, outcome key와 Firestore 권한이 없다.

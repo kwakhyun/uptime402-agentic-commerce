@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1",
+  "observedAt": "2026-10-22T06:42:15.391Z",
+  "sourceCommit": "8e73ab82ea6f3d88803a1b3e8adb319b520686f2",
+  "pageUrl": "https://uptime402-control-plane-1065649463621.asia-northeast3.run.app/recovery/first-payment",
+  "pageStatus": 200,
+  "evidenceApiStatus": 200,
+  "paymentMutationStatus": 404,
+  "executorUnauthenticatedStatus": 403,
+  "vendorReissueUnauthenticatedStatus": 401,
+  "evidenceSha256": "sha256:889e60ae932e1a383d05adadfeb60d3aa5952b428093b823cf90d98a70fbb873",
+  "publishedEvidenceMatches": true,
+  "reissueShownAsExpired": true,
+  "newPaymentCount": 0,
+  "physicalMobileDeviceTested": false,
+  "browserVerification": {
+    "surface": "in-app-browser",
+    "heading": "추가 결제 없이 RPC 복구 완료",
+    "amountAndWalletDisplayed": true,
+    "originalAndReissuedExpiryDisplayed": true
+  }
+}

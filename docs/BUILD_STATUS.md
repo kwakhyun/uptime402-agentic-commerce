@@ -26,15 +26,15 @@ Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택
 상세: [새 RPC 검증 기록](RPC_RECOVERY_2026-10-22.md). 아래 과거 기록과 영상 수치는 당시 실행에만 적용한다.
 
 
-Last updated: `2026-10-22T05:22:58.959Z`
+Last updated: `2026-10-22T06:42:06.780Z`
 
 Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not selected among the ten finalists announced on 2026-08-07. It is now maintained as a portfolio/reference implementation. 아래 표의 `implementation`, `evidence`, `deployment`, `verification`, `priority`는 서로 독립적인 축이다. 로컬 테스트나 live endpoint만으로 Devnet settlement를 주장하지 않는다.
 
 ## 현재 체크포인트
 
 - 승인된 새 Devnet 구매 RPC 검증과 공개 재배포를 완료했다. 기존 지갑을 사용했으며 새 결제는 2건, 합계 0.030 USDC다. 첫 거래의 복구 실패를 보존하고 별도 실행에서 실제 RPC 호출과 복구까지 검증했다. 과거 demo5와 실패 기록은 덮어쓰지 않았다.
-- Current replay deployment: project `uptime402-hack-260803`, Cloud Run region `asia-northeast3`, control revision `uptime402-control-plane-00029-jsh`, source `a752c708d17ba6e472cc72d48de39982fc16013b`, Cloud Build `740335a5-b962-4d89-ad2a-4f17758f2e74` (`global`, `SUCCESS`), image digest `sha256:e38f625364435e8634dd28aa4a08ca1dc02da808092a52c39c7bda673bbd17db`. 공개 리비전에 트래픽 100%를 배정했다.
-- Payment services: executor `uptime402-payment-executor-00013-rpc`, vendor `uptime402-vendor-agent-00012-n6w`, source `8155948a5f9fdf90171e8800f5da0e52fed137ce`. 성공 capture의 control source는 `b2855e2a5190979ffb609d74924f484b6a667303`, revision은 `uptime402-control-plane-00028-nsm`이다.
+- Current replay deployment: project `uptime402-hack-260803`, Cloud Run region `asia-northeast3`, control revision `uptime402-control-plane-first-free-proof-v2`, source `8e73ab82ea6f3d88803a1b3e8adb319b520686f2`, Cloud Build `c0cbe8ff-b801-44a7-8591-8fa6fecf4901` (`global`, `SUCCESS`), image digest `sha256:6fdefe4571108b9ef54cd26b2ecdbd576f223abfc43886f3ff9431a14d6c9591`. 공개 리비전에 트래픽 100%를 배정했다. 첫 거래 후속 증거 화면과 API도 HTTP 200으로 검증했다.
+- Payment services: executor `uptime402-payment-executor-00013-rpc`, source `8155948a5f9fdf90171e8800f5da0e52fed137ce`; vendor `uptime402-vendor-agent-free-reissue`, source `3b7299317f5465ba6c80dfd9b5dc18b8ea829d27`. 첫 거래의 별도 무결제 Job이 복구를 완료했고 작업 정의와 임시 권한은 제거했다. 두 번째 성공 capture의 control source는 `b2855e2a5190979ffb609d74924f484b6a667303`, revision은 `uptime402-control-plane-00028-nsm`으로 역사 기록에 보존한다.
 - 공개 UI/health `200`, 결제 mutation `404`, 비인증 executor `403`, vendor health/Agent Card `200`. 공개 진단 모델은 `gemini-3.8-flash`이며 결제를 실행하지 않는다. 기록 재생은 `artifacts/runs/rpc-recovery-2026-10-22/`의 새 해시 핀을 읽는다.
 - 임시 control Firestore `datastore.user`, executor `run.invoker`, outcome secret `secretAccessor`를 모두 회수했다. final manifest에는 signer, outcome key, secret mount, Firestore, executor endpoint, operator 설정이 없다. control에는 예측 전용 `aiplatform.endpoints.predict` custom role만 남는다.
 - Current deployment authority: `artifacts/portfolio-deployment/manifest.json`, `notPaymentEvidence: true`. 공개 파일에는 최소 attestation과 원본 해시만 있고 raw service/IAM/build export는 ignored `private/portfolio-deployment-raw/`에 있다. capture 당시 raw export와 이전 공개 배포 export도 private history에 보존했다.
@@ -58,7 +58,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 | Evidence scope, comparison UX and replay performance | implemented | devnet | live | verified | 2026-10-21T22:05:05.400626Z | `docs/verification/paid-rpc-deployment-ui.json`; `tests/mission-control-dom.test.ts` | P0 | 새 RPC 7.026초 증거, receipt/outcome 상세 지연 로딩, 기록 재생 100%, 브라우저 오류 없음 |
 | Maintenance dependency patches | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `package.json`; `pnpm-lock.yaml`; 아래 2026-10-22 검증 기록 | P0 | Next.js 16.3.8 및 6개 전이 의존성 패치; production audit 0건; frozen lockfile 설치, lint/typecheck/build 통과 |
 | Structured telemetry and vendor-text redaction | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/control-plane.test.ts` | P0 | 중첩 JSON 필드 허용 목록, 인증 헤더, IPv6, URL 사용자정보와 쿼리 제거; 모델 입력과 캡처에 원문이 남지 않음을 검사 |
-| Append-only operator continuation records | implemented | local | local | verified | 2026-10-22T04:06:02+09:00 | `tests/operator-boundary.test.ts`; `tests/operator-continuation.test.ts`; `tests/recovery-checkpoints-firestore.test.ts` | P0 | 원본 capture/action 보존; 동시 완료 한 번만 추가; 운영자 재조회와 export의 최신 결과 일치 |
+| Append-only operator continuation records | implemented | devnet | live | verified | 2026-10-22T06:18:21.331Z | `artifacts/runs/first-payment-reissue-2026-10-22/evidence.json`; `tests/recovery-checkpoints-firestore.test.ts` | P0 | 첫 거래의 원본 실패 capture와 request를 보존하고 무결제 복구 continuation 추가 |
 | Standard x402 paid resource | implemented | devnet | live | verified | 2026-10-21T21:45:03.839Z | `artifacts/runs/rpc-recovery-2026-10-22/payment-evidence.json` | P0 | 402, reserve, PAYMENT-SIGNATURE, paid retry, confirmed 200과 서명된 RPC 접근권 전달 확인 |
 | Solana Devnet USDC settlement | implemented | devnet | live | verified | 2026-10-21T21:45:03.839Z | `artifacts/runs/rpc-recovery-2026-10-22/payment-evidence.json` | P0 | finalized slot 513662003; payer -15000 / payee +15000; 원본 demo5도 보존 |
 | Deterministic policy and dual denial | implemented | devnet | live | verified | 2026-08-03T20:18:22+09:00 | `artifacts/live-capture/policy-denial-over-transaction-limit-artifact.json`; `artifacts/live-capture/policy-denial-replay-artifact.json` | P0 | `25000 > 20000` over-cap and primary nonce replay both have `transactionCreated:false`, `txSignature:null` |
@@ -67,9 +67,9 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 | Gemini two-offer material decision | implemented | devnet | live | verified | 2026-10-21T21:45:03.839Z | `artifacts/runs/rpc-recovery-2026-10-22/live-capture/gemini-selection-artifact.json` | P0 | gemini-3.8-flash, baseline standard와 counterfactual emergency 선택 |
 | A2A Agent Card and message boundary | implemented | devnet | live | verified | 2026-09-05T12:14:35.261Z | `artifacts/portfolio-deployment/manifest.json`; `artifacts/live-capture/vendor-agent-card.json` | P0 | separate public vendor service still returns health and Agent Card `200`; two immutable signed offers are preserved |
 | Read-only portfolio mission control | implemented | devnet | live | verified | 2026-10-21T21:59:27.023Z | `artifacts/portfolio-deployment/manifest.json` | P0 | 새 RPC 증거를 읽기 전용으로 재생하고 공개 무결제 진단 제공; mutation 404 |
-| Current Cloud Run and IAM boundary | implemented | local | live | verified | 2026-10-21T21:59:27.023Z | `artifacts/portfolio-deployment/manifest.json` | P0 | 임시 control backend/invoke/outcome-secret 권한 회수, executor private, 세 identity 분리 |
+| Current Cloud Run and IAM boundary | implemented | local | live | verified | 2026-10-22T06:42:06.780Z | `artifacts/portfolio-deployment/manifest.json`; `docs/verification/first-payment-reissue-deployment.json` | P0 | 공개 control은 prediction 전용, 임시 datastore/outcome 권한 회수, Job 정리, executor 비공개 |
 | Evidence hash-pinned final stage | implemented | devnet | live | verified | 2026-10-21T21:59:27.023Z | `artifacts/runs/rpc-recovery-2026-10-22/payment-evidence.json`; `artifacts/runs/rpc-recovery-2026-10-22/verification-report.json`; `artifacts/portfolio-deployment/manifest.json` | P0 | 새 RPC 번들의 정확한 evidence/report 해시 pin; 역사 원본 불변 |
-| Test, supply-chain and release gates | implemented | local | local | verified | 2026-10-21T21:59:27.023Z | `.github/workflows/quality.yml`; CI `39682384710` | P0 | 기본 242 + Emulator 전용 13 = 고유 255개; production build/audit, strict readiness, 배포/문서/보안 검사 통과 |
+| Test, supply-chain and release gates | implemented | local | local | verified | 2026-10-22T06:42:06.780Z | `.github/workflows/quality.yml`; CI `39734938340` | P0 | 기본 258 + emulator 전용 14 = 고유 272개, 새 복구 증거 검증과 production build/audit, readiness 통과 |
 | Public source release | implemented | local | live | verified | 2026-08-30T11:07:08+09:00 | `https://github.com/kwakhyun/uptime402-agentic-commerce`; [GitHub Actions quality](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/workflows/quality.yml) | P0 | public `main` is fast-forwarded only with a raw-metadata-free squash tree; maintenance and Firestore jobs are required to pass after each push |
 | Pub/Sub, Eventarc, Workflows, BigQuery pipeline | planned | none | local | unverified | — | `docs/ARCHITECTURE.md` | P1 | production async extension; deliberately outside the proved synchronous recovery path |
 | pay.sh live-path participation | planned | none | local | unverified | — | — | P1 | not used in the verified path and not claimed |
@@ -158,3 +158,12 @@ The preserved demo5 payment evidence is immutable. UX and documentation releases
 ## 2026-10-22 첫 결제 무결제 재개 점검
 
 사용자가 승인한 첫 거래의 무결제 복구 가능성, 현재 정산과 예산 조회를 완료했다. 별도 마감 없이 30분 점검 단위로 진행했다. 추가 결제와 cloud state 변경은 없다. 첫 정산 finalized 및 영수증은 유효하지만 06:38:54 KST 접근권 만료와 recovery proof 부재로 실제 복구는 미완료다. reservation unknown과 0.015 USDC 잠금은 보존했다. 각 mandate의 계산상 잔여 0.035 USDC, 현재 사용 가능액 0, 지갑 19.925 Devnet USDC. 근거: [점검 문서](FIRST_PAYMENT_REVIEW_2026-10-22.md), `artifacts/runs/rpc-recovery-2026-10-22/follow-ups/first-payment-review-2026-10-22.json`. 점검 상태는 `implementation=implemented`, `evidence=devnet`, `deployment=live`, `verification=verified`, `lastVerifiedAt=2026-10-22T05:22:58.959Z`, `priority=P0`이며 첫 거래의 recovery 성공을 뜻하지 않는다.
+
+## 2026-10-22 첫 거래 무결제 복구 최종 배포
+
+첫 거래를 추가 결제 없이 실제 RPC 복구까지 완료했다. 신규 서명 영수증은 원본 영수증과 승인 해시를 묶고, 별도 control 서명은 실제 응답에 연결된다. 예산은 15000 base units로 전후 동일하며 예약만 committed로 전환됐다. 원본 증거와 만료 기록은 불변이다.
+
+- 공개 후속 화면과 JSON API 200, 공개 결제 mutation 404, executor 비인증 403, vendor 재발급 비인증 401. 브라우저에서도 복구 내용과 접근권 만료 상태를 확인했다.
+- `docs/verification/first-payment-reissue-deployment.json`과 `docs/FIRST_PAYMENT_REISSUE_2026-10-22.md`에 실제 HTTP 결과, 정산, 예산, 지갑, 서명 검증을 기록했다.
+- CI [39734938340](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39734938340) 전체 통과. 기본 258개와 emulator 전용 14개, 고유 272개 테스트. lint, typecheck, production build, production audit, 새 무결제 복구 증거 검증, 기존 readiness 모두 통과했다.
+- 기존 tracked artifact 73개 중 현재 배포 manifest만 갱신했다. 나머지 72개는 바이트가 동일하고 이전 manifest와 raw export는 private에 보존했다. 새 후속 evidence/report 2개를 별도 번들로 추가했다.
