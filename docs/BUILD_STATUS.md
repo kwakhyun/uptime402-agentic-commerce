@@ -21,7 +21,7 @@ Gemini 3.8 Flash(`gemini-3.8-flash`)가 두 서명 견적 중 standard를 선택
 - 새 verification report SHA-256: `10c9fcf7b2206039960fb14281a99cec1afa0f8de2e973905147a60dd8d0441d`
 - 기존 demo5 원본 두 파일과 과거 결제 증거는 그대로 보존했다.
 
-첫 검증 거래도 0.015 Devnet USDC로 정산됐으나, 접근권 만료와 견적 만료를 같아야 한다고 검사하는 오류로 복구 단계가 거절됐다. 해당 기록을 보존하고 만료 검사를 수정한 뒤 별도 실행에서 위 결과를 얻었다. **이번 작업의 새 Devnet 결제는 총 2건, 0.030 USDC**다. 첫 거래를 재결제하거나 실패를 성공으로 표시하지 않았다.
+첫 검증 거래도 0.015 Devnet USDC로 정산됐으나, 접근권 만료와 견적 만료를 같아야 한다고 검사하는 오류로 복구 단계가 거절됐다. 해당 기록을 보존하고 만료 검사를 수정한 뒤 별도 실행에서 위 결과를 얻었다. **이전 구매 검증의 새 Devnet 결제는 총 2건, 0.030 USDC**다. 첫 거래를 재결제하거나 실패를 성공으로 표시하지 않았다.
 
 상세: [새 RPC 검증 기록](RPC_RECOVERY_2026-10-22.md). 아래 과거 기록과 영상 수치는 당시 실행에만 적용한다.
 
@@ -32,7 +32,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 ## 현재 체크포인트
 
-- 승인된 새 Devnet 구매 RPC 검증과 공개 재배포를 완료했다. 기존 지갑을 사용했으며 새 결제는 2건, 합계 0.030 USDC다. 첫 거래의 복구 실패를 보존하고 별도 실행에서 실제 RPC 호출과 복구까지 검증했다. 과거 demo5와 실패 기록은 덮어쓰지 않았다.
+- 이전 구매 RPC 검증은 기존 지갑에서 2건, 합계 0.030 USDC를 결제했다. 이번 첫 거래 재발급 작업에서는 추가 결제가 없다. 첫 거래의 복구 실패를 보존하고 별도 실행에서 실제 RPC 호출과 복구까지 검증했다. 과거 demo5와 실패 기록은 덮어쓰지 않았다.
 - Current replay deployment: project `uptime402-hack-260803`, Cloud Run region `asia-northeast3`, control revision `uptime402-control-plane-first-free-proof-v2`, source `8e73ab82ea6f3d88803a1b3e8adb319b520686f2`, Cloud Build `c0cbe8ff-b801-44a7-8591-8fa6fecf4901` (`global`, `SUCCESS`), image digest `sha256:6fdefe4571108b9ef54cd26b2ecdbd576f223abfc43886f3ff9431a14d6c9591`. 공개 리비전에 트래픽 100%를 배정했다. 첫 거래 후속 증거 화면과 API도 HTTP 200으로 검증했다.
 - Payment services: executor `uptime402-payment-executor-00013-rpc`, source `8155948a5f9fdf90171e8800f5da0e52fed137ce`; vendor `uptime402-vendor-agent-free-reissue`, source `3b7299317f5465ba6c80dfd9b5dc18b8ea829d27`. 첫 거래의 별도 무결제 Job이 복구를 완료했고 작업 정의와 임시 권한은 제거했다. 두 번째 성공 capture의 control source는 `b2855e2a5190979ffb609d74924f484b6a667303`, revision은 `uptime402-control-plane-00028-nsm`으로 역사 기록에 보존한다.
 - 공개 UI/health `200`, 결제 mutation `404`, 비인증 executor `403`, vendor health/Agent Card `200`. 공개 진단 모델은 `gemini-3.8-flash`이며 결제를 실행하지 않는다. 기록 재생은 `artifacts/runs/rpc-recovery-2026-10-22/`의 새 해시 핀을 읽는다.
@@ -42,14 +42,14 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 - [실행 소스 CI](https://github.com/kwakhyun/uptime402-agentic-commerce/actions/runs/39682384710): maintenance와 Firestore Emulator 모두 성공. 기본 242개와 Emulator 전용 13개, 고유 테스트 255개 통과. production audit 취약점 0건, strict readiness 31 PASS / 2 INFO / 0 WARN / 0 FAIL. 이후 배포 기록, 검증 도구와 문서 수정은 실행 이미지에 영향을 주지 않는다.
 - 기존 PDF/PPTX와 165.021초 demo 영상은 demo5의 역사 기록이다. 새 RPC 검증 영상으로 표시하지 않는다.
 
-최종 공개 브라우저 검증: 390px/320px에서 실제 진단과 두 견적 비교, 새 RPC 증거 상세와 실행 기록 재생을 확인했다. 추가 결제와 콘솔 오류는 없다. 실제 모바일 하드웨어는 검증하지 않았다. 근거: `docs/verification/paid-rpc-deployment-ui.json`.
+두 번째 결제 배포 당시 공개 브라우저 검증: 390px/320px에서 실제 진단과 두 견적 비교, 새 RPC 증거 상세와 실행 기록 재생을 확인했다. 추가 결제와 콘솔 오류는 없다. 실제 모바일 하드웨어는 검증하지 않았다. 근거: `docs/verification/paid-rpc-deployment-ui.json`.
 
 ## Integration status
 
 | Integration | implementation | evidence | deployment | verification | lastVerifiedAt | evidenceRef | priority | Notes / blocker |
 |---|---|---|---|---|---|---|---|---|
 | First payment free RPC reissue | implemented | devnet | live | verified | 2026-10-22T06:18:21.331Z | `docs/FIRST_PAYMENT_REISSUE_2026-10-22.md`; `artifacts/runs/first-payment-reissue-2026-10-22/evidence.json` | P0 | one-time 600-second lease, real RPC healthy, existing reservation committed; no new payment, immutable expired history |
-| First payment settlement and budget review | implemented | devnet | live | verified | 2026-10-22T05:22:58.959Z | `docs/FIRST_PAYMENT_REVIEW_2026-10-22.md`; `artifacts/runs/rpc-recovery-2026-10-22/follow-ups/first-payment-review-2026-10-22.json` | P0 | finalized 0.015, expired access and no recovery proof; held budget preserved, no additional payment |
+| First payment review before reissue | implemented | devnet | live | verified | 2026-10-22T05:22:58.959Z | `docs/FIRST_PAYMENT_REVIEW_2026-10-22.md`; `artifacts/runs/rpc-recovery-2026-10-22/follow-ups/first-payment-review-2026-10-22.json` | P0 | Pre-reissue snapshot: finalized 0.015, expired access and no recovery proof; held budget preserved, no additional payment |
 | Public mobile diagnosis | implemented | local | live | verified | 2026-10-21T22:05:05.400626Z | `docs/verification/paid-rpc-deployment-ui.json` | P0 | 390px standard와 320px emergency 실제 Gemini 선택, 16px 입력, 가로 넘침 없음; 실제 단말 미검증 |
 | Public payment-free diagnosis | implemented | local | live | verified | 2026-10-21T22:05:05.400626Z | `docs/verification/paid-rpc-deployment-ui.json`; `artifacts/portfolio-deployment/manifest.json` | P0 | 실제 모델 진단과 A2A 두 견적 비교, 결제 mutation 404, 추가 결제 없음 |
 | Gemini 3.8 Flash default | implemented | devnet | live | verified | 2026-10-21T21:45:03.839Z | `artifacts/runs/rpc-recovery-2026-10-22/live-capture/gemini-selection-artifact.json` | P0 | 실제 결제 실행에서 standard 선택, 심한 장애 조건에서 emergency 선택; 공개 무결제 진단에도 같은 모델 적용 |
