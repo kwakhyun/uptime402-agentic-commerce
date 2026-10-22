@@ -10,6 +10,7 @@ const gates = [
   ["pnpm", ["run", "deploy:validate"]],
   ["pnpm", ["run", "portfolio:verify-deployment"]],
   ["pnpm", ["run", "docs:verify"]],
+  ["pnpm", ["run", "evidence:verify-free-recovery"]],
   ["pnpm", ["run", "ready:structural"]],
 ] as const;
 

@@ -4,7 +4,8 @@
 
 별도 마감은 지정되지 않았다. 30분 단위로 재발급 보안/테스트, 실시간 정산 및 무결제 복구, 증거와 재배포를 점검한다. 원본 만료 접근권, 영수증, 실패 capture와 모든 기존 증거 파일을 보존한다. 신규 결제, 정산 재전송, 만료된 spending mandate 재활성화는 허용하지 않는다.
 
-- 상태: implementation=planned, evidence=none, deployment=local, verification=unverified, lastVerifiedAt=—, evidenceRef=이 작업 기록, priority=P0.
+- 상태: implementation=implemented, evidence=devnet, deployment=live, verification=verified, lastVerifiedAt=2026-10-22T06:18:21.331Z, evidenceRef=`docs/FIRST_PAYMENT_REISSUE_2026-10-22.md`, priority=P0.
+- 첫 거래를 추가 결제 없이 재발급해 실제 RPC 복구와 기존 예약 commit을 완료했다. 원본 만료와 실패 기록을 보존했다. 지갑 19.925 USDC, 계산상 잔여 예산 0.035 USDC, 만료된 mandate의 신규 지출 가능액 0. 자세한 결과는 위 후속 문서와 새 증거 번들에 있다.
 
 
 ## 2026-10-22 구매 RPC 검증
@@ -47,6 +48,7 @@ Uptime402 was submitted before the 2026-08-03 23:59 KST deadline and was not sel
 
 | Integration | implementation | evidence | deployment | verification | lastVerifiedAt | evidenceRef | priority | Notes / blocker |
 |---|---|---|---|---|---|---|---|---|
+| First payment free RPC reissue | implemented | devnet | live | verified | 2026-10-22T06:18:21.331Z | `docs/FIRST_PAYMENT_REISSUE_2026-10-22.md`; `artifacts/runs/first-payment-reissue-2026-10-22/evidence.json` | P0 | one-time 600-second lease, real RPC healthy, existing reservation committed; no new payment, immutable expired history |
 | First payment settlement and budget review | implemented | devnet | live | verified | 2026-10-22T05:22:58.959Z | `docs/FIRST_PAYMENT_REVIEW_2026-10-22.md`; `artifacts/runs/rpc-recovery-2026-10-22/follow-ups/first-payment-review-2026-10-22.json` | P0 | finalized 0.015, expired access and no recovery proof; held budget preserved, no additional payment |
 | Public mobile diagnosis | implemented | local | live | verified | 2026-10-21T22:05:05.400626Z | `docs/verification/paid-rpc-deployment-ui.json` | P0 | 390px standard와 320px emergency 실제 Gemini 선택, 16px 입력, 가로 넘침 없음; 실제 단말 미검증 |
 | Public payment-free diagnosis | implemented | local | live | verified | 2026-10-21T22:05:05.400626Z | `docs/verification/paid-rpc-deployment-ui.json`; `artifacts/portfolio-deployment/manifest.json` | P0 | 실제 모델 진단과 A2A 두 견적 비교, 결제 mutation 404, 추가 결제 없음 |
